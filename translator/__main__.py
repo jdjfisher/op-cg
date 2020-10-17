@@ -1,11 +1,13 @@
 #!/usr/bin/python
 
-
 # Standard library imports
 import subprocess
 import argparse
 import os
 import re 
+
+# Application imports
+from translator import translate
 
 
 # Program entrypoint
@@ -17,30 +19,33 @@ def main(argv=None):
   parser.add_argument('-v', '--verbose', help='Verbose', action='store_true')
   parser.add_argument('-o', '--out', help='Output Directory', type=isDirPath, default='.')
   parser.add_argument('-p', '--prefix', help='Output File Prefix', type=isValidPrefix, default='op_')
-  parser.add_argument('files', help='Input Files', type=isFilePath, nargs='+')
+  parser.add_argument('filepaths', help='Input Files', type=isFilePath, nargs='+')
   args = parser.parse_args(argv)
 
   # TODO: Check file extensions are a supported langauge. Also deal with varying supported extensions.
 
   # Process the input files
-  n = len(args.files)
-  for i, raw_file in enumerate(args.files, 1):
+  n = len(args.filepaths)
+  for i, raw_path in enumerate(args.filepaths, 1):
 
     if args.verbose:
-      print(f'Processing file {i} of {n}: {raw_file}')
+      print(f'Processing file {i} of {n}: {raw_path}')
     
-    # Read the source file
-    with open(raw_file, 'r') as raw_data:
+    # Read the raw source file
+    with open(raw_path, 'r') as raw_file:
 
-      # Do some stuff ..
-      data = raw_data.read()
+      # Translate the source
+      data = translate(raw_file.read())
 
       # Form output file path 
-      new_file = os.path.join(args.out, args.prefix + os.path.basename(raw_file))
+      new_path = os.path.join(args.out, args.prefix + os.path.basename(raw_path))
 
-      # Write the source file
-      with open(new_file, 'w') as new_data:
-        new_data.write(data)
+      # Write the new source file
+      with open(new_path, 'w') as new_file:
+        new_file.write(data)
+
+        if args.verbose:
+          print(f'  Created translation file: {new_file}')
 
 
   # End of main

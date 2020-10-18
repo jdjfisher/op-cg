@@ -8,7 +8,8 @@ import re
 
 # Application imports
 from translator import translate
-from languages import isSupported
+from language import isSupported, findLang
+from parallelization import findPara
 
 
 # Program entrypoint
@@ -16,15 +17,15 @@ def main(argv=None):
 
   # Build arg parser
   parser = argparse.ArgumentParser()
-  parser.add_argument('-version', '--version', help='Version', action='version', version=getVersion())
+  parser.add_argument('-V', '-version', '--version', help='Version', action='version', version=getVersion())
   parser.add_argument('-v', '--verbose', help='Verbose', action='store_true')
   parser.add_argument('-o', '--out', help='Output Directory', type=isDirPath, default='.')
   parser.add_argument('-p', '--prefix', help='Output File Prefix', type=isValidPrefix, default='op_')
-  parser.add_argument('filepaths', help='Input Files', type=isFilePath, nargs='+')
+  parser.add_argument('file_paths', help='Input Files', type=isFilePath, nargs='+')
   args = parser.parse_args(argv)
 
   # Collect the set of file extensions
-  extensions = {os.path.splitext(path)[1][1:] for path in args.filepaths}
+  extensions = { os.path.splitext(path)[1][1:] for path in args.file_paths }
 
   # Validate the file extensions
   if not extensions:
@@ -38,15 +39,21 @@ def main(argv=None):
     if not isSupported(extension):
       raise Exception(f'Unsupported file extension: {extension}')
 
+  # Determine the target language and translation
+  l = findLang(extension)
+  p = findPara()
+
+  if args.verbose:
+    print(f'Target language: {l}')
+    print(f'Selected parallelization: {p}')
 
 
   # Pre-processing ...
-  
 
 
   # Process the input files
-  n = len(args.filepaths)
-  for i, raw_path in enumerate(args.filepaths, 1):
+  n = len(args.file_paths)
+  for i, raw_path in enumerate(args.file_paths, 1):
 
     if args.verbose:
       print(f'Processing file {i} of {n}: {raw_path}')
@@ -67,13 +74,12 @@ def main(argv=None):
         if args.verbose:
           print(f'  Created translation file: {new_path}')
 
-
-  # End of main
-  exit()
+  if args.verbose:
+    print('Done')
 
 
 def getVersion():
-  return 'Unknown'
+  return subprocess.check_output(["git", "describe", "--always"]).strip().decode()
 
 
 def isDirPath(path):

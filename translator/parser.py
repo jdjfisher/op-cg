@@ -4,8 +4,7 @@ import re
 
 
 def parse(data):
-  print(data)
-  return None
+  pass
 
 
 def parseInits(text):

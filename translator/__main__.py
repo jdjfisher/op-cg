@@ -8,6 +8,7 @@ import re
 
 # Application imports
 from translator import translate
+from languages import isSupported
 
 
 # Program entrypoint
@@ -22,7 +23,26 @@ def main(argv=None):
   parser.add_argument('filepaths', help='Input Files', type=isFilePath, nargs='+')
   args = parser.parse_args(argv)
 
-  # TODO: Check file extensions are a supported langauge. Also deal with varying supported extensions.
+  # Collect the set of file extensions
+  extensions = {os.path.splitext(path)[1][1:] for path in args.filepaths}
+
+  # Validate the file extensions
+  if not extensions:
+    raise Exception('Missing file extensions, unable to determine target language.')
+
+  elif len(extensions) > 1:
+    raise Exception('Varying file extensions, unable to determine target language.')
+
+  else:
+    [ extension ] = extensions 
+    if not isSupported(extension):
+      raise Exception(f'Unsupported file extension: {extension}')
+
+
+
+  # Pre-processing ...
+  
+
 
   # Process the input files
   n = len(args.filepaths)
@@ -35,17 +55,17 @@ def main(argv=None):
     with open(raw_path, 'r') as raw_file:
 
       # Translate the source
-      data = translate(raw_file.read())
+      translation = translate(raw_file.read())
 
       # Form output file path 
       new_path = os.path.join(args.out, args.prefix + os.path.basename(raw_path))
 
       # Write the new source file
       with open(new_path, 'w') as new_file:
-        new_file.write(data)
+        new_file.write(translation)
 
         if args.verbose:
-          print(f'  Created translation file: {new_file}')
+          print(f'  Created translation file: {new_path}')
 
 
   # End of main

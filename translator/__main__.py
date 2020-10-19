@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 # Standard library imports
+from datetime import date
 import subprocess
 import argparse
 import os
@@ -52,11 +53,10 @@ def main(argv=None):
 
 
   # Process the input files
-  n = len(args.file_paths)
   for i, raw_path in enumerate(args.file_paths, 1):
 
     if args.verbose:
-      print(f'Processing file {i} of {n}: {raw_path}')
+      print(f'Processing file {i} of {len(args.file_paths)}: {raw_path}')
     
     # Read the raw source file
     with open(raw_path, 'r') as raw_file:
@@ -69,6 +69,8 @@ def main(argv=None):
 
       # Write the new source file
       with open(new_path, 'w') as new_file:
+         
+        new_file.write(f'{l.com_delim} Auto-generated on {date.today()} by {parser.prog}\n\n')
         new_file.write(translation)
 
         if args.verbose:

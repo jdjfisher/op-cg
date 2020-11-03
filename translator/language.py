@@ -1,5 +1,5 @@
 
-class Language:
+class Lang:
   def __init__(self, name, extensions, com_delim):
     self.name = name
     self.extensions = extensions
@@ -10,9 +10,8 @@ class Language:
 
 
 languages = [
-  Language('C', 'c', '//'),
-  Language('Modern Fortran', ['F90', 'F95'], '!'),
-  Language('Classic Fortran', ['F77', 'F'], '!'),
+  Lang('C', 'c', '//'),
+  Lang('Modern Fortran', ['F90', 'F95'], '!'),
 ]
 
 

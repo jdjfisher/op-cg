@@ -1,14 +1,14 @@
 #!/usr/bin/python
 
 # Standard library imports
-from datetime import date
+from datetime import datetime
 import subprocess
 import argparse
 import os
 import re 
 
 # Application imports
-from translator import translate
+from translator import translateProgram
 from language import isSupported, findLang
 from parallelization import findPara
 
@@ -17,7 +17,7 @@ from parallelization import findPara
 def main(argv=None):
 
   # Build arg parser
-  parser = argparse.ArgumentParser()
+  parser = argparse.ArgumentParser(prog='w.i.p')
   parser.add_argument('-V', '-version', '--version', help='Version', action='version', version=getVersion())
   parser.add_argument('-v', '--verbose', help='Verbose', action='store_true')
   parser.add_argument('-o', '--out', help='Output Directory', type=isDirPath, default='.')
@@ -46,13 +46,9 @@ def main(argv=None):
 
   if args.verbose:
     print(f'Target language: {l}')
-    print(f'Selected parallelization: {p}')
+    print(f'Target parallelization: {p}')
 
-
-  # Pre-processing ...
-
-
-  # Process the input files
+  # Process the files
   for i, raw_path in enumerate(args.file_paths, 1):
 
     if args.verbose:
@@ -62,7 +58,7 @@ def main(argv=None):
     with open(raw_path, 'r') as raw_file:
 
       # Translate the source
-      translation = translate(raw_file.read())
+      translation = translateProgram(raw_file.read())
 
       # Form output file path 
       new_path = os.path.join(args.out, args.prefix + os.path.basename(raw_path))
@@ -70,7 +66,7 @@ def main(argv=None):
       # Write the new source file
       with open(new_path, 'w') as new_file:
          
-        new_file.write(f'{l.com_delim} Auto-generated on {date.today()} by {parser.prog}\n\n')
+        new_file.write(f'\n{l.com_delim} Auto-generated at {datetime.now()} by {parser.prog}\n\n')
         new_file.write(translation)
 
         if args.verbose:

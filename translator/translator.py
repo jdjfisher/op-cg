@@ -1,12 +1,14 @@
 
-
 # Application imports
 from parser import parse
 
 
-def translate(data):
+def translateProgram(data):
   parse(data)
-
   # Do stuff ...
+  return data
 
+
+def translateKernel(data):
+  # Do stuff ...
   return data

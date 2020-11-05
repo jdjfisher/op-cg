@@ -9,18 +9,18 @@ class Lang:
       return self.name
 
 
-languages = [
+langs = [
   Lang('C', 'c', '//'),
   Lang('Modern Fortran', ['F90', 'F95'], '!'),
 ]
 
 
 def findLang(extension):
-  return next((l for l in languages if extension in l.extensions), None)
+  return next((l for l in langs if extension in l.extensions), None)
 
 
 def supportedExtensions():
-  return [ex for lang in languages for ex in lang.extensions]
+  return [ ex for lang in langs for ex in lang.extensions ]
 
 
 def isSupported(extension):

@@ -4,39 +4,32 @@ import re, json
 from subprocess import call
 
 # Application imports
-from util import markedSubstr
+from util import extractDelimStr
 
 
 access_labels = ['OP_READ', 'OP_WRITE', 'OP_RW', 'OP_INC', 'OP_MAX', 'OP_MIN']
 
 
-class ParseError(Exception):
-  def __init__(self, message, filename, line):
-      self.message = message
-      self.filename = filename
-      self.line = line
-      super().__init__(f'ParserError: {filename} line: {line} {message}')
+class Store:
+  def __init__(self, inits, exits, consts, loops):
+    self.inits = inits
+    self.exits = exits
+    self.consts = consts
+    self.loops = loops
+
+  def __str__(self):
+    return f'''{len(self.consts)} constants, {len(self.loops)} loops''' # TODO: ...
 
 
-# def pre():
-  # compiler_path = 'gfortran'
-  # sources = ['examples/airfoil/op2_for_declarations.F90', './examples/airfoil/airfoil.F90']
-  # return_code = call([compiler_path] + sources, shell=True)  
-  # print(return_code)
-
-
-def parse(data):
+def parseProgram(data):
   # TODO: preprocess text to remove comments and line continuations
 
-  data = {
-    'inits': parseInits(data),
-    'consts' : parseConsts(data),
-    'loops' : parseParLoops(data),
-    'exits': parseExits(data),
-  }
-
-  print(json.dumps(data, indent=2))
-  return data
+  return Store(
+    inits  = parseInits(data),
+    exits  = parseExits(data),
+    consts = parseConsts(data),
+    loops  = parseParLoops(data),
+  )
 
 
 def parseApiCalls(name_regex, text):
@@ -46,22 +39,13 @@ def parseApiCalls(name_regex, text):
   calls = []
   #
   for match in re.finditer(regex, text):
-    depth = 1
-    i = match.end() 
-
-    # Scan the text until the same depth closing paranthesis is found 
-    while depth:
-      if text[i] == '(':
-        depth += 1
-      elif text[i] == ')':
-        depth -= 1
-      i += 1
 
     # Extract call name
     name = re.search(name_regex, match.group()).group()
 
-    # Extract call arguments TODO: factor in paranthesis
-    args = [ a.strip() for a in text[ match.end() : i-1 ].split(',') ]
+    # Extract call arguments 
+    raw_args = extractDelimStr(text, ('(', ')'), match.start())
+    args = [ a.strip() for a in re.split(r',(?!\S\)|\()', raw_args) ] # TODO: finish
 
     calls.append((name, args))
 
@@ -74,16 +58,6 @@ def parseInits(text):
 
 def parseExits(text):
   return len(re.findall(r'op_exit', text))
-
-
-# op_partition
-def parseParts(text):
-  pass
-
-
-# hdf5
-def parseHdf5s(text):
-  pass
 
 
 def parseConsts(text):
@@ -113,6 +87,7 @@ def parseParLoops(text):
       'kernel': args[0],
       'set': args[1],
       'args': args[2:],
+      'direct': True, # TODO: ...
     })
 
   return loops

@@ -7,15 +7,20 @@ from subprocess import call
 from util import extractDelimStr
 
 
-access_labels = ['OP_READ', 'OP_WRITE', 'OP_RW', 'OP_INC', 'OP_MAX', 'OP_MIN']
-
-
 class Store:
-  def __init__(self, inits, exits, consts, loops):
-    self.inits = inits
-    self.exits = exits
+  def __init__(self, init=0, exit=0, consts=[], loops=[]):
+    self.init = init
+    self.exit = exit
     self.consts = consts
     self.loops = loops
+
+
+  def merge(self, store):
+    self.init += store.init
+    self.exit += store.exit
+    self.consts += store.consts
+    self.loops += store.loops
+
 
   def __str__(self):
     return f'''{len(self.consts)} constants, {len(self.loops)} loops''' # TODO: ...
@@ -24,9 +29,12 @@ class Store:
 def parseProgram(data):
   # TODO: preprocess text to remove comments and line continuations
 
+  # 
+  entry_point = re.search(r'^\s*(program|PROGRAM)\s+', data)
+
   return Store(
-    inits  = parseInits(data),
-    exits  = parseExits(data),
+    init  = parseInits(data),
+    exit  = parseExits(data),
     consts = parseConsts(data),
     loops  = parseParLoops(data),
   )
@@ -44,8 +52,9 @@ def parseApiCalls(name_regex, text):
     name = re.search(name_regex, match.group()).group()
 
     # Extract call arguments 
-    raw_args = extractDelimStr(text, ('(', ')'), match.start())
-    args = [ a.strip() for a in re.split(r',(?!\S\)|\()', raw_args) ] # TODO: finish
+    args_str = extractDelimStr(text, ('(', ')'), match.start())
+    raw_args = re.split(r',\s*(?![^()]*\))', args_str) # TODO: Deal with deep paranthesis
+    args = [ re.sub(r'\s*&\s*\n\s*&\s*', '', a) for a in raw_args ]  # TODO: cleanup, generalise for language
 
     calls.append((name, args))
 

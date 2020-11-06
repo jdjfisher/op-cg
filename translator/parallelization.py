@@ -1,18 +1,17 @@
 
 
 class Para:
-  def __init__(self, name, file_prefix=None):
+  def __init__(self, name):
     self.name = name
-    self.file_prefix = file_prefix or name.lower().replace(' ', '-')
 
   def __str__(self):
       return self.name
 
 
 paras = [
+  Para('seq'),
   Para('cuda'),
   Para('omp3'),
-  Para('omp4'),
   # ...
 ]
 

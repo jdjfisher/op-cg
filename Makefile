@@ -1,16 +1,4 @@
 .SILENT:
 
 all:
-	echo "..."
-
-build:
-	echo "..."
-
-run:
-	echo "..."
-
-test:
-	echo "..."
-
-clean:
-	echo "..."
+	python translator seq -v examples/airfoil/airfoil.F90 -o temp

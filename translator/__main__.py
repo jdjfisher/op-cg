@@ -8,10 +8,10 @@ import os
 import re 
 
 # Application imports
-from translator import translateProgram
-from language import isSupported, findLang
+from generator import augmentProgram, genKernelHost
+from language import supportedLangExts, supportedLangs, findLang
 from parallelization import findPara, supportedParas
-from parser import parseProgram
+from parser import parseProgram, Store
 
 
 # Program entrypoint
@@ -24,6 +24,8 @@ def main(argv=None):
   parser.add_argument('-v', '--verbose', help='Verbose', action='store_true')
   parser.add_argument('-o', '--out', help='Output Directory', type=isDirPath, default='.')
   parser.add_argument('-p', '--prefix', help='Output File Prefix', type=isValidPrefix, default='op_')
+  # parser.add_argument('-l', '--language', help='Target Language', type=str, choices=supportedLangs())
+  parser.add_argument('-soa', '--soa', help='Structs of Arrays', action='store_true')
   parser.add_argument('para', help='Target Parallelization', type=str, choices=supportedParas())
   parser.add_argument('file_paths', help='Input Files', type=isFilePath, nargs='+')
   args = parser.parse_args(argv)
@@ -40,57 +42,103 @@ def main(argv=None):
 
   else:
     [ extension ] = extensions 
-    if not isSupported(extension):
+    if not extension in supportedLangExts():
       raise Exception(f'Unsupported file extension: {extension}')
 
   # Determine the target language and translation
-  l = findLang(extension)
-  p = findPara(args.para)
+  lang = findLang(extension)
+  para = findPara(args.para)
 
   if args.verbose:
-    print(f'Target language: {l}')
-    print(f'Target parallelization: {p}\n')
+    print(f'Target language: {lang}')
+    print(f'Target parallelization: {para}\n')
 
-  new_file_paths = [] # TODO: Add option to destroy generated files after failure
+  # TODO: Lookup translation scheme using (l, p)
+  scheme = None
 
-  # Process the files
+
+  # ---                   Source Parsing                    --- #
+
+
+  main_store = Store()
+
+  # Parse the input files
   for i, raw_path in enumerate(args.file_paths, 1):
 
     if args.verbose:
-      print(f'Processing file {i} of {len(args.file_paths)}: {raw_path}')
+      print(f'Parsing file {i} of {len(args.file_paths)}: {raw_path}')
     
     # Read the raw source file
     with open(raw_path, 'r') as raw_file:
       source = raw_file.read()
 
       # Parse the source
-      store = parseProgram(source) # TODO: combine stores
+      store = parseProgram(source) 
+      main_store.merge(store)
 
       if args.verbose:
         print(f'  Parsed: {store}')
 
+  if args.verbose:
+    print('Main store:', main_store)
+
+  kernels = []
+
+
+  # ---                   Code generation                    --- #
+
+
+  # Collect the paths of any generated files
+  generated_paths = [] # TODO: Destroy any generated files after failure
+
+  # Generate kernel parallelisations
+  for i, kernel in enumerate(kernels, 1):
+
+    if args.verbose:
+      print(f'Generating kernel host {i} of {len(kernels)}: {kernel.name}')
+
+    # Form output file path 
+    path = '?'
+
+    # Generate kernel source
+    source = genKernelHost(kernel, scheme)
+
+    # Write the translated source file
+    with open(path, 'w') as file:
+      file.write(source)
+      generated_paths.append(path)
+
+      if args.verbose:
+        print(f'  Created kernel host file: {path}')
+
+
+  # Generate program translations
+  for i, raw_path in enumerate(args.file_paths, 1):
+
+    if args.verbose:
+      print(f'Translating file {i} of {len(args.file_paths)}: {raw_path}')
+    
+    # Read the raw source file
+    with open(raw_path, 'r') as raw_file:
+      source = raw_file.read()
+
       # Translate the source
-      translation = translateProgram(source, store)
+      translation = augmentProgram(source, store)
 
       # Form output file path 
       new_path = os.path.join(args.out, args.prefix + os.path.basename(raw_path))
 
       # Write the translated source file
       with open(new_path, 'w') as new_file:
-        new_file.write(f'\n{l.com_delim} Auto-generated at {datetime.now()} by {parser.prog}\n\n')
+        new_file.write(f'\n{lang.com_delim} Auto-generated at {datetime.now()} by {parser.prog}\n\n')
         new_file.write(translation)
-        new_file_paths.append(new_file)
+        generated_paths.append(new_path)
 
         if args.verbose:
-          print(f'  Created translation file: {new_path}')
+          print(f'  Created translation file: {new_path}')     
 
-  # Validate kernels
 
-  # Generate kernel parallelisations
-  # TODO: ...
-  # for kernel in ...
-    # translateKernel(kernel)
-
+  # End of main
   if args.verbose:
     print('\nTerminating')
 

@@ -68,13 +68,7 @@ def main(argv=None):
     if args.verbose:
       print(f'Parsing file {i} of {len(args.file_paths)}: {raw_path}')
     
-    # Read the raw source file
-    with open(raw_path, 'r') as raw_file:
-      source = raw_file.read()
-
-      # Parse the source
-      store = parseProgram(source) 
-      main_store.merge(store)
+      store = parseProgram(raw_path) 
 
       if args.verbose:
         print(f'  Parsed: {store}')
@@ -123,7 +117,7 @@ def main(argv=None):
       source = raw_file.read()
 
       # Translate the source
-      translation = augmentProgram(source, store)
+      translation = augmentProgram(source, main_store)
 
       # Form output file path 
       new_path = os.path.join(args.out, args.prefix + os.path.basename(raw_path))

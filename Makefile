@@ -1,4 +1,4 @@
 .SILENT:
 
 all:
-	python translator seq -v examples/airfoil/airfoil.F90 -o temp
+	python opcg seq -v examples/fortran/airfoil/airfoil.F90 -o temp

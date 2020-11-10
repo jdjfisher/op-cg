@@ -10,7 +10,7 @@ class Lang:
 
 
 langs = [
-  Lang('C', 'c', '//'),
+  Lang('C++', ['cpp'], '//'),
   Lang('Fortran', ['F90', 'F95'], '!'),
 ]
 

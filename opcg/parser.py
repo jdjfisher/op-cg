@@ -1,7 +1,13 @@
 
 # Standard library imports
-import re, json
+import re
+import json
+import os
+import contextlib
 from subprocess import call
+
+# Third party imports
+import open_fortran_parser as fp
 
 # Application imports
 from util import extractDelimStr
@@ -26,18 +32,29 @@ class Store:
     return f'''{len(self.consts)} constants, {len(self.loops)} loops''' # TODO: ...
 
 
-def parseProgram(data):
-  # TODO: preprocess text to remove comments and line continuations
+def parseProgram(path):
+  # with open(os.devnull, "w") as f, contextlib.redirect_stderr(f):
+    # try:
+  xml = fp.parse(path, raise_on_error=True)
+  # xml = parser.parse([path], xml_generator_config)
+    # except :
+    #   print('oof')
 
-  # 
-  entry_point = re.search(r'^\s*(program|PROGRAM)\s+', data)
+  
 
-  return Store(
-    init  = parseInits(data),
-    exit  = parseExits(data),
-    consts = parseConsts(data),
-    loops  = parseParLoops(data),
-  )
+
+
+  # for prog in xml.findall('program'):
+  #   print(prog.tag)
+ 
+  # return Store(
+  #   init  = parseInits(data),
+  #   exit  = parseExits(data),
+  #   consts = parseConsts(data),
+  #   loops  = parseParLoops(data),
+  # )
+
+  return
 
 
 def parseApiCalls(name_regex, text):

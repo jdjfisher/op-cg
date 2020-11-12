@@ -11,7 +11,6 @@ import re
 from generator import augmentProgram, genKernelHost
 from language import supportedLangExts, supportedLangs, findLang
 from parallelization import findPara, supportedParas
-from parser import parseProgram, Store
 
 
 # Program entrypoint
@@ -60,7 +59,7 @@ def main(argv=None):
   # ---                   Source Parsing                    --- #
 
 
-  main_store = Store()
+  main_store = None #Store()
 
   # Parse the input files
   for i, raw_path in enumerate(args.file_paths, 1):
@@ -68,7 +67,7 @@ def main(argv=None):
     if args.verbose:
       print(f'Parsing file {i} of {len(args.file_paths)}: {raw_path}')
     
-      store = parseProgram(raw_path) 
+      store = lang.parse(raw_path) 
 
       if args.verbose:
         print(f'  Parsed: {store}')

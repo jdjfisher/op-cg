@@ -4,6 +4,7 @@
 from datetime import datetime
 import subprocess
 import argparse
+import json
 import os
 import re 
 
@@ -11,6 +12,7 @@ import re
 from generator import augmentProgram, genKernelHost
 from language import supportedLangExts, supportedLangs, findLang
 from parallelization import findPara, supportedParas
+from parsers.store import Store
 
 
 # Program entrypoint
@@ -59,7 +61,7 @@ def main(argv=None):
   # ---                   Source Parsing                    --- #
 
 
-  main_store = None #Store()
+  main_store = Store()
 
   # Parse the input files
   for i, raw_path in enumerate(args.file_paths, 1):
@@ -72,10 +74,21 @@ def main(argv=None):
       if args.verbose:
         print(f'  Parsed: {store}')
 
-  if args.verbose:
-    print('Main store:', main_store)
+      # Fold store
+      main_store.merge(store)
 
-  kernels = []
+  if args.verbose:
+    print('\nMain store:', main_store, '\n')
+
+
+
+
+
+  # TODO: ...
+  kernels = main_store.loops
+
+
+
 
 
   # ---                   Code generation                    --- #
@@ -88,16 +101,17 @@ def main(argv=None):
   for i, kernel in enumerate(kernels, 1):
 
     if args.verbose:
-      print(f'Generating kernel host {i} of {len(kernels)}: {kernel.name}')
+      print(f'Generating kernel host {i} of {len(kernels)}: {kernel["kernel"]}')
 
     # Form output file path 
-    path = '?'
+    path = os.path.join(args.out, args.prefix + kernel['kernel'])
 
     # Generate kernel source
     source = genKernelHost(kernel, scheme)
 
     # Write the translated source file
     with open(path, 'w') as file:
+      file.write(f'\n{lang.com_delim} Auto-generated at {datetime.now()} by {parser.prog}\n\n')
       file.write(source)
       generated_paths.append(path)
 

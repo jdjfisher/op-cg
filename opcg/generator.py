@@ -1,4 +1,7 @@
 
+# Standard library imports
+import json
+
 
 # TODO: Store refs to transaltion functions for lang, para pairings
 schemes = {
@@ -22,6 +25,6 @@ def augmentProgram(source, store):
 def genKernelHost(kernel, scheme):
   # Do lots of stuff ...
 
-  source = ''
+  source = json.dumps(kernel, indent=4)
 
   return source

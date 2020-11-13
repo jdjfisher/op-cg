@@ -6,16 +6,12 @@ import json
 # Third party imports
 import open_fortran_parser as fp
 
+# Local application imports
+from parsers.store import Store
+from util import enumRegex
 
-class Store:
-  def __init__(self, init=None, exit=False, consts=[], loops=[]):
-    self.init = init
-    self.exit = exit
-    self.consts = consts
-    self.loops = loops
 
-  def __str__(self):
-    return f"{'init, ' if self.init else ''}{len(self.consts)} constants, {len(self.loops)} loops{' exit' if self.exit else ''}"
+
 
 
 def parse(path):  
@@ -40,26 +36,31 @@ def parse(path):
 
       if name == 'op_init_base':
         parseInit(args)
+
       elif name == 'op_decl_set':
         parseSet(args)
+
       elif name == 'op_decl_map':
         parseMap(args)
+
       elif name == 'op_decl_dat':
         parseData(args)
-      elif name == 'op_decl_const':
-        parseConst(args)
-      elif re.search(r'op_par_loop_[1-9]\d*', name):
-        parseLoop(args)
 
-  return Store()
+      elif name == 'op_decl_const':
+        store.addConst(parseConst(args, location))
+
+      elif re.search(r'op_par_loop_[1-9]\d*', name):
+        store.addLoop(parseLoop(args, location))
+
+  return store
 
 
 def parseInit(args):
   if len(args) != 2:
     raise Exception()
 
-  _ = parseIntLit(args[0], signed=False)
-  _ = parseIntLit(args[1], signed=False)
+  parseIntLit(args[0], signed=False)
+  parseIntLit(args[1], signed=False)
 
   return
 
@@ -76,18 +77,19 @@ def parseData(args):
   pass
 
 
-def parseConst(args):
+def parseConst(args, location):
   if len(args) != 3:
     raise Exception()
 
   return {
-    'name' : parseIdentifier(args[0]),
-    'dim'  : parseIntLit(args[1], signed=False),
-    'name2': parseStringLit(args[2]),
+    'location': location,
+    'name'    : parseIdentifier(args[0]),
+    'dim'     : parseIntLit(args[1], signed=False),
+    'name2'   : parseStringLit(args[2]),
   }
 
 
-def parseLoop(args):
+def parseLoop(args, location):
   if len(args) < 3:
     raise Exception()
 
@@ -99,20 +101,25 @@ def parseLoop(args):
     action_args = action.findall('name/subscripts/subscript')
 
     if name == 'op_arg_dat':
-      parseArgDat(action_args)
+      actions.append(parseArgDat(action_args))
+
     elif name == 'op_opt_arg_dat':
-     parseOptArgDat(action_args)
+      actions.append(parseOptArgDat(action_args))
+
     elif name == 'op_arg_gbl':
-      parseArgGbl(action_args)
+      actions.append(parseArgGbl(action_args))
+
     elif name == 'op_opt_arg_gbl':
-      parseOptArgGbl(action_args)
+      actions.append(parseOptArgGbl(action_args))
+
     else:
-      raise Exception()
+      raise Exception(f'Invalid loop argument {name}')
       
   return {
-    'kernel' : parseIdentifier(args[0]),
-    'set'    : parseIdentifier(args[1]),
-    'actions': actions
+    'location': location,
+    'kernel'  : parseIdentifier(args[0]),
+    'set'     : parseIdentifier(args[1]),
+    'actions' : actions,
   }
 
 
@@ -120,13 +127,20 @@ def parseArgDat(args):
   if len(args) != 6:
     raise Exception()
 
+  # Regex for valid op loop data types TODO: finish
+  type_regex = r'".*"'
+
+  # Regex for valid op loop action access types 
+  access_regex = enumRegex(['OP_READ','OP_WRITE','OP_RW','OP_INC','OP_MAX','OP_MIN'])
+
+
   return {
     'dat': parseIdentifier(args[0]),
     'idx': parseIntLit(args[1], signed=True),
     'map': parseIdentifier(args[2]),
     'dim': parseIntLit(args[3], signed=False),
-    'typ': parseStringLit(args[4]),
-    'acc': parseIdentifier(args[5]),
+    'typ': parseStringLit(args[4], regex=type_regex),
+    'acc': parseIdentifier(args[5], regex=access_regex),
   }
 
 

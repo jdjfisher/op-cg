@@ -11,10 +11,10 @@ class Lang:
 
 
   def parse(self, path):
-    if not self.parser:
-      raise Exception(f'f')
-
-    return self.parser(path)
+    if self.parser:
+      return self.parser(path)
+    else:
+      raise Exception(f'no parser registered for the "{self.name}" language')
 
 
   def __str__(self):

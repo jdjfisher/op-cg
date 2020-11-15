@@ -12,7 +12,7 @@ import re
 from generator import augmentProgram, genKernelHost
 from language import supportedLangExts, supportedLangs, findLang
 from parallelization import findPara, supportedParas
-from parsers.store import Store
+from parsers.common import Store
 
 
 # Program entrypoint
@@ -79,6 +79,12 @@ def main(argv=None):
 
   if args.verbose:
     print('\nMain store:', main_store, '\n')
+
+  if not main_store.init:
+    raise OpError()
+
+  if not main_store.exit:
+    raise OpError()
 
 
 
@@ -173,6 +179,10 @@ def isValidPrefix(prefix):
     return prefix
   else:
     raise argparse.ArgumentTypeError(f"invalid output file prefix: {prefix}")
+
+
+class OpError(Exception):
+  pass
 
 
 if __name__ == '__main__':

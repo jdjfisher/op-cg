@@ -1,5 +1,6 @@
 
 # Standard library imports
+from subprocess import CalledProcessError
 import re
 import json
 
@@ -7,74 +8,97 @@ import json
 import open_fortran_parser as fp
 
 # Local application imports
-from parsers.store import Store
+from parsers.common import Store, ParseError
 from util import enumRegex
 
 
-
-
-
 def parse(path):  
-  # try:
-  xml = fp.parse(path, raise_on_error=True)
-  # xml.write("temp/dump.xml")
-  # except :
-  #   print('f')
+  try:
+    # Try to parse the source
+    xml = fp.parse(path, raise_on_error=True)
 
-  # Create a store
-  store = Store()
+    # Create a store
+    store = Store()
 
-  # Iterate over all Call AST nodes
-  for call in xml.findall('.//call'):
+    # Iterate over all Call AST nodes
+    for call in xml.findall('.//call'):
 
-    # Store call source location
-    location = call.attrib
-    name = parseIdentifier(call)
+      # Store call source location
+      location = call.attrib
+      name = parseIdentifier(call)
 
-    if call.find('name').attrib['type'] == 'procedure':
-      args = call.findall('name/subscripts/subscript')
+      if call.find('name').attrib['type'] == 'procedure':
+        # Collect the call arg nodes
+        args = call.findall('name/subscripts/subscript')
 
-      if name == 'op_init_base':
-        parseInit(args)
+        if name == 'op_init_base':
+          store.recordInit(parseInit(args, location))
 
-      elif name == 'op_decl_set':
-        parseSet(args)
+        elif name == 'op_decl_set':
+          _ = parseSet(args)
 
-      elif name == 'op_decl_map':
-        parseMap(args)
+        elif name == 'op_decl_map':
+          _ = parseMap(args)
 
-      elif name == 'op_decl_dat':
-        parseData(args)
+        elif name == 'op_decl_dat':
+          _ = parseData(args)
 
-      elif name == 'op_decl_const':
-        store.addConst(parseConst(args, location))
+        elif name == 'op_decl_const':
+          store.addConst(parseConst(args, location))
 
-      elif re.search(r'op_par_loop_[1-9]\d*', name):
-        store.addLoop(parseLoop(args, location))
+        elif re.search(r'op_par_loop_[1-9]\d*', name):
+          store.addLoop(parseLoop(args, location))
 
-  return store
+        elif name == 'op_exit':
+          store.recordExit(location)
+
+    # Return the store
+    return store
+
+  # Catch ofp error
+  except CalledProcessError as error:
+    raise ParseError(error.output)
 
 
-def parseInit(args):
+def parseInit(args, location):
   if len(args) != 2:
-    raise Exception()
+    raise ParseError('incorrect number of args passed to op_init', location)
 
-  parseIntLit(args[0], signed=False)
-  parseIntLit(args[1], signed=False)
+  _ = parseIntLit(args[0], signed=False)
+  _ = parseIntLit(args[1], signed=False)
 
-  return
+  return {
+    'location': location,
+  }
 
 
 def parseSet(args):
-  pass
+  if len(args) != 3:
+    raise Exception()
+
+  return {
+    'size': parseIdentifier(args[0]),
+    'name': parseIdentifier(args[1]),
+    'str' : parseStringLit(args[2]),
+  }
 
 
 def parseMap(args):
-  pass
+  if len(args) != 6:
+    raise Exception()
+
+  return {
+
+  }
 
 
 def parseData(args):
-  pass
+  if len(args) != 6:
+    raise Exception()
+
+  return {
+    
+  }
 
 
 def parseConst(args, location):
@@ -85,7 +109,7 @@ def parseConst(args, location):
     'location': location,
     'name'    : parseIdentifier(args[0]),
     'dim'     : parseIntLit(args[1], signed=False),
-    'name2'   : parseStringLit(args[2]),
+    'str'     : parseStringLit(args[2]),
   }
 
 

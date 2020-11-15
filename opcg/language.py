@@ -1,5 +1,9 @@
 
+# Standard library imports
+from os.path import basename
+
 # Application imports
+from parsers.common import ParseError
 import parsers.fortran as fp
 
 class Lang:
@@ -11,10 +15,13 @@ class Lang:
 
 
   def parse(self, path):
-    if self.parser:
+    if not self.parser:
+      raise NotImplementedError(f'no parser registered for the "{self.name}" language')
+
+    try:
       return self.parser(path)
-    else:
-      raise Exception(f'no parser registered for the "{self.name}" language')
+    except ParseError as e:
+      exit(f'{basename(path)}:{e.line}:{e.col}: parse error: {e.message}')
 
 
   def __str__(self):

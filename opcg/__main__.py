@@ -55,8 +55,8 @@ def main(argv=None):
     print(f'Target language: {lang}')
     print(f'Target parallelization: {para}\n')
 
-  # TODO: Lookup translation scheme using (l, p)
-  scheme = None
+  # TODO: Lookup translation scheme using (lang, para)
+  scheme = 'templates/fortran/seq.F90.j2'
 
 
 
@@ -117,7 +117,7 @@ def main(argv=None):
       print(f'Generating kernel host {i} of {len(kernels)}: {kernel["kernel"]}')
 
     # Form output file path 
-    path = os.path.join(args.out, args.prefix + kernel['kernel'])
+    path = os.path.join(args.out, args.prefix + kernel['kernel'] + '.' + extension)
 
     # Generate kernel source
     source = genKernelHost(kernel, scheme)

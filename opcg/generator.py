@@ -2,10 +2,16 @@
 # Standard library imports
 import json
 
+# Third party imports
+from jinja2 import Template
+
+# Local application imports
+from util import replaceCode
+
 
 # TODO: Store refs to transaltion functions for lang, para pairings
 schemes = {
-  (1,2) : 3
+  # (fortran, seq) : seq.F90.j2
 }
 
 
@@ -23,8 +29,8 @@ def augmentProgram(source, store):
 
 
 def genKernelHost(kernel, scheme):
-  # Do lots of stuff ...
+  # Load kernel host template
+  template = Template(open(scheme).read())
 
-  source = json.dumps(kernel, indent=4)
-
-  return source
+  # Generate source from the template
+  return template.render(kernel=kernel)

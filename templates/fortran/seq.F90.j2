@@ -1,0 +1,59 @@
+
+MODULE {{ kernel['kernel'] }}_module
+
+USE OP2_FORTRAN_DECLARATIONS
+USE OP2_FORTRAN_RT_SUPPORT
+USE ISO_C_BINDING
+USE OP2_CONSTANTS
+
+CONTAINS
+
+! Include kernel function
+#include "{{ kernel['kernel'] }}.inc"
+
+
+
+! Wrapper for kernel function
+SUBROUTINE kernel ( & ! TODO: add args
+  & bottom, top))
+
+  implicit none
+
+  !
+  INTEGER(kind=4) bottom,top,i1
+  ! TODO: maps
+
+
+  DO i1 = bottom, top-1, 1
+    ! TODO: code
+
+    ! Kernel call
+    call {{ kernel_name }}( &
+      ! TODO: add args
+    & )
+
+  END DO
+
+
+END SUBROUTINE
+
+
+! Host function for kernel
+SUBROUTINE {{ kernel['kernel'] }}_host ( &
+    ! TODO: args
+  )
+
+  implicit none
+
+
+  call op_mpi_set_dirtybit(numberOfOpDats,opArgArray)
+
+  call op_timers_core(endTime)
+
+  dataTransfer = 0.0'
+
+
+END SUBROUTINE
+
+
+END MODULE

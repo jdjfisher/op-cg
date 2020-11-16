@@ -106,10 +106,10 @@ def parseConst(args, location):
     raise Exception()
 
   return {
-    'location': location,
-    'name'    : parseIdentifier(args[0]),
-    'dim'     : parseIntLit(args[1], signed=False),
-    'str'     : parseStringLit(args[2]),
+    'locations': [location],
+    'name'     : parseIdentifier(args[0]),
+    'dim'      : parseIntLit(args[1], signed=False),
+    'str'      : parseStringLit(args[2]),
   }
 
 
@@ -140,10 +140,10 @@ def parseLoop(args, location):
       raise Exception(f'Invalid loop argument {name}')
       
   return {
-    'location': location,
-    'kernel'  : parseIdentifier(args[0]),
-    'set'     : parseIdentifier(args[1]),
-    'actions' : actions,
+    'locations': [location],
+    'kernel'   : parseIdentifier(args[0]),
+    'set'      : parseIdentifier(args[1]),
+    'actions'  : actions,
   }
 
 

@@ -10,8 +10,8 @@ import re
 
 # Application imports
 from generator import augmentProgram, genKernelHost
-from language import supportedLangExts, supportedLangs, findLang
-from parallelization import findPara, supportedParas
+from language import Lang
+from parallelization import Para
 from parsers.common import Store
 
 
@@ -25,9 +25,9 @@ def main(argv=None):
   parser.add_argument('-v', '--verbose', help='Verbose', action='store_true')
   parser.add_argument('-o', '--out', help='Output Directory', type=isDirPath, default='.')
   parser.add_argument('-p', '--prefix', help='Output File Prefix', type=isValidPrefix, default='op_')
-  # parser.add_argument('-l', '--language', help='Target Language', type=str, choices=supportedLangs())
+  # parser.add_argument('-l', '--language', help='Target Language', type=str, choices=Lang.())
   parser.add_argument('-soa', '--soa', help='Structs of Arrays', action='store_true')
-  parser.add_argument('para', help='Target Parallelization', type=str, choices=supportedParas())
+  parser.add_argument('para', help='Target Parallelization', type=str, choices=Para.names())
   parser.add_argument('file_paths', help='Input Files', type=isFilePath, nargs='+')
   args = parser.parse_args(argv)
 
@@ -43,12 +43,13 @@ def main(argv=None):
 
   else:
     [ extension ] = extensions 
-    if not extension in supportedLangExts():
-      raise Exception(f'Unsupported file extension: {extension}')
 
-  # Determine the target language and translation
-  lang = findLang(extension)
-  para = findPara(args.para)
+  # Determine the target language and parallelisation
+  para = Para.find(args.para)
+  lang = Lang.find(extension)
+
+  if not lang:
+    raise Exception(f'Unsupported file extension: {extension}')
 
   if args.verbose:
     print(f'Target language: {lang}')
@@ -58,7 +59,11 @@ def main(argv=None):
   scheme = None
 
 
+
+
   # ---                   Source Parsing                    --- #
+
+
 
 
   main_store = Store()
@@ -89,15 +94,17 @@ def main(argv=None):
 
 
 
-
-  # TODO: ...
+  # TODO: Remove ...
   kernels = main_store.loops
-
+  with open(os.path.join(args.out, 'consts.json'), 'w') as file:
+    file.write(json.dumps(main_store.consts, indent=4))
 
 
 
 
   # ---                   Code generation                    --- #
+
+
 
 
   # Collect the paths of any generated files
@@ -123,6 +130,8 @@ def main(argv=None):
 
       if args.verbose:
         print(f'  Created kernel host file: {path}')
+
+
 
 
   # Generate program translations
@@ -154,6 +163,10 @@ def main(argv=None):
   # End of main
   if args.verbose:
     print('\nTerminating')
+
+
+
+
 
 
 def getVersion():

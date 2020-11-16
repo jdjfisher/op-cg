@@ -6,8 +6,11 @@ from os.path import basename
 from parsers.common import ParseError
 import parsers.fortran as fp
 
-class Lang:
+class Lang(object):
+  instances = []
+
   def __init__(self, name, extensions, com_delim, parser):
+    self.__class__.instances.append(self)
     self.name = name
     self.extensions = extensions
     self.com_delim = com_delim
@@ -28,21 +31,17 @@ class Lang:
       return self.name
 
 
-langs = [
-  Lang('C++', ['cpp'], '//', None),
-  Lang('Fortran', ['F90', 'F95'], '!', fp.parse),
-]
+  @classmethod
+  def all(cls):
+    return cls.instances
 
 
-def findLang(extension):
-  return next((l for l in langs if extension in l.extensions), None)
+  @classmethod
+  def find(cls, name):
+    return next((l for l in cls.all() if name == l.name or name in l.extensions), None)
 
 
-def supportedLangs():
-  return [ lang.name for lang in langs ]
 
-
-def supportedLangExts():
-  return [ ex for lang in langs for ex in lang.extensions ]
-
+c = Lang('C++', ['cpp'], '//', None),
+f = Lang('Fortran', ['F90', 'F95'], '!', fp.parse),
 

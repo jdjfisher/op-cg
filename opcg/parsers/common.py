@@ -2,10 +2,10 @@
 
 class Store:
   def __init__(self):
-    self.init = None # TODO: Prevent multiple inits
+    self.init = None 
     self.consts = []
     self.loops = []
-    self.exit = None # TODO: Prevent multiple exits
+    self.exit = None 
 
 
   def recordInit(self, init):
@@ -21,11 +21,12 @@ class Store:
 
     # If there is a previous decleration verify compatibilty and then skip
     if prev:
-      if const['type'] != prev['type']:
-        raise Exception(f"type mismatch in repeated decleration of '{const['name']}' const")  
+      if const['dim'] != prev['dim']:
+        raise Exception(f"dim mismatch in repeated decleration of '{const['name']}' const")  
       elif const['dim'] != prev['dim']:
         raise Exception(f"size mismatch in repeated decleration of '{const['name']}' const") 
       else:
+        prev['locations'] += const['locations']
         return
       
     # Store const

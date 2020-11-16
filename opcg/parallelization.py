@@ -1,25 +1,37 @@
 
 
-class Para:
+#
+class Para(object):
+  instances = []
+
   def __init__(self, name):
+    self.__class__.instances.append(self)
     self.name = name
+
 
   def __str__(self):
     return self.name
 
 
-paras = [
-  Para('seq'),
-  Para('cuda'),
-  Para('omp3'),
-  # ...
-]
+  @classmethod
+  def all(cls):
+    return cls.instances
 
 
-def findPara(name):
-  return next(para for para in paras if para.name == name)
+  @classmethod
+  def names(cls):
+    return [ p.name for p in cls.all() ]
 
 
-def supportedParas():
-  return [ para.name for para in paras ]
+  @classmethod
+  def find(cls, name):
+    return next((p for p in cls.all() if p.name == name), None)
+
+
+# 
+seq  = Para('seq'),
+cuda = Para('cuda'),
+omp  = Para('omp3'),
+
+
 

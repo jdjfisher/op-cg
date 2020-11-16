@@ -3,20 +3,26 @@
 import json
 
 # Third party imports
-from jinja2 import Template
+from jinja2 import Environment, FileSystemLoader, select_autoescape, Template
 
 # Local application imports
 from util import replaceCode
+import parallelization as para
+import language as lang
 
 
-# TODO: Store refs to transaltion functions for lang, para pairings
+# Jinja configuration
+env = Environment(
+  loader=FileSystemLoader('resources/templates'),
+  lstrip_blocks=True,
+  trim_blocks=True,
+)
+
+
+# TODO: Improve
 schemes = {
-  # (fortran, seq) : seq.F90.j2
+  ('Fortran', 'seq') : env.get_template('fortran/seq.F90.j2')
 }
-
-
-class Transaltion:
-  pass
 
 
 def augmentProgram(source, store):
@@ -28,9 +34,13 @@ def augmentProgram(source, store):
   return source
 
 
-def genKernelHost(kernel, scheme):
-  # Load kernel host template
-  template = Template(open(scheme).read())
+def genKernelHost(lang, para, kernel):
+  # Lookup generation template
+  template = schemes.get((lang.name, para.name))
+
+  # Exit if the template was not found
+  if not template:
+    raise Exception('TODO: ...')
 
   # Generate source from the template
   return template.render(kernel=kernel)

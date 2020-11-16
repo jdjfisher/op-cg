@@ -14,22 +14,27 @@ CONTAINS
 
 
 ! Wrapper for kernel function
-SUBROUTINE kernel ( & ! TODO: add args
-  & bottom, top))
+SUBROUTINE kernel ( & 
+  {# TODO: Finish #}
+  & bottom, &
+  & top &
+  & )
 
   implicit none
 
-  !
+  
   INTEGER(kind=4) bottom,top,i1
-  ! TODO: maps
+  {# TODO: Finish #}
 
 
   DO i1 = bottom, top-1, 1
-    ! TODO: code
+    {# TODO: Finish #}
 
     ! Kernel call
     call {{ kernel_name }}( &
-      ! TODO: add args
+      {% for action in kernel['actions'] %}
+      & opDat{{ loop.index }}Local(1){{ '' if loop.last else ',' }} &     
+      {% endfor %}
     & )
 
   END DO
@@ -40,8 +45,12 @@ END SUBROUTINE
 
 ! Host function for kernel
 SUBROUTINE {{ kernel['kernel'] }}_host ( &
-    ! TODO: args
-  )
+  & kernel, &
+  & set, &
+  {% for action in kernel['actions'] %}
+  & opDat{{ loop.index }}{{ '' if loop.last else ',' }} &            
+  {% endfor %}
+  & )
 
   implicit none
 

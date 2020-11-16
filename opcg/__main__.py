@@ -23,6 +23,7 @@ def main(argv=None):
   parser = argparse.ArgumentParser(prog='w.i.p')
   parser.add_argument('-V', '-version', '--version', help='Version', action='version', version=getVersion())
   parser.add_argument('-v', '--verbose', help='Verbose', action='store_true')
+  parser.add_argument('-d', '--dump', help='Dump Store', action='store_true')
   parser.add_argument('-o', '--out', help='Output Directory', type=isDirPath, default='.')
   parser.add_argument('-p', '--prefix', help='Output File Prefix', type=isValidPrefix, default='op_')
   # parser.add_argument('-l', '--language', help='Target Language', type=str, choices=Lang.())
@@ -55,8 +56,6 @@ def main(argv=None):
     print(f'Target language: {lang}')
     print(f'Target parallelization: {para}\n')
 
-  # TODO: Lookup translation scheme using (lang, para)
-  scheme = 'templates/fortran/seq.F90.j2'
 
 
 
@@ -82,22 +81,26 @@ def main(argv=None):
       # Fold store
       main_store.merge(store)
 
+  # TODO: ...
+  if not main_store.init:
+    raise OpError()
+  elif not main_store.exit:
+    raise OpError()
+
   if args.verbose:
     print('\nMain store:', main_store, '\n')
 
-  if not main_store.init:
-    raise OpError()
-
-  if not main_store.exit:
-    raise OpError()
-
+  if args.dump:
+    # Dump main store to a json file
+    with open(os.path.join(args.out, 'store.json'), 'w') as file:
+      file.write(json.dumps(main_store.__dict__, indent=4))
 
 
 
-  # TODO: Remove ...
+
+
+  # TODO: Process ...
   kernels = main_store.loops
-  with open(os.path.join(args.out, 'consts.json'), 'w') as file:
-    file.write(json.dumps(main_store.consts, indent=4))
 
 
 
@@ -120,7 +123,7 @@ def main(argv=None):
     path = os.path.join(args.out, args.prefix + kernel['kernel'] + '.' + extension)
 
     # Generate kernel source
-    source = genKernelHost(kernel, scheme)
+    source = genKernelHost(lang, para, kernel)
 
     # Write the translated source file
     with open(path, 'w') as file:

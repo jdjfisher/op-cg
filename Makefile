@@ -1,4 +1,14 @@
 .SILENT:
 
 all:
-	python3 opcg seq -v examples/fortran/airfoil/airfoil.F90 -o temp
+	# Temp
+	python3 opcg seq -vd examples/fortran/airfoil/airfoil.F90 -o temp
+
+install:
+	pip3 install -r requirements.txt
+
+test:
+	echo "wip"
+
+clean:
+	rm temp/*

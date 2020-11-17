@@ -27,7 +27,7 @@ def main(argv=None):
   parser.add_argument('-o', '--out', help='Output Directory', type=isDirPath, default='.')
   parser.add_argument('-p', '--prefix', help='Output File Prefix', type=isValidPrefix, default='op_')
   # parser.add_argument('-l', '--language', help='Target Language', type=str, choices=Lang.())
-  parser.add_argument('-soa', '--soa', help='Structs of Arrays', action='store_true')
+  # parser.add_argument('-soa', '--soa', help='Structs of Arrays', action='store_true')
   parser.add_argument('para', help='Target Parallelization', type=str, choices=Para.names())
   parser.add_argument('file_paths', help='Input Files', type=isFilePath, nargs='+')
   args = parser.parse_args(argv)
@@ -99,8 +99,10 @@ def main(argv=None):
 
 
 
-  # TODO: Process ...
+  # TODO: Process loops properly ...
   kernels = main_store.loops
+  for kernel in kernels:
+    kernel['name'] = kernel.pop('kernel')
 
 
 
@@ -117,10 +119,10 @@ def main(argv=None):
   for i, kernel in enumerate(kernels, 1):
 
     if args.verbose:
-      print(f'Generating kernel host {i} of {len(kernels)}: {kernel["kernel"]}')
+      print(f'Generating kernel host {i} of {len(kernels)}: {kernel["name"]}')
 
     # Form output file path 
-    path = os.path.join(args.out, args.prefix + kernel['kernel'] + '.' + extension)
+    path = os.path.join(args.out, args.prefix + kernel['name'] + '.' + extension)
 
     # Generate kernel source
     source = genKernelHost(lang, para, kernel)

@@ -1,68 +1,154 @@
 
-MODULE {{ kernel['kernel'] }}_module
+MODULE {{ kernel['name'] }}_module
 
-USE OP2_FORTRAN_DECLARATIONS
-USE OP2_FORTRAN_RT_SUPPORT
-USE ISO_C_BINDING
-USE OP2_CONSTANTS
+  USE OP2_FORTRAN_DECLARATIONS
+  USE OP2_FORTRAN_RT_SUPPORT
+  USE ISO_C_BINDING
+  USE OP2_CONSTANTS
 
-CONTAINS
+  CONTAINS
 
-! Include kernel function
-#include "{{ kernel['kernel'] }}.inc"
-
-
-
-! Wrapper for kernel function
-SUBROUTINE kernel ( & 
-  {# TODO: Finish #}
-  & bottom, &
-  & top &
-  & )
-
-  implicit none
-
-  
-  INTEGER(kind=4) bottom,top,i1
-  {# TODO: Finish #}
+  ! Include kernel function
+  #include "{{ kernel['name'] }}.inc"
 
 
-  DO i1 = bottom, top-1, 1
-    {# TODO: Finish #}
 
-    ! Kernel call
-    call {{ kernel_name }}( &
-      {% for action in kernel['actions'] %}
-      & opDat{{ loop.index }}Local(1){{ '' if loop.last else ',' }} &     
-      {% endfor %}
+  ! Wrapper for kernel function
+  SUBROUTINE {{ kernel['name'] }}_wrap ( & 
+    {% for arg in kernel['args'] %}
+    & opDat{{ loop.index }}, &   
+    {% endfor %}
+    & bottom, &
+    & top &
     & )
 
-  END DO
+    IMPLICIT NONE
+
+    
+    INTEGER(kind=4) bottom,top,i1
+    {# TODO #}
 
 
-END SUBROUTINE
+    DO i1 = bottom, top-1, 1
+      {# TODO #}
+
+      ! Kernel call
+      CALL {{ kernel['name'] }}( &
+        {% for arg in kernel['args'] %}
+        & opDat{{ loop.index }}Local(1){% if not loop.last %},{% endif %} &     
+        {% endfor %}
+      & )
+
+    END DO
 
 
-! Host function for kernel
-SUBROUTINE {{ kernel['kernel'] }}_host ( &
-  & kernel, &
-  & set, &
-  {% for action in kernel['actions'] %}
-  & opDat{{ loop.index }}{{ '' if loop.last else ',' }} &            
-  {% endfor %}
-  & )
-
-  implicit none
+  END SUBROUTINE
 
 
-  call op_mpi_set_dirtybit(numberOfOpDats,opArgArray)
+  ! Host function for kernel
+  SUBROUTINE {{ kernel['name'] }}_host ( &
+    & kernel, &
+    & set, &
+    {% for _ in kernel['args'] %}
+    & opDat{{ loop.index }}{% if not loop.last %},{% endif %} &            
+    {% endfor %}
+    & )
 
-  call op_timers_core(endTime)
+    IMPLICIT NONE
+    character(kind=c_char,len=*), INTENT(IN) :: userSubroutine
+    type ( op_set ) , INTENT(IN) :: set
 
-  dataTransfer = 0.0'
+    {% for _ in kernel['args'] %}
+    type ( op_arg ) , INTENT(IN) :: opArg{{ loop.index }}
+    {% endfor %}
+
+    type ( op_arg ) , DIMENSION({{ kernel['args']|length }}) :: opArgArray
+    INTEGER(kind=4) :: numberOfOpDats
+    INTEGER(kind=4), DIMENSION(1:8) :: timeArrayStart
+    INTEGER(kind=4), DIMENSION(1:8) :: timeArrayEnd
+    REAL(kind=8) :: startTime
+    REAL(kind=8) :: endTime
+    INTEGER(kind=4) :: returnSetKernelTiming
+    INTEGER(kind=4) :: n_upper
+    type ( op_set_core ) , POINTER :: opSetCore
 
 
-END SUBROUTINE
 
+    {# TODO #}
+
+
+
+    INTEGER(kind=4) :: i1
+    REAL(kind=4) :: dataTransfer
+
+    numberOfOpDats = {{ kernel['args']|length }}
+
+    {% for _ in kernel['args'] %}
+    opArgArray({{ loop.index }}) = opArg{{ loop.index }}      
+    {% endfor %}
+
+    returnSetKernelTiming = setKernelTime( &
+      & {{ nk or 0 }}, userSubroutine//C_NULL_CHAR, &
+      & 0.0_8, 0.00000_4,0.00000_4, 0 &
+    & )
+    CALL op_timers_core(startTime)
+
+    n_upper = op_mpi_halo_exchanges(set%setCPtr,numberOfOpDats,opArgArray)
+
+    opSetCore => set%setPtr
+
+
+
+    {# TODO #}
+
+
+
+    CALL {{ kernel['name'] }}_wrap( &
+      {# TODO #}
+    & )
+
+    CALL op_mpi_wait_all(numberOfOpDats, opArgArray)
+
+    CALL {{ kernel['name'] }}_wrap( &
+      {# TODO #}
+      & opSetCore%core_size, & 
+      & n_upper &
+    & )
+
+    IF ((n_upper .EQ. 0) .OR. (n_upper .EQ. opSetCore%core_size)) THEN
+      CALL op_mpi_wait_all(numberOfOpDats,opArgArray)
+    END IF
+
+    CALL op_mpi_set_dirtybit(numberOfOpDats,opArgArray)
+
+    {% for arg in kernel['args'] if 'map' not in arg and arg['acc'] in ['OP_INC', 'OP_MIN', 'OP_MAX', 'OP_WRITE'] %}
+    {% if 'opt' in arg %}IF opArg{{ loop.index }}%opt == 1 THEN{% endif %}
+    {% if arg['typ'] in ['real(8)', 'REAL(kind=8)', 'real*8', 'r8'] %}
+    CALL op_mpi_reduce_double(opArg{{ loop.index }}, opArg{{ loop.index }}%data)
+    {% elif arg['typ'] in ['real(4)', 'REAL(kind=4)', 'real*4', 'r4'] %} 
+    CALL op_mpi_reduce_float(opArg{{ loop.index }}, opArg{{ loop.index }}%data)
+    {% elif arg['typ'] in ['integer(4)', 'INTEGER(kind=4)', 'integer*4', 'i4'] %}
+    {CALL op_mpi_reduce_int(opArg{{ loop.index }}, opArg{{ loop.index }}%data)
+    {% elif arg['typ'] in ['logical', 'logical*1'] %}
+    CALL op_mpi_reduce_bool(opArg{{ loop.index }}, opArg{{ loop.index }}%data)
+    {% endif %}
+    {% if 'opt' in arg %}END IF{% endif %}
+    {% endfor %}
+
+    CALL op_timers_core(endTime)
+
+    dataTransfer = 0.0
+    {% if False %}
+    {# TODO #}
+    {% else %}
+    {# TODO #}
+    {# dataTransfer = dataTransfer + opArg{{ 0 }}%size #}
+    {% endif %}
+
+    returnSetKernelTiming = setKernelTime( &
+      & {{ nk or 0 }}, kernel//C_NULL_CHAR, &
+      & endTime-startTime, dataTransfer, 0.00000_4, 1 &
+    & )
+  END SUBROUTINE
 
 END MODULE

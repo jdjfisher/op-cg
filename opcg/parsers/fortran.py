@@ -117,33 +117,37 @@ def parseLoop(args, location):
   if len(args) < 3:
     raise Exception()
 
-  actions = []
+  # Parse loop kernel and set
+  kernel = parseIdentifier(args[0])
+  set_   = parseIdentifier(args[1])
 
-  # Parse loop actions
-  for action in args[2:]: 
-    name = parseIdentifier(action)
-    action_args = action.findall('name/subscripts/subscript')
+  loop_args = []
+
+  # Parse loop args
+  for raw_arg in args[2:]: 
+    name = parseIdentifier(raw_arg)
+    args = raw_arg.findall('name/subscripts/subscript')
 
     if name == 'op_arg_dat':
-      actions.append(parseArgDat(action_args))
+      loop_args.append(parseArgDat(args))
 
     elif name == 'op_opt_arg_dat':
-      actions.append(parseOptArgDat(action_args))
+      loop_args.append(parseOptArgDat(args))
 
     elif name == 'op_arg_gbl':
-      actions.append(parseArgGbl(action_args))
+      loop_args.append(parseArgGbl(args))
 
     elif name == 'op_opt_arg_gbl':
-      actions.append(parseOptArgGbl(action_args))
+      loop_args.append(parseOptArgGbl(args))
 
     else:
       raise Exception(f'Invalid loop argument {name}')
       
   return {
     'locations': [location],
-    'kernel'   : parseIdentifier(args[0]),
-    'set'      : parseIdentifier(args[1]),
-    'actions'  : actions,
+    'kernel'   : kernel,
+    'set'      : set_,
+    'args'     : loop_args,
   }
 
 
@@ -151,21 +155,22 @@ def parseArgDat(args):
   if len(args) != 6:
     raise Exception()
 
-  # Regex for valid op loop data types TODO: finish
-  type_regex = r'".*"'
+  type_regex = r'".*"' # TODO: Finish ...
+  access_regex = enumRegex(['OP_READ','OP_WRITE','OP_RW','OP_INC'])
 
-  # Regex for valid op loop action access types 
-  access_regex = enumRegex(['OP_READ','OP_WRITE','OP_RW','OP_INC','OP_MAX','OP_MIN'])
+  # Parse each arg
+  var  = parseIdentifier(args[0]),
+  idx  = parseIntLit(args[1], signed=True),
+  map_ = parseIdentifier(args[2]),
+  dim  = parseIntLit(args[3], signed=False),
+  typ  = parseStringLit(args[4], regex=type_regex),
+  acc  = parseIdentifier(args[5], regex=access_regex),
 
+  # Check arg compatibility
+  if map_ == 'OP_ID' and idx != -1:
+    raise Exception('invalid index')
 
-  return {
-    'dat': parseIdentifier(args[0]),
-    'idx': parseIntLit(args[1], signed=True),
-    'map': parseIdentifier(args[2]),
-    'dim': parseIntLit(args[3], signed=False),
-    'typ': parseStringLit(args[4], regex=type_regex),
-    'acc': parseIdentifier(args[5], regex=access_regex),
-  }
+  return { 'var': var, 'idx': idx, 'map': map_, 'dim': dim, 'typ': typ, 'acc': acc }
 
 
 def parseOptArgDat(args):
@@ -184,11 +189,36 @@ def parseOptArgDat(args):
 
 
 def parseArgGbl(args):
-  pass
+  if len(args) != 4:
+    raise Exception()
 
+  # Regex for valid op loop data types TODO: finish
+  type_regex = r'".*"'
+
+  # Regex for valid global op loop action access types 
+  access_regex = enumRegex(['OP_READ','OP_INC','OP_MAX','OP_MIN'])
+  
+  return {
+    'var': parseIdentifier(args[0]),
+    'dim': parseIntLit(args[1], signed=False),
+    'typ': parseStringLit(args[2], regex=type_regex),
+    'acc': parseIdentifier(args[3], regex=access_regex),
+  }
+  
 
 def parseOptArgGbl(args):
-  pass
+  if len(args) != 5:
+    raise Exception()
+
+  # Parse opt argument
+  opt = parseIdentifier(args[0])
+
+  # Parse standard argGbl arguments
+  dat = parseArgGbl(args[1:])
+  
+  # Return augmented dat
+  dat.update(opt=opt)
+  return dat
 
 
 def parseIdentifier(node, regex=None):

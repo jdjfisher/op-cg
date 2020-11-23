@@ -24,7 +24,7 @@ def parse(path):
     for call in xml.findall('.//call'):
 
       # Store call source location
-      location = call.attrib
+      loc = call.attrib
       name = parseIdentifier(call)
 
       if call.find('name').attrib['type'] == 'procedure':
@@ -32,25 +32,25 @@ def parse(path):
         args = call.findall('name/subscripts/subscript')
 
         if name == 'op_init_base':
-          store.recordInit(parseInit(args, location))
+          store.recordInit(parseInit(args, loc))
 
         elif name == 'op_decl_set':
-          _ = parseSet(args)
+          _ = parseSet(args, loc)
 
         elif name == 'op_decl_map':
-          _ = parseMap(args)
+          _ = parseMap(args, loc)
 
         elif name == 'op_decl_dat':
-          _ = parseData(args)
+          _ = parseData(args, loc)
 
         elif name == 'op_decl_const':
-          store.addConst(parseConst(args, location))
+          store.addConst(parseConst(args, loc))
 
         elif re.search(r'op_par_loop_[1-9]\d*', name):
-          store.addLoop(parseLoop(args, location))
+          store.addLoop(parseLoop(args, loc))
 
         elif name == 'op_exit':
-          store.recordExit(location)
+          store.recordExit(loc)
 
     # Return the store
     return store
@@ -72,9 +72,9 @@ def parseInit(args, location):
   }
 
 
-def parseSet(args):
+def parseSet(args, location):
   if len(args) != 3:
-    raise Exception()
+    raise ParseError('incorrect number of args passed to op_decl_set', location)
 
   return {
     'size': parseIdentifier(args[0]),
@@ -83,18 +83,18 @@ def parseSet(args):
   }
 
 
-def parseMap(args):
+def parseMap(args, location):
   if len(args) != 6:
-    raise Exception()
+    raise ParseError('incorrect number of args passed to op_decl_map', location)
 
   return {
 
   }
 
 
-def parseData(args):
+def parseData(args, location):
   if len(args) != 6:
-    raise Exception()
+    raise ParseError('incorrect number of args passed to op_decl_dat', location)
 
   return {
     
@@ -103,7 +103,7 @@ def parseData(args):
 
 def parseConst(args, location):
   if len(args) != 3:
-    raise Exception()
+    raise ParseError('incorrect number of args passed to op_decl_const', location)
 
   return {
     'locations': [location],
@@ -115,7 +115,7 @@ def parseConst(args, location):
 
 def parseLoop(args, location):
   if len(args) < 3:
-    raise Exception()
+    raise ParseError('incorrect number of args passed to op_par_loop', location)
 
   # Parse loop kernel and set
   kernel = parseIdentifier(args[0])
@@ -141,7 +141,7 @@ def parseLoop(args, location):
       loop_args.append(parseOptArgGbl(args))
 
     else:
-      raise Exception(f'Invalid loop argument {name}')
+      raise ParseError(f'Invalid loop argument {name}')
       
   return {
     'locations': [location],
@@ -153,7 +153,7 @@ def parseLoop(args, location):
 
 def parseArgDat(args):
   if len(args) != 6:
-    raise Exception()
+    raise ParseError('incorrect number of args passed to op_arg_dat')
 
   type_regex = r'".*"' # TODO: Finish ...
   access_regex = enumRegex(['OP_READ','OP_WRITE','OP_RW','OP_INC'])
@@ -168,14 +168,14 @@ def parseArgDat(args):
 
   # Check arg compatibility
   if map_ == 'OP_ID' and idx != -1:
-    raise Exception('invalid index')
+    raise Exception('incompatible index for direct access, expected -1')
 
   return { 'var': var, 'idx': idx, 'map': map_, 'dim': dim, 'typ': typ, 'acc': acc }
 
 
 def parseOptArgDat(args):
   if len(args) != 7:
-    raise Exception()
+    ParseError('incorrect number of args passed to op_opt_arg_dat')
 
   # Parse opt argument
   opt = parseIdentifier(args[0])
@@ -190,7 +190,7 @@ def parseOptArgDat(args):
 
 def parseArgGbl(args):
   if len(args) != 4:
-    raise Exception()
+    raise ParseError('incorrect number of args passed to op_arg_gbl')
 
   # Regex for valid op loop data types TODO: finish
   type_regex = r'".*"'
@@ -208,7 +208,7 @@ def parseArgGbl(args):
 
 def parseOptArgGbl(args):
   if len(args) != 5:
-    raise Exception()
+    ParseError('incorrect number of args passed to op_opt_arg_gbl')
 
   # Parse opt argument
   opt = parseIdentifier(args[0])
@@ -227,13 +227,13 @@ def parseIdentifier(node, regex=None):
 
   # Validate the node
   if not node or not node.attrib['id']:
-    raise Exception('TODO: ...')
+    raise ParseError('expected identifier')
 
   value = node.attrib['id']
 
   # Apply conditional regex constraint
   if regex and not re.match(regex, value):
-    raise Exception('TODO: ...')
+    raise ParseError(f'expected identifier matching {regex}')
   
   return value
 
@@ -254,7 +254,10 @@ def parseIntLit(node, signed=True):
 
   # Verify and typecheck the literal node
   if not node or node.attrib['type'] != 'int':
-    raise Exception('TODO: ...')
+    if not signed:
+      raise ParseError('expected unsigned integer literal')
+    else:
+      raise ParseError('expected integer literal')
 
   # Return the integer value of the literal
   value = int(node.attrib['value'])
@@ -267,13 +270,13 @@ def parseStringLit(node, regex=None):
 
   # Validate the node
   if not node or node.attrib['type'] != 'char':
-    raise Exception('TODO: ...')
+    raise ParseError('expected string literal')
 
   value = node.attrib['value']
 
   # Apply conditional regex constraint
   if regex and not re.match(regex, value):
-    raise Exception('TODO: ...')
+    raise ParseError(f'expected string literal matching {regex}')
   
   return value
 

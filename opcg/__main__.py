@@ -64,8 +64,7 @@ def main(argv=None):
 
 
 
-
-  main_store = Store()
+  stores = []
 
   # Parse the input files
   for i, raw_path in enumerate(args.file_paths, 1):
@@ -73,19 +72,22 @@ def main(argv=None):
     if args.verbose:
       print(f'Parsing file {i} of {len(args.file_paths)}: {raw_path}')
     
-      store = lang.parse(raw_path) 
+    # Create a store
+    store = lang.parse(raw_path) 
+    stores.append(store)
 
-      if args.verbose:
-        print(f'  Parsed: {store}')
+    if args.verbose:
+      print(f'  Parsed: {store}')
 
-      # Fold store
-      main_store.merge(store)
 
-  # TODO: ...
+  #
+  main_store = stores[0]
+
+  # Print warnings
   if not main_store.init:
-    raise OpError()
-  elif not main_store.exit:
-    raise OpError()
+    print('WARNING: No call to op_init found')
+  if not main_store.exit:
+    print('WARNING: No call to op_exit found')
 
   if args.verbose:
     print('\nMain store:', main_store, '\n')
@@ -97,12 +99,14 @@ def main(argv=None):
 
 
 
-
+  _ = main_store.getKernels()
 
   # TODO: Process loops properly ...
   kernels = main_store.loops
   for kernel in kernels:
     kernel['name'] = kernel.pop('kernel')
+
+
 
 
 
@@ -140,7 +144,7 @@ def main(argv=None):
 
 
   # Generate program translations
-  for i, raw_path in enumerate(args.file_paths, 1):
+  for i, (raw_path, store) in enumerate(zip(args.file_paths, stores), 1):
 
     if args.verbose:
       print(f'Translating file {i} of {len(args.file_paths)}: {raw_path}')
@@ -150,7 +154,7 @@ def main(argv=None):
       source = raw_file.read()
 
       # Translate the source
-      translation = augmentProgram(source, main_store)
+      translation = augmentProgram(source, store)
 
       # Form output file path 
       new_path = os.path.join(args.out, args.prefix + os.path.basename(raw_path))
@@ -197,10 +201,6 @@ def isValidPrefix(prefix):
     return prefix
   else:
     raise argparse.ArgumentTypeError(f"invalid output file prefix: {prefix}")
-
-
-class OpError(Exception):
-  pass
 
 
 if __name__ == '__main__':

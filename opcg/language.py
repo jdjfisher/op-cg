@@ -6,6 +6,7 @@ from os.path import basename
 from parsers.common import ParseError
 import parsers.fortran as fp
 
+
 class Lang(object):
   instances = []
 
@@ -42,6 +43,6 @@ class Lang(object):
 
 
 
-c = Lang('C++', ['cpp'], '//', None),
-f = Lang('Fortran', ['F90', 'F95'], '!', fp.parse),
+c = Lang('c++', ['cpp'], '//', None),
+f = Lang('fortran', ['F90', 'F95'], '!', fp.parse),
 

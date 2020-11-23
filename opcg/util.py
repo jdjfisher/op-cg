@@ -8,8 +8,8 @@ def enumRegex(values):
   return '(' + ')|('.join(values) + ')'
 
 
-def replaceCode():
-  pass
+def replaceCode(source, snip, lb, cb=0, le=None, ce=None):
+  return source
 
 
 # def silent(action):

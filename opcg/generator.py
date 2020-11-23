@@ -21,15 +21,24 @@ env = Environment(
 
 # TODO: Improve
 schemes = {
-  ('Fortran', 'seq') : env.get_template('fortran/seq.F90.j2')
+  ('fortran', 'seq') : env.get_template('fortran/seq.F90.j2')
 }
 
 
+# Augment source program to use generated kernel hosts
 def augmentProgram(source, store):
-  # Augment source program to use generated parrallelisations
+  
   # 1. Update headers
+
   # 2. Update init call
+  if store.init:
+    # loc = store.init['location'] 
+    pass
+
   # 3. Remove const calls
+  for const in store.consts:
+    pass
+
   # 4. Update loop calls
   return source
 
@@ -40,7 +49,7 @@ def genKernelHost(lang, para, kernel):
 
   # Exit if the template was not found
   if not template:
-    raise Exception('TODO: ...')
+    raise Exception(f'Template not found for {lang.name}-{para.name}')
 
   # Generate source from the template
   return template.render(kernel=kernel)

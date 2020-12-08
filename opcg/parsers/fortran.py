@@ -1,6 +1,7 @@
 
 # Standard library imports
 from subprocess import CalledProcessError
+# import xml.etree.ElementTree as ET
 import re
 import json
 
@@ -16,6 +17,7 @@ def parse(path):
   try:
     # Try to parse the source
     xml = fp.parse(path, raise_on_error=True)
+    # ET.dump(xml)
 
     # Create a store
     store = Store()
@@ -142,7 +144,7 @@ def parseLoop(args, location):
 
     else:
       raise ParseError(f'Invalid loop argument {name}')
-      
+
   return {
     'locations': [location],
     'kernel'   : kernel,
@@ -155,16 +157,16 @@ def parseArgDat(args):
   if len(args) != 6:
     raise ParseError('incorrect number of args passed to op_arg_dat')
 
-  type_regex = r'".*"' # TODO: Finish ...
+  type_regex = r'.*' # TODO: Finish ...
   access_regex = enumRegex(['OP_READ','OP_WRITE','OP_RW','OP_INC'])
 
   # Parse each arg
-  var  = parseIdentifier(args[0]),
-  idx  = parseIntLit(args[1], signed=True),
-  map_ = parseIdentifier(args[2]),
-  dim  = parseIntLit(args[3], signed=False),
-  typ  = parseStringLit(args[4], regex=type_regex),
-  acc  = parseIdentifier(args[5], regex=access_regex),
+  var  = parseIdentifier(args[0])
+  idx  = parseIntLit(args[1], signed=True)
+  map_ = parseIdentifier(args[2])
+  dim  = parseIntLit(args[3], signed=False)
+  typ  = parseStringLit(args[4], regex=type_regex)
+  acc  = parseIdentifier(args[5], regex=access_regex)
 
   # Check arg compatibility
   if map_ == 'OP_ID' and idx != -1:
@@ -193,7 +195,7 @@ def parseArgGbl(args):
     raise ParseError('incorrect number of args passed to op_arg_gbl')
 
   # Regex for valid op loop data types TODO: finish
-  type_regex = r'".*"'
+  type_regex = r'.*'
 
   # Regex for valid global op loop action access types 
   access_regex = enumRegex(['OP_READ','OP_INC','OP_MAX','OP_MIN'])
@@ -272,7 +274,8 @@ def parseStringLit(node, regex=None):
   if not node or node.attrib['type'] != 'char':
     raise ParseError('expected string literal')
 
-  value = node.attrib['value']
+  # Extract value from string delimeters
+  value = node.attrib['value'][1:-1]
 
   # Apply conditional regex constraint
   if regex and not re.match(regex, value):

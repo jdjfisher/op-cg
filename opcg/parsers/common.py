@@ -63,20 +63,40 @@ class Store:
 
   def getKernels(self): # WIP
     kernels = []
+    count = 0
 
     for loop in self.loops:
+      # TODO: Rename
+      dirs, inds, glbs, maps = [], [], [], []
 
-      # TODO: Identify indirect accesses
-      # j = [i for i, arg in enumerate(loop['args']) if 'map' in arg and arg['map'] != 'OP_ID']
-      # ninds = 0
+      # TODO: Cleanup
+      for i, arg in enumerate(loop['args']):
+        if 'map' in arg:
+          if arg['map'] == 'OP_ID':
+            dirs.append(i)
+          elif not any([arg['var'] == loop['args'][j]['var'] for j in inds]):
+            inds.append(i)
+            if not any([arg['map'] == loop['args'][j]['map'] for j in maps]):
+              maps.append(i)
+        else:
+          glbs.append(i)
 
-      # for arg in loop['args'] if 'map' in arg and arg['map'] != 'OP_ID':
-      #   pass
 
       kernels.append({
+        'id': count,
         'name': loop['kernel'],
         'set': loop['set'],
+        'args': loop['args'],
+        'dirs': dirs,
+        'inds': inds,
+        'glbs': glbs,
+        'maps': maps,
       })
+
+      count += 1
+
+    # import json
+    # exit(json.dumps(kernels, indent=2))
 
     return kernels
 

@@ -80,7 +80,7 @@ def main(argv=None):
       print(f'  Parsed: {store}')
 
 
-  #
+  # TODO: Merge stores ...
   main_store = stores[0]
 
   # Print warnings
@@ -99,12 +99,11 @@ def main(argv=None):
 
 
 
-  _ = main_store.getKernels()
 
-  # TODO: Process loops properly ...
-  kernels = main_store.loops
-  for kernel in kernels:
-    kernel['name'] = kernel.pop('kernel')
+
+  # TODO: Finish ...
+  kernels = main_store.getKernels()
+
 
 
 

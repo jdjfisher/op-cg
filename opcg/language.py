@@ -1,16 +1,17 @@
 
 # Standard library imports
 from os.path import basename
+from typing import Callable
 
 # Application imports
-from parsers.common import ParseError
+from parsers.common import Store, ParseError
 import parsers.fortran as fp
 
 
 class Lang(object):
-  instances = []
+  instances: list = []
 
-  def __init__(self, name, extensions, com_delim, parser):
+  def __init__(self, name: str, extensions: list, com_delim: str, parser: Callable[[str], Store]):
     self.__class__.instances.append(self)
     self.name = name
     self.extensions = extensions
@@ -18,7 +19,7 @@ class Lang(object):
     self.parser = parser
 
 
-  def parse(self, path):
+  def parse(self, path: str):
     if not self.parser:
       raise NotImplementedError(f'no parser registered for the "{self.name}" language')
 
@@ -38,7 +39,7 @@ class Lang(object):
 
 
   @classmethod
-  def find(cls, name):
+  def find(cls, name: str):
     return next((l for l in cls.all() if name == l.name or name in l.extensions), None)
 
 

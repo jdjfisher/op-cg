@@ -1,3 +1,5 @@
+{# Template imports #}
+{% from 'fortran/macros.j2' import op_opt, comma %}
 
 MODULE {{ kernel['name'] }}_module
 
@@ -15,27 +17,68 @@ MODULE {{ kernel['name'] }}_module
 
   ! Wrapper for kernel function
   SUBROUTINE {{ kernel['name'] }}_wrap ( & 
-    {% for arg in kernel['args'] %}
-    & opDat{{ loop.index }}, &   
+    {#
+    #}
+    {% for i in kernel['inds'] %}
+    & opDat{{ i+1 }}Local, &
     {% endfor %}
+    {#  
+    #}
+    {% for i in kernel['dirs'] + kernel['glbs'] %}
+    & opDat{{ i+1 }}Local, &
+    {% endfor %}
+    {#
+    #}
+    {% for i in kernel['maps'] %}
+    & opDat{{ i+1 }}Map, &
+    & opDat{{ i+1 }}MapDim, & 
+    {% endfor %}
+    {#
+    #}
     & bottom, &
     & top &
     & )
 
     IMPLICIT NONE
 
-    
+    {% for i in kernel['inds'] + kernel['dirs'] + kernel['glbs'] %}
+    {% if kernel['args'][i] is without_dim %}
+    INTEGER(kind=4) opDat{{ i+1 }}Dim
+    {% set dim %}opDat{{ i+1 }}Dim{% endset %}
+    {% else %}
+    {% set dim = kernel['args'][i]['dim'] %}
+    {% endif %}
+    {{ kernel['args'][i]['typ'] }} opDat{{ i+1 }}Local({{ dim }}{% if  kernel['args'][i] is not global %},*{% endif %})
+    {% endfor %}
+
+    {% for i in kernel['maps'] %}
+    INTEGER(kind=4) opDat{{ i+1 }}Map(*)
+    INTEGER(kind=4) opDat{{ i+1 }}MapDim
+    {% endfor %}
     INTEGER(kind=4) bottom,top,i1
-    {# TODO #}
+    INTEGER(kind=4) 
+    {# TODO: Finish #}
+    {%- for i, arg in enumerate(kernel['args']) -%} 
+    {# map{{ i }}idx{{ comma(loop) }}  #}
+    {%- endfor %}
 
 
     DO i1 = bottom, top-1, 1
-      {# TODO #}
+      {# TODO: Finish #}
+      {% for i, arg in enumerate(kernel['args']) %} 
+      {# map{{ i }}idx = opDat{{ i }}Map(1 + i1 * opDat{{ i }}MapDim + {{ arg['idx']-1 }})+1 #}
+      {%- endfor %}
+
 
       ! Kernel call
       CALL {{ kernel['name'] }}( &
         {% for arg in kernel['args'] %}
-        & opDat{{ loop.index }}Local(1){% if not loop.last %},{% endif %} &     
+          {% if arg is direct %}
+            {% set idx = ',i1+1' %}
+          {% elif arg is indirect %}
+            {% set idx = ',map?????????idx' %}
+          {% endif %}
+        & opDat{{ loop.index }}Local(1{{ idx }}){{ comma(loop) }} &     
         {% endfor %}
       & )
 
@@ -45,12 +88,13 @@ MODULE {{ kernel['name'] }}_module
   END SUBROUTINE
 
 
+
   ! Host function for kernel
   SUBROUTINE {{ kernel['name'] }}_host ( &
     & kernel, &
     & set, &
     {% for _ in kernel['args'] %}
-    & opDat{{ loop.index }}{% if not loop.last %},{% endif %} &            
+    & opArg{{ loop.index }}{{ comma(loop) }} &            
     {% endfor %}
     & )
 
@@ -73,10 +117,29 @@ MODULE {{ kernel['name'] }}_module
     type ( op_set_core ) , POINTER :: opSetCore
 
 
+    {# Indirect #}
+    {% for i in kernel['inds'] %}
+    INTEGER(kind=4), POINTER, DIMENSION(:) :: opDat{{ i+1 }}Map
+    INTEGER(kind=4) :: opDat{{ i+1 }}MapDim
+    {{ kernel['args'][i]['typ'] }}, POINTER, DIMENSION(:) :: opDat{{ i+1 }}Local
+    INTEGER(kind=4) :: opDat{{ i+1 }}Cardinality
 
-    {# TODO #}
+    {% endfor %}
 
+    {# Direct #}
+    {% for i in kernel['dirs'] %}
+    {{ kernel['args'][i]['typ'] }}, POINTER, DIMENSION(:) :: opDat{{ i+1 }}Local
+    INTEGER(kind=4) :: opDat{{ i+1 }}Cardinality
 
+    {% endfor %}
+      
+    {# Global #}
+    {% for i in kernel['glbs'] %}
+    {{ kernel['args'][i]['typ'] }}, POINTER, DIMENSION(:) :: opDat{{ i+1 }}Local
+
+    {% endfor %}
+
+    {# TODO: Opts #}
 
     INTEGER(kind=4) :: i1
     REAL(kind=4) :: dataTransfer
@@ -88,7 +151,7 @@ MODULE {{ kernel['name'] }}_module
     {% endfor %}
 
     returnSetKernelTiming = setKernelTime( &
-      & {{ nk or 0 }}, userSubroutine//C_NULL_CHAR, &
+      & {{ kernel['id'] }}, userSubroutine//C_NULL_CHAR, &
       & 0.0_8, 0.00000_4,0.00000_4, 0 &
     & )
     CALL op_timers_core(startTime)
@@ -97,20 +160,72 @@ MODULE {{ kernel['name'] }}_module
 
     opSetCore => set%setPtr
 
+    {% for i in kernel['inds'] %}
+    opDat{{ i+1 }}Cardinality = opArg{{ i+1 }}%dim * getSetSizeFromOpArg(opArg{{ i+1 }})
+    opDat{{ i+1 }}MapDim = getMapDimFromOpArg(opArg{{ i+1 }})
+    {% endfor %}
+    {% for i in kernel['dirs'] %}
+    opDat{{ i+1 }}Cardinality = opArg{{ i+1 }}%dim * getSetSizeFromOpArg(opArg{{ i+1 }})
+    {% endfor %}
 
+    {% for i in kernel['inds'] %}
+    CALL c_f_pointer(opArg{{ i+1 }}%data,opDat{{ i+1 }}Local,(/opDat{{ i+1 }}Cardinality/))
+    CALL c_f_pointer(opArg{{ i+1 }}%map_data,opDat{{ i+1 }}Map,(/opSetCore%size*opDat{{ i+1 }}MapDim/))
+    {% endfor %}
 
-    {# TODO #}
+    {% for i in kernel['dirs'] %}
+    CALL c_f_pointer(opArg{{ i+1 }}%data,opDat{{ i+1 }}Local,(/opDat{{ i+1 }}Cardinality/))
+    {% endfor %}
 
+    {% for i in kernel['glbs'] %}
+    CALL c_f_pointer(opArg{{ i+1 }}%data,opDat{{ i+1 }}Local, (/opArg{{ i+1 }}%dim/))
+    {% endfor %}
 
 
     CALL {{ kernel['name'] }}_wrap( &
-      {# TODO #}
+      {#
+      #}
+      {% for i in kernel['inds'] %}
+      & opDat{{ i+1 }}Local, &
+      {% endfor %}
+      {#  
+      #}
+      {% for i in kernel['dirs'] + kernel['glbs'] %}
+      & opDat{{ i+1 }}Local, &
+      {% endfor %}
+      {#
+      #}
+      {% for i in kernel['maps'] %}
+      & opDat{{ i+1 }}Map, &
+      & opDat{{ i+1 }}MapDim, & 
+      {% endfor %}
+      {#
+      #}
+      & 0, & 
+      & opSetCore%core_size, & 
     & )
 
     CALL op_mpi_wait_all(numberOfOpDats, opArgArray)
 
     CALL {{ kernel['name'] }}_wrap( &
-      {# TODO #}
+      {#
+      #}
+      {% for i in kernel['inds'] %}
+      & opDat{{ i+1 }}Local, &
+      {% endfor %}
+      {#  
+      #}
+      {% for i in kernel['dirs'] + kernel['glbs'] %}
+      & opDat{{ i+1 }}Local, &
+      {% endfor %}
+      {#
+      #}
+      {% for i in kernel['maps'] %}
+      & opDat{{ i+1 }}Map, &
+      & opDat{{ i+1 }}MapDim, & 
+      {% endfor %}
+      {#
+      #}
       & opSetCore%core_size, & 
       & n_upper &
     & )
@@ -138,17 +253,57 @@ MODULE {{ kernel['name'] }}_module
     CALL op_timers_core(endTime)
 
     dataTransfer = 0.0
-    {% if False %}
-    {# TODO #}
+
+    {# No indirection #}
+    {% if not kernel['inds'] | length %}
+      {% for i, arg in enumerate(kernel['args']) %}
+        {% call op_opt('opt' in arg) %}   
+    dataTransfer = dataTransfer + opArg{{ i+1 }}%size 
+        {%- if 'map' in arg %} * opSetCore%size{% endif %} 
+        {%- if arg['acc'] is not op_rw %} * 2.d0{% endif %}
+
+        {% endcall %}
+      {% endfor %}
+    {# Indirection #}
     {% else %}
-    {# TODO #}
-    {# dataTransfer = dataTransfer + opArg{{ 0 }}%size #}
+      {# Indirects #}
+      {% for i in kernel['inds'] %}
+        {% if 'opt' in kernel['args'][i] %}IF opArg{{ i+1 }}%opt == 1 THEN{% endif %}
+    dataTransfer = dataTransfer + opArg{{ i+1 }}%size ***** MIN(n_upper,getSetSizeFromOpArg(opArg{{ i+1 }}))
+        {%- if kernel['args'][i]['acc'] is not op_rw %} * 2.d0{% endif %}
+
+        {% if 'opt' in kernel['args'][i] %}END IF{% endif %}
+      {% endfor %}
+      {# Directs #}
+      {% for i in kernel['dirs'] %}
+        {% if 'opt' in kernel['args'][i] %}IF opArg{{ i+1 }}%opt == 1 THEN{% endif %}
+    dataTransfer = dataTransfer + opArg{{ i+1 }}%size * MIN(n_upper,getSetSizeFromOpArg(opArg{{ i+1 }}))
+        {%- if kernel['args'][i]['acc'] is not op_rw %} * 2.d0{% endif %}
+
+        {% if 'opt' in kernel['args'][i] %}END IF{% endif %}
+      {% endfor %}
+      {# Globals #}
+      {% for i in kernel['dirs'] %}
+        {% if 'opt' in kernel['args'][i] %}IF opArg{{ i+1 }}%opt == 1 THEN{% endif %}
+    dataTransfer = dataTransfer + opArg{{ i+1 }}%size
+        {%- if kernel['args'][i]['acc'] is not op_rw %} * 2.d0{% endif %}
+
+        {% if 'opt' in kernel['args'][i] %}END IF{% endif %}
+      {% endfor %}
+      {# Mappings #}
+      {% for i in kernel['maps'] %}
+    dataTransfer = dataTransfer + n_upper * opDat{{ i+1 }}MapDim * 4.d0
+      {% endfor %}
     {% endif %}
 
     returnSetKernelTiming = setKernelTime( &
-      & {{ nk or 0 }}, kernel//C_NULL_CHAR, &
+      & {{ kernel['id'] }}, kernel//C_NULL_CHAR, &
       & endTime-startTime, dataTransfer, 0.00000_4, 1 &
     & )
   END SUBROUTINE
 
 END MODULE
+
+
+
+

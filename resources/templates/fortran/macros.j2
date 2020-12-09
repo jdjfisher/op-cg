@@ -1,0 +1,16 @@
+
+{# Surround caller with op_opt conditional block #}
+{% macro op_opt(b) %}
+{% if b %}
+IF opArg{{ '?????????' }}%opt == 1 THEN
+  {{ caller() }}
+END IF
+{% else %}
+{{ caller() }}
+{% endif %}
+{% endmacro %}
+
+{% macro comma(loop) %}
+{% if not loop.last %},{% endif %}
+{% endmacro %}
+

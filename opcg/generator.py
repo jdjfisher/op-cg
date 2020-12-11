@@ -18,13 +18,21 @@ env = Environment(
   trim_blocks=True,
 )
 
+directTest = lambda arg: arg.get('map') == 'OP_ID'
+directFilter = lambda args: filter(directTest, args)
 
-env.globals["enumerate"] = enumerate
-env.tests["op_rw"] = lambda acc: acc in ['OP_READ', 'OP_WRITE']
-env.tests["without_dim"] = lambda arg: not isinstance(arg.get('dim'), int) 
-env.tests["global"] = lambda arg: 'map' not in arg
-env.tests["direct"] = lambda arg: arg.get('map') == 'OP_ID'
-env.tests["indirect"] = lambda arg: 'map' in arg and arg.get('map') != 'OP_ID'
+env.globals['enumerate'] = enumerate
+env.globals['next'] = next
+env.globals['direct'] = directFilter
+env.globals['diff'] = lambda a, b: { k: v for k, v in a.items() if k not in b }
+env.globals['union'] = lambda a, b: a | b
+env.tests['rw_acc'] = lambda arg: arg.get('acc') in ['OP_READ', 'OP_WRITE']
+env.tests['without_dim'] = lambda arg: not isinstance(arg.get('dim'), int) 
+env.tests['global'] = lambda arg: 'map' not in arg
+env.tests['direct'] = directTest
+env.tests['indirect'] = lambda arg: 'map' in arg and arg.get('map') != 'OP_ID'
+
+
 
 
 # TODO: Improve

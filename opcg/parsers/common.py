@@ -1,5 +1,74 @@
 
 
+class Kernel:
+
+  def __init__(self, i, loop):
+    self._id = i
+    self._name = loop['kernel']
+    self._args = loop['args']
+
+  @property
+  def id(self):
+    return self._id
+
+  @property
+  def name(self):
+    return self._name
+
+  @property
+  def args(self):
+    return dict(enumerate(self._args))
+
+  @property
+  def directs(self):
+    return { i: arg for i, arg in self.args.items() if arg.get('map') == 'OP_ID' }
+
+  @property
+  def indirects(self):
+    return { i: arg for i, arg in self.args.items() if 'map' in arg and arg.get('map') != 'OP_ID' }
+
+  @property
+  def globals(self):
+    return { i: arg for i, arg in self.args.items() if 'map' not in arg }
+
+  @property
+  def indirectVars(self):
+    # TODO: Tidy
+    x, r = [], {}
+    for i, arg in self.indirects.items():
+      y = arg['var']
+      if y not in x:
+        x.append(y)
+        r[i] = arg
+
+    return r
+
+  @property
+  def indirectMaps(self):
+    # TODO: Tidy
+    x, r = [], {}
+    for i, arg in self.indirects.items():
+      y = arg['map']
+      if y not in x:
+        x.append(y)
+        r[i] = arg
+
+    return r
+
+
+  @property
+  def indirectMapRefs(self):
+    # TODO: Tidy
+    x, r = [], {}
+    for i, arg in self.indirects.items():
+      y = (arg['map'], arg['idx'])
+      if y not in x:
+        x.append(y)
+        r[i] = arg
+
+    return r
+
+
 class Store:
   def __init__(self):
     self.init = None 
@@ -61,44 +130,8 @@ class Store:
       self.exit = exit
 
 
-  def getKernels(self): # WIP
-    kernels = []
-    count = 0
-
-    for loop in self.loops:
-      # TODO: Rename
-      dirs, inds, glbs, maps = [], [], [], []
-
-      # TODO: Cleanup
-      for i, arg in enumerate(loop['args']):
-        if 'map' in arg:
-          if arg['map'] == 'OP_ID':
-            dirs.append(i)
-          elif not any([arg['var'] == loop['args'][j]['var'] for j in inds]):
-            inds.append(i)
-            if not any([arg['map'] == loop['args'][j]['map'] for j in maps]):
-              maps.append(i)
-        else:
-          glbs.append(i)
-
-
-      kernels.append({
-        'id': count,
-        'name': loop['kernel'],
-        'set': loop['set'],
-        'args': loop['args'],
-        'dirs': dirs,
-        'inds': inds,
-        'glbs': glbs,
-        'maps': maps,
-      })
-
-      count += 1
-
-    # import json
-    # exit(json.dumps(kernels, indent=2))
-
-    return kernels
+  def getKernels(self): 
+    return [ Kernel(i, loop) for i, loop in enumerate(self.loops) ]
 
 
   def __str__(self):

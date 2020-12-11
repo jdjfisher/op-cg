@@ -122,10 +122,10 @@ def main(argv=None):
   for i, kernel in enumerate(kernels, 1):
 
     if args.verbose:
-      print(f'Generating kernel host {i} of {len(kernels)}: {kernel["name"]}')
+      print(f'Generating kernel host {i} of {len(kernels)}: {kernel.name}')
 
     # Form output file path 
-    path = os.path.join(args.out, args.prefix + kernel['name'] + '.' + extension)
+    path = os.path.join(args.out, args.prefix + kernel.name + '.' + extension)
 
     # Generate kernel source
     source = genKernelHost(lang, para, kernel)

@@ -9,7 +9,7 @@ import os
 import re 
 
 # Application imports
-from generator import augmentProgram, genKernelHost
+from generator import genOpProgram, genKernelHost, genMakefile
 from language import Lang
 from parallelization import Para
 from parsers.common import Store
@@ -24,6 +24,7 @@ def main(argv=None):
   parser.add_argument('-V', '-version', '--version', help='Version', action='version', version=getVersion())
   parser.add_argument('-v', '--verbose', help='Verbose', action='store_true')
   parser.add_argument('-d', '--dump', help='Dump Store', action='store_true')
+  parser.add_argument('-m', '--makefile', help='Create Makefile', action='store_true')
   parser.add_argument('-o', '--out', help='Output Directory', type=isDirPath, default='.')
   parser.add_argument('-p', '--prefix', help='Output File Prefix', type=isValidPrefix, default='op')
   # parser.add_argument('-soa', '--soa', help='Structs of Arrays', action='store_true')
@@ -129,7 +130,7 @@ def main(argv=None):
     # Generate kernel source
     source = genKernelHost(lang, para, kernel)
 
-    # Write the translated source file
+    # Write the generated source file
     with open(path, 'w') as file:
       file.write(f'\n{lang.com_delim} Auto-generated at {datetime.now()} by {parser.prog}\n\n')
       file.write(source)
@@ -145,14 +146,13 @@ def main(argv=None):
   for i, (raw_path, store) in enumerate(zip(args.file_paths, stores), 1):
 
     if args.verbose:
-      print(f'Translating file {i} of {len(args.file_paths)}: {raw_path}')
+      print(f'Translating program {i} of {len(args.file_paths)}: {raw_path}')
     
     # Read the raw source file
     with open(raw_path, 'r') as raw_file:
-      source = raw_file.read()
 
-      # Translate the source
-      translation = augmentProgram(source, store)
+      # Generate the translated source
+      source = genOpProgram(raw_file.read(), store)
 
       # Form output file path 
       new_path = os.path.join(args.out, f'{args.prefix}_{para.name}_{os.path.basename(raw_path)}')
@@ -160,11 +160,29 @@ def main(argv=None):
       # Write the translated source file
       with open(new_path, 'w') as new_file:
         new_file.write(f'\n{lang.com_delim} Auto-generated at {datetime.now()} by {parser.prog}\n\n')
-        new_file.write(translation)
+        new_file.write(source)
         generated_paths.append(new_path)
 
         if args.verbose:
-          print(f'  Created translation file: {new_path}')     
+          print(f'  Created translation file: {new_path}') 
+
+
+
+
+  # Generate Makefile
+  if args.makefile:
+    # TODO: Error if already exists
+    with open(os.path.join(args.out, 'Makefile'), 'w') as file:
+
+      source = genMakefile(generated_paths)
+      
+      file.write(f'\n# Auto-generated at {datetime.now()} by {parser.prog}\n\n')
+      file.write(source)
+      
+      if args.verbose:
+        print(f'Created Makefile') 
+
+
 
 
   # End of main

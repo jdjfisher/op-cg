@@ -1,6 +1,7 @@
 
 # Standard library imports
 import json
+import os
 
 # Third party imports
 from jinja2 import Environment, FileSystemLoader, select_autoescape, Template
@@ -45,7 +46,7 @@ templates = {
 
 
 # Augment source program to use generated kernel hosts
-def augmentProgram(source: str, store: Store): 
+def genOpProgram(source: str, store: Store): 
   # 1. Update headers
   # 2. Update init call
   # 3. Remove const calls
@@ -53,13 +54,23 @@ def augmentProgram(source: str, store: Store):
   return source
 
 
+# 
 def genKernelHost(lang: Lang, para: Para, kernel):
   # Lookup generation template
   template = templates.get((lang.name, para.name))
 
-  # Exit if the template was not found
   if not template:
     exit(f'template not found for {lang.name}-{para.name}')
 
   # Generate source from the template
   return template.render(kernel=kernel)
+
+
+# 
+def genMakefile(paths):
+  # 
+  template = env.get_template('makefile.j2')
+
+  files = map(os.path.basename, paths)
+
+  return template.render(files=files)

@@ -10,7 +10,7 @@ install:
 	pip3 install -r requirements.txt
 
 test:
-	echo "wip"
+	pytest
 
 clean:
 	rm temp/*

@@ -25,8 +25,7 @@ def main(argv=None):
   parser.add_argument('-v', '--verbose', help='Verbose', action='store_true')
   parser.add_argument('-d', '--dump', help='Dump Store', action='store_true')
   parser.add_argument('-o', '--out', help='Output Directory', type=isDirPath, default='.')
-  parser.add_argument('-p', '--prefix', help='Output File Prefix', type=isValidPrefix, default='op_')
-  # parser.add_argument('-l', '--language', help='Target Language', type=str, choices=Lang.())
+  parser.add_argument('-p', '--prefix', help='Output File Prefix', type=isValidPrefix, default='op')
   # parser.add_argument('-soa', '--soa', help='Structs of Arrays', action='store_true')
   parser.add_argument('para', help='Target Parallelization', type=str, choices=Para.names())
   parser.add_argument('file_paths', help='Input Files', type=isFilePath, nargs='+')
@@ -125,7 +124,7 @@ def main(argv=None):
       print(f'Generating kernel host {i} of {len(kernels)}: {kernel.name}')
 
     # Form output file path 
-    path = os.path.join(args.out, args.prefix + kernel.name + '.' + extension)
+    path = os.path.join(args.out, f'{args.prefix}_{para.name}_{kernel.name}.{extension}')
 
     # Generate kernel source
     source = genKernelHost(lang, para, kernel)
@@ -156,7 +155,7 @@ def main(argv=None):
       translation = augmentProgram(source, store)
 
       # Form output file path 
-      new_path = os.path.join(args.out, args.prefix + os.path.basename(raw_path))
+      new_path = os.path.join(args.out, f'{args.prefix}_{para.name}_{os.path.basename(raw_path)}')
 
       # Write the translated source file
       with open(new_path, 'w') as new_file:

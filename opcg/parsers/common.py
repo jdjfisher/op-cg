@@ -7,29 +7,41 @@ class Kernel:
     self._name = loop['kernel']
     self._args = loop['args']
 
+
   @property
   def id(self):
     return self._id
+
 
   @property
   def name(self):
     return self._name
 
+
   @property
   def args(self):
     return dict(enumerate(self._args))
+
+
+  @property
+  def indirection(self):
+    return len(self.indirects) > 0
+
 
   @property
   def directs(self):
     return { i: arg for i, arg in self.args.items() if arg.get('map') == 'OP_ID' }
 
+
   @property
   def indirects(self):
     return { i: arg for i, arg in self.args.items() if 'map' in arg and arg.get('map') != 'OP_ID' }
 
+
   @property
   def globals(self):
     return { i: arg for i, arg in self.args.items() if 'map' not in arg }
+
 
   @property
   def indirectVars(self):
@@ -42,6 +54,7 @@ class Kernel:
         r[i] = arg
 
     return r
+
 
   @property
   def indirectMaps(self):

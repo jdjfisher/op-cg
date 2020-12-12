@@ -1,0 +1,580 @@
+{# Template imports #}
+{% from 'fortran/macros.j2' import comma %}
+
+{# {% set indirect_rw = any([ arg['acc'] == 'OP_RW' for arg in kernel.indirects.values() ]) %} #}
+{% set indirect_rw = 'OP_RW' in kernel.indirects.values()|selectattr('acc') %}
+{% set indirect_inc = true %}
+{% set atomics = indirect_inc and not indirect_rw %}
+
+
+MODULE {{ kernel.name }}_module
+
+  USE OP2_CONSTANTS
+  USE OP2_FORTRAN_DECLARATIONS
+  USE OP2_FORTRAN_RT_SUPPORT
+  USE ISO_C_BINDING
+  USE CUDAFOR
+  USE CUDACONFIGURATIONPARAMS
+
+  #ifdef _OPENMP
+    USE OMP_LIB
+  #endif
+
+  ! {{ kernel.name }} variable declarations
+
+  {# TODO: Strides for SoA #}
+
+  {% if kernel.indirection %}
+  TYPE ( c_ptr )  :: planRet_{{ kernel.name }}
+  {% endif %}
+
+  {# TODO: Any SoA #}
+  {# #define OP2_SOA(var,dim,stride) var((dim-1)*stride+1) #}
+
+
+  CONTAINS
+
+  {% if reduct_1dim or unknown_reduction_size %}
+  ! Reduction cuda kernel
+  attributes (device) SUBROUTINE ReductionFloat8(sharedDouble8, reductionResult,inputValue,reductionOperation)
+    REAL(kind=8), DIMENSION(:), DEVICE :: reductionResult
+    REAL(kind=8) :: inputValue
+    INTEGER(kind=4), VALUE :: reductionOperation
+    REAL(kind=8), DIMENSION(0:*) :: sharedDouble8
+    INTEGER(kind=4) :: i1
+    INTEGER(kind=4) :: threadID
+    threadID = threadIdx%x - 1
+    i1 = ishft(blockDim%x,-1)
+    CALL syncthreads()
+    sharedDouble8(threadID) = inputValue
+
+    DO WHILE (i1 > 0)
+      CALL syncthreads()
+      IF (threadID < i1) THEN
+        SELECT CASE(reductionOperation)
+          CASE (0)
+            sharedDouble8(threadID) = sharedDouble8(threadID) + sharedDouble8(threadID + i1)
+          CASE (1)
+            IF (sharedDouble8(threadID + i1) < sharedDouble8(threadID)) THEN
+              sharedDouble8(threadID) = sharedDouble8(threadID + i1)
+            END IF
+          CASE (2)
+            IF (sharedDouble8(threadID + i1) > sharedDouble8(threadID)) THEN
+              sharedDouble8(threadID) = sharedDouble8(threadID + i1)
+            END IF
+        END SELECT
+      END IF
+      i1 = ishft(i1,-1)
+    END DO
+
+    CALL syncthreads()
+
+    IF (threadID .EQ. 0) THEN
+      SELECT CASE(reductionOperation)
+        CASE (0)
+          reductionResult(1) = reductionResult(1) + sharedDouble8(0)
+        CASE (1)
+          IF (sharedDouble8(0) < reductionResult(1)) THEN
+            reductionResult(1) = sharedDouble8(0)
+          END IF
+        CASE (2)
+          IF (sharedDouble8(0) > reductionResult(1)) THEN
+            reductionResult(1) = sharedDouble8(0)
+          END IF
+      END SELECT
+    END IF
+
+    CALL syncthreads()
+  END SUBROUTINE
+
+  ! ...
+  attributes (device) SUBROUTINE ReductionInt4(sharedInt4, reductionResult,inputValue,reductionOperation)
+    INTEGER(kind=4), DIMENSION(:), DEVICE :: reductionResult
+    INTEGER(kind=4) :: inputValue
+    INTEGER(kind=4), VALUE :: reductionOperation
+    INTEGER(kind=4), DIMENSION(0:*) :: sharedInt4
+    INTEGER(kind=4) :: i1
+    INTEGER(kind=4) :: threadID
+    threadID = threadIdx%x - 1
+    i1 = ishft(blockDim%x,-1)
+    CALL syncthreads()
+    sharedInt4(threadID) = inputValue
+
+    DO WHILE (i1 > 0)
+      CALL syncthreads()
+      IF (threadID < i1) THEN
+        SELECT CASE(reductionOperation)
+          CASE (0)
+            sharedInt4(threadID) = sharedInt4(threadID) + sharedInt4(threadID + i1)
+          CASE (1)
+            IF (sharedInt4(threadID + i1) < sharedInt4(threadID)) THEN
+              sharedInt4(threadID) = sharedInt4(threadID + i1)
+            END IF
+          CASE (2)
+            IF (sharedInt4(threadID + i1) > sharedInt4(threadID)) THEN
+              sharedInt4(threadID) = sharedInt4(threadID + i1)
+            END IF
+        END SELECT
+      END IF
+      i1 = ishft(i1,-1)
+    END DO
+
+    CALL syncthreads()
+
+    IF (threadID .EQ. 0) THEN
+      SELECT CASE(reductionOperation)
+        CASE (0)
+          reductionResult(1) = reductionResult(1) + sharedInt4(0)
+        CASE (1)
+          IF (sharedInt4(0) < reductionResult(1)) THEN
+            reductionResult(1) = sharedInt4(0)
+          END IF
+        CASE (2)
+          IF (sharedInt4(0) > reductionResult(1)) THEN
+            reductionResult(1) = sharedInt4(0)
+          END IF
+      END SELECT
+    END IF
+
+    CALL syncthreads()
+  END SUBROUTINE
+  {% endif %}
+  {% if reduct_mdim %}
+  ! Multidimensional reduction cuda kernel
+  attributes (device) SUBROUTINE ReductionFloat8Mdim(sharedDouble8, reductionResult,inputValue,reductionOperation,dim)
+    REAL(kind=8), DIMENSION(:), DEVICE :: reductionResult
+    REAL(kind=8), DIMENSION(:) :: inputValue
+    INTEGER(kind=4), VALUE :: reductionOperation
+    INTEGER(kind=4), VALUE :: dim
+    REAL(kind=8), DIMENSION(0:*) :: sharedDouble8
+    INTEGER(kind=4) :: i1
+    INTEGER(kind=4) :: d
+    INTEGER(kind=4) :: threadID
+    threadID = threadIdx%x - 1
+    i1 = ishft(blockDim%x,-1)
+    CALL syncthreads()
+    sharedDouble8(threadID*dim:threadID*dim+dim-1) = inputValue(1:dim)
+
+    DO WHILE (i1 > 0)
+      CALL syncthreads()
+      IF('threadID < i1
+        SELECT CASE(reductionOperation)
+          CASE (0)
+            DO i2 = 0, dim - 1, 1
+              sharedDouble8(threadID*dim + i2) = sharedDouble8(threadID*dim + i2) + sharedDouble8((threadID + i1)*dim + i2)
+            END DO
+          CASE (1)
+            DO i2 = 0, dim - 1, 1
+              sharedDouble8(threadID*dim + i2) = MIN(sharedDouble8(threadID*dim + i2), sharedDouble8((threadID + i1)*dim + i2))
+            END DO
+          CASE (2)
+            DO i2 = 0, dim - 1, 1
+              sharedDouble8(threadID*dim + i2) = MAX(sharedDouble8(threadID*dim + i2), sharedDouble8((threadID + i1)*dim + i2))
+            END DO
+        END SELECT
+      ENDIF()
+      i1 = ishft(i1,-1)
+    END DO
+
+    CALL syncthreads()
+
+    IF('threadID .EQ. 0
+      SELECT CASE(reductionOperation)
+        CASE (0)
+          reductionResult(1:dim) = reductionResult(1:dim) + sharedDouble8(0:dim-1)
+        CASE (1)
+          DO i2 = 0, dim - 1, 1
+            reductionResult(1+i2) = MIN(reductionResult(1+i2) , sharedDouble8(i2))
+          END DO
+        CASE (2)
+          DO i2 = 0, dim - 1, 1
+            reductionResult(1+i2) = MAX(reductionResult(1+i2) , sharedDouble8(i2))
+          END DO
+      END SELECT
+    ENDIF()
+
+    CALL syncthreads()
+  END SUBROUTINE
+  {% endif %}
+
+  attributes (host) &
+  #include "{{ kernel.name }}.inc"
+  attributes (device) &
+
+  {# TODO: Inline user kernel? #}
+
+  ! CUDA kernel function
+  attributes (global) SUBROUTINE op_cuda_{{ kernel.name }}( &
+    {# TODO: OPT flags #}
+    {#  #}
+    {% for i, arg in kernel.indirectVars.items() %}
+    {%   if arg is without_dim %}
+    & opDat{{ i+1 }}Dim, &
+    {%   endif %}
+    & opDat{{ i+1 }}Device_{{ kernel.name }}, &
+    {% endfor %}
+    {#  #}
+    {% for i in kernel.indirectMaps %}
+    & opDat{{ i+1 }}Map, &
+    {% endfor %}
+    {#  #}
+    {% for i, arg in kernel.directs.items() %}
+    {%   if arg is without_dim %}
+    & opDat{{ i+1 }}Dim, &
+    {%   endif %}
+    & opDat{{ i+1 }}Device_{{ kernel.name }}, &
+    {% endfor %}
+    {#  #}
+    {% for i, arg in kernel.globals.items() %}
+    {%   if arg is without_dim %}
+    & opDat{{ i+1 }}Dim, &
+    {%   endif %}
+    {%   if arg is without_dim and arg['acc'] in ['OP_INC', 'OP_MIN', 'OP_MAX'] %}
+    & scratchDevice{{ i+1 }}, &
+    {%   elif arg['dim'] == 1 and arg['acc'] == 'OP_READ' %}
+    & opGblDat{{ i+1 }}Device_{{ kernel.name }}, &
+    {%   endif %}
+    {% endfor %}
+    {#  #}
+    {% if kernel.indirection %}
+    & start, &
+    & end, &
+    {%   if not atomics %}
+    & pcol_reord, &
+    {%   endif %}
+    {% endif %}
+    & setSize
+    & )
+
+    IMPLICIT NONE
+
+    ! Local variables
+    {# {% if  %}
+    INTEGER(kind=4), VALUE :: optflags
+    {% endif %} #}
+
+    {# real(8), DEVICE :: opDat1Deviceres_calc(*)
+    real(8), DEVICE :: opDat3Deviceres_calc(*)
+    real(8), DEVICE :: opDat5Deviceres_calc(*)
+    real(8), DEVICE :: opDat7Deviceres_calc(*)
+    INTEGER(kind=4), DEVICE, INTENT(IN) :: opDat1Map(*)
+    INTEGER(kind=4), DEVICE, INTENT(IN) :: opDat3Map(*) #}
+
+    INTEGER(kind=4) {% for i in kernel.indirectMapRefs -%} 
+    map{{ i+1 }}idx{{ comma(loop) }} 
+    {%- endfor %}
+
+    {# INTEGER(kind=4), VALUE :: start, end
+    INTEGER(kind=4), VALUE :: setSize
+
+    INTEGER(kind=4) :: i3
+    INTEGER(kind=4) :: i1
+    INTEGER(kind=4) :: i2 #}
+
+
+    {% if kernel.indirection %}
+    i1 = threadIdx%x - 1 + (blockIdx%x - 1) * blockDim%x
+    IF (i1+start < end) THEN
+      i3 = i1+start
+      map1idx = opDat1Map(1 + i3 + setSize * 0)
+      map2idx = opDat1Map(1 + i3 + setSize * 1)
+      map3idx = opDat3Map(1 + i3 + setSize * 0)
+      map4idx = opDat3Map(1 + i3 + setSize * 1)
+
+      ! kernel call
+      CALL res_calc_gpu( &
+        {# Device_ #}
+        & opDat1Deviceres_calc(1 + map1idx * (2):     map1idx * (2) + 2), &
+        & opDat1Deviceres_calc(1 + map2idx * (2):     map2idx * (2) + 2), &
+        & opDat3Deviceres_calc(1 + map3idx * (4):     map3idx * (4) + 4), &
+        & opDat3Deviceres_calc(1 + map4idx * (4):     map4idx * (4) + 4), &
+        & opDat5Deviceres_calc(1 + map3idx), &
+        & opDat5Deviceres_calc(1 + map4idx), &
+        & opDat7Deviceres_calc(1 + map3idx * (4):     map3idx * (4) + 4), &
+        & opDat7Deviceres_calc(1 + map4idx * (4):     map4idx * (4) + 4) &
+      & )
+
+    END IF
+    {% else %}
+    {# ... #}
+    {% endif %}
+
+  END SUBROUTINE
+
+  attributes (host) SUBROUTINE {{ kernel.name }}_host( &
+    & kernel, &
+    & set, &
+    {% for i in kernel.args %}
+    & opArg{{ i+1 }}{{ comma(loop) }} &            
+    {% endfor %}
+    & )
+
+    IMPLICIT NONE
+    character(kind=c_char,len=*), INTENT(IN) :: kernel
+    TYPE ( op_set ) , INTENT(IN) :: set
+
+    {% for i in kernel.args %}
+    TYPE ( op_arg ) , INTENT(IN) :: opArg{{ i+1 }}
+    {% endfor %}
+
+    IF (getHybridGPU().EQ.1) THEN
+      CALL {{ kernel.name }}_host_gpu( &
+        & kernel, &
+        & set, &
+        {% for i in kernel.args %}
+        & opArg{{ i+1 }}{{ comma(loop) }} &            
+        {% endfor %}
+        & )
+    END IF
+  END SUBROUTINE
+
+
+  ! Stub for GPU execution
+  attributes (host) SUBROUTINE {{ kernel.name }}_host_gpu( &
+    & kernel, &
+    & set, &
+    {% for i in kernel.args %}
+    & opArg{{ i+1 }}{{ comma(loop) }} &            
+    {% endfor %}
+    & )
+
+    IMPLICIT NONE
+    character(kind=c_char,len=*), INTENT(IN) :: kernel
+    TYPE ( op_set ) , INTENT(IN) :: set
+
+    {% for i in kernel.args %}
+    TYPE ( op_arg ) , INTENT(IN) :: opArg{{ i+1 }}
+    {% endfor %}
+
+    TYPE ( op_arg ) , DIMENSION({{ kernel.args | length }}) :: opArgArray
+    INTEGER(kind=4) :: numberOfOpDats
+    INTEGER(kind=4) :: n_upper
+    INTEGER(kind=4), DIMENSION(1:8) :: timeArrayStart
+    INTEGER(kind=4), DIMENSION(1:8) :: timeArrayEnd
+    REAL(kind=8) :: startTime
+    REAL(kind=8) :: endTime
+    INTEGER(kind=4) :: returnSetKernelTiming
+
+    {% for i, arg in kernel.indirectVars.items() %}
+    {{ arg['typ'] }}, DIMENSION(:), DEVICE, POINTER :: opDat{{ i+1 }}Device_{{ kernel.name }}
+    INTEGER(kind=4), DIMENSION(:), DEVICE, POINTER :: opMap{{ i+1 }}Device_{{ kernel.name }}
+    {% endfor %}
+    {% for i, arg in kernel.directs.items() %}
+    {{ arg['typ'] }}, DIMENSION(:), DEVICE, POINTER :: opDat{{ i+1 }}Device_{{ kernel.name }}
+    {% endfor %}
+
+    {% for i in kernel.indirectVars %}
+    INTEGER(kind=4) :: opDat{{ i+1 }}Cardinality
+    INTEGER(kind=4) :: opMap{{ i+1 }}Cardinality
+    {% endfor %}
+    {% for i in kernel.directs %}
+    INTEGER(kind=4) :: opDat{{ i+1 }}Cardinality
+    INTEGER(kind=4) :: opMap{{ i+1 }}Cardinality
+    {% endfor %}
+    {% for i in kernel.globals %}
+    INTEGER(kind=4) :: opDat{{ i+1 }}Cardinality
+    INTEGER(kind=4) :: opMap{{ i+1 }}Cardinality
+    {% endfor %}
+
+    INTEGER(kind=4) :: threadsPerBlock
+    INTEGER(kind=4) :: blocksPerGrid
+    INTEGER(kind=4) :: dynamicSharedMemorySize
+    INTEGER(kind=4) :: threadSynchRet
+    INTEGER(kind=4) :: i1
+    INTEGER(kind=4) :: i2
+    INTEGER(kind=4) :: i10
+
+    {# Indirection #}
+    {% if kernel.indirection %}
+    TYPE ( op_plan ) , POINTER :: actualPlan_res_calc
+
+    INTEGER(kind=4), DIMENSION(1:{{ kernel.args | length }}) :: opDatArray
+    INTEGER(kind=4), DIMENSION(1:{{ kernel.args | length }}) :: mappingIndicesArray
+    INTEGER(kind=4), DIMENSION(1:{{ kernel.args | length }}) :: accessDescriptorArray
+    INTEGER(kind=4), DIMENSION(1:{{ kernel.args | length }}) :: indirectionDescriptorArray
+
+    {% for i in kernel.indirectVars %}
+    INTEGER(kind=4) :: mappingArray{{ i+1 }}Size
+    {% endfor %}
+
+    INTEGER(kind=4) :: numberOfIndirectOpDats
+    INTEGER(kind=4) :: blockOffset
+
+    {# TODO: Atomics #}
+
+    INTEGER(kind=4) :: partitionSize
+    INTEGER(kind=4) :: blockSize
+
+    {# No indirection #}
+    {% else %}
+    INTEGER(kind=4) :: i20
+    REAL(kind=4) :: dataTransfer
+    {% endif %}
+
+    INTEGER(kind=4), SAVE :: calledTimes=0
+    INTEGER(kind=4) :: istat
+
+    {% for i, arg in kernel.globals.items() %}
+    {%   if arg['acc'] == 'OP_WRITE' or arg is without_dim or arg['dim'] > 1 %}
+    {{ arg['typ'] }}, DIMENSION(:), POINTER :: opDat{{ i+1 }}Host
+    {%   else %}
+    {{ arg['typ'] }}, POINTER :: opDat{{ i+1 }}Host
+    {%     if arg['acc'] == 'OP_READ' and arg is not without_dim and arg['dim'] == 1 %}
+    {{ arg['typ'] }} :: opDat{{ i+1 }}Host_tmp {# XLF workaround #}
+    {%     endif %}
+    {%   endif %}
+    {%   if arg['acc'] in ['OP_INC', 'OP_MAX', 'OP_MIN'] %}
+    {{ arg['typ'] }}, DIMENSION(:), ALLOCATABLE :: reductionArrayHost{{ i+1 }}
+    {%     if arg is without_dim %}
+    INTEGER(kind=4) :: scratchDevice{{ i+1 }}Size
+    {%     endif %}
+    INTEGER(kind=4) :: reductionCardinality{{ i+1 }}
+    {%   endif %}
+    {% endfor %}
+
+    {# TODO: Optargs #}
+
+    numberOfOpDats = {{ kernel.args | length }}
+
+    {% for i in kernel.args %}
+    opArgArray({{ i+1 }}) = opArg{{ i+1 }}
+    {% endfor %}
+
+    returnSetKernelTiming = setKernelTime( &
+      & {{ kernel.id }} , kernel//C_NULL_CHAR, &
+      & 0.0_8, 0.00000_4,0.00000_4, 0
+    & )
+
+    {# TODO: Managing constants #}
+
+    call op_timers_core(startTime)
+
+    n_upper = op_mpi_halo_exchanges_cuda(set%setCPtr,numberOfOpDats,opArgArray)
+    threadsPerBlock = getBlockSize(kernel//C_NULL_CHAR,set%setPtr%size)
+
+    {# Indirection #}
+    {% if kernel.indirection %}
+    {%   for i in kernel.args %}
+    indirectionDescriptorArray({{ i+1 }}) = {{ '??????' }}
+    {%   endfor %}
+
+    numberOfIndirectOpDats = {{ kernel.indirectVars | length }}
+
+    partitionSize = getPartitionSize(kernel//C_NULL_CHAR,set%setPtr%size)
+
+    {# TODO: atomics #}
+
+    {# No indirection #}
+    {% else %}
+    {# TODO: unknown_reduction_size #}
+    blocksPerGrid = 600 
+    dynamicSharedMemorySize = reductionSize(opArgArray,numberOfOpDats) * threadsPerBlock
+    {% endif %}
+
+    {% for i in kernel.indirectVars %}
+    opDat{{ i+1 }}Cardinality = opArg{{ i+1 }}%dim * getSetSizeFromOpArg(opArg{{ i+1 }})
+    opMap{{ i+1 }}Cardinality = set%setPtr%size * getMapDimFromOpArg(opArg{{ i+1 }})
+    {% endfor %}
+    {% for i in kernel.directs %}
+    opDat{{ i+1 }}Cardinality = opArg{{ i+1 }}%dim * getSetSizeFromOpArg(opArg{{ i+1 }})
+    {% endfor %}
+    {% for i in kernel.globals %}
+    opDat{{ i+1 }}Cardinality = opArg{{ i+1 }}%dim
+    {% endfor %}
+
+    {# Device_ #}
+    {% for i in kernel.indirectVars %}
+    CALL c_f_pointer(opArg{{ i+1 }}%data_d,opDat{{ i+1 }}Device_{{ kernel.name }},(/opDat{{ i+1 }}Cardinality/))
+    CALL c_f_pointer(opArg{{ i+1 }}%map_data_d,opMap{{ i+1 }}Device_{{ kernel.name }},(/opMap{{ i+1 }}Cardinality/))
+    {% endfor %}
+    {% for i in kernel.directs %}
+    CALL c_f_pointer(opArg{{ i+1 }}%data_d,opDat{{ i+1 }}Device_{{ kernel.name }},(/opDat{{ i+1 }}Cardinality/))
+    {% endfor %}
+    {% for i in kernel.globals %}
+    {# if accs[g_m] == OP_WRITE or (not dims[g_m].isdigit()) or int(dims[g_m])>1:
+          code('CALL c_f_pointer(opArg'+str(g_m+1)+'%data,opDat'+str(g_m+1)+'Host,(/opDat'+str(g_m+1)+'Cardinality/))')
+        else:
+          code('CALL c_f_pointer(opArg'+str(g_m+1)+'%data,opDat'+str(g_m+1)+'Host)')
+          if accs[g_m] == OP_READ and dims[g_m].isdigit() and int(dims[g_m])==1:
+            code('opDat'+str(g_m+1)+'Host_tmp = opDat'+str(g_m+1)+'Host') #XLF workaround #}
+    {% endfor %}
+
+    {% if kernel.indirection and not atomics %}
+    CALL c_f_pointer(planRet_{{ kernel.name }},actualPlan_{{ kernel.name }})
+    CALL c_f_pointer(actualPlan_{{ kernel.name }}%color2_offsets,color2_offsets,(/actualPlan_{{ kernel.name }}%ncolors+1/))
+    CALL c_f_pointer(actualPlan_{{ kernel.name }}%col_reord,pcol_reord,(/set%setPtr%size+set%setPtr%exec_size/))
+    {% endif %}
+
+    {% for i in kernel.globals %}
+    {# ((accs[g_m]==OP_READ and ((not dims[g_m].isdigit()) or int(dims[g_m]) > 1)) or accs[g_m]==OP_WRITE #}
+     {# IF('.not. allocated(opGblDat'+str(g_m+1)+'Device'+name+')')
+        code('allocate(opGblDat'+str(g_m+1)+'Device'+name+'(opArg'+str(g_m+1)+'%dim))')
+        END IF
+        code('opGblDat'+str(g_m+1)+'Device'+name+'(1:opArg'+str(g_m+1)+'%dim) = opDat'+str(g_m+1)+'Host(1:opArg'+str(g_m+1)+'%dim)') #}
+    {% endfor %}
+
+    {% if kernel.indirection and reduct %}
+      {# code('blocksPerGrid=0')
+      if not atomics:
+        DO('i2','0','actualPlan_'+name+'%ncolors')
+        code('blocksPerGrid = blocksPerGrid+(color2_offsets(i2+2)-color2_offsets(i2+1)-1)/threadsPerBlock+1')
+        ENDDO()
+      else:
+        code('blocksPerGrid = (set%setPtr%size+set%setPtr%exec_size-1)/threadsPerBlock+1') #}
+    {% endif %}
+
+
+
+    {# 
+    
+    
+    ...
+    
+    
+    
+    #}
+
+    {# Setup for reduction #}
+
+
+    DO i2 = 0, 2 - 1, 1
+      IF (i2 .EQ. 1) THEN
+        itstart = set%setPtr%core_size
+        itend = n_upper
+        CALL op_mpi_wait_all_cuda(numberOfOpDats, opArgArray)
+      ELSE
+        itstart = 0
+        itend = set%setPtr%core_size
+      END IF
+
+      blocksPerGrid = (itend-itstart-1)/threadsPerBlock+1
+      dynamicSharedMemorySize = reductionSize(opArgArray, numberOfOpDats) * threadsPerBlock
+
+      CALL op_cuda_res_calc <<< blocksPerGrid,threadsPerBlock,dynamicSharedMemorySize>>> (&
+      {# Device_ #}
+      & opDat1Deviceres_calc, &
+      & opDat3Deviceres_calc, &
+      & opDat5Deviceres_calc, &
+      & opDat7Deviceres_calc, &
+      & opMap1Deviceres_calc, &
+      & opMap3Deviceres_calc, &
+      & itstart, itend, &
+      & set%setPtr%size+set%setPtr%exec_size)
+    END DO
+
+
+
+    CALL op_mpi_set_dirtybit_cuda(numberOfOpDats, opArgArray)
+
+    istat = cudaDeviceSynchronize()
+    call op_timers_core(endTime)
+
+    returnSetKernelTiming = setKernelTime( &
+      &{{ kernel.id }} , kernel//C_NULL_CHAR, &
+      & endTime-startTime, 0.00000_4, 0.00000_4, 1 &
+    & )
+    calledTimes = calledTimes + 1
+    
+  END SUBROUTINE
+
+END MODULE

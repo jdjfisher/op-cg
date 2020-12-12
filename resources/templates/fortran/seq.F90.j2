@@ -1,7 +1,7 @@
 {# Template imports #}
 {% from 'fortran/macros.j2' import op_opt, comma %}
 
-MODULE {{ kernel['name'] }}_module
+MODULE {{ kernel.name }}_module
 
   USE OP2_FORTRAN_DECLARATIONS
   USE OP2_FORTRAN_RT_SUPPORT
@@ -134,7 +134,7 @@ MODULE {{ kernel['name'] }}_module
     type ( op_arg ) , INTENT(IN) :: opArg{{ i+1 }}
     {% endfor %}
 
-    type ( op_arg ) , DIMENSION({{ kernel.args|length }}) :: opArgArray
+    type ( op_arg ) , DIMENSION({{ kernel.args | length }}) :: opArgArray
     INTEGER(kind=4) :: numberOfOpDats
     INTEGER(kind=4), DIMENSION(1:8) :: timeArrayStart
     INTEGER(kind=4), DIMENSION(1:8) :: timeArrayEnd
@@ -168,9 +168,9 @@ MODULE {{ kernel['name'] }}_module
     INTEGER(kind=4) :: i1
     REAL(kind=4) :: dataTransfer
 
-    numberOfOpDats = {{ kernel['args']|length }}
+    numberOfOpDats = {{ kernel.args | length }}
 
-    {% for i in kernel['args'] %}
+    {% for i in kernel.args %}
     opArgArray({{ i+1 }}) = opArg{{ i+1 }}      
     {% endfor %}
 
@@ -192,7 +192,7 @@ MODULE {{ kernel['name'] }}_module
     opDat{{ i+1 }}Cardinality = opArg{{ i+1 }}%dim * getSetSizeFromOpArg(opArg{{ i+1 }})
     {% endfor %}
 
-    {% for i in kernel['inds'] %}
+    {% for i in kernel.indirectVars %}
     CALL c_f_pointer(opArg{{ i+1 }}%data,opDat{{ i+1 }}Local,(/opDat{{ i+1 }}Cardinality/))
     CALL c_f_pointer(opArg{{ i+1 }}%map_data,opDat{{ i+1 }}Map,(/opSetCore%size*opDat{{ i+1 }}MapDim/))
     {% endfor %}
@@ -281,12 +281,12 @@ MODULE {{ kernel['name'] }}_module
     dataTransfer = 0.0
 
     {# No indirection #}
-    {% if not kernel.indirects | length %}
+    {% if not kernel.indirection %}
     {%   for i, arg in kernel.args.items() %}
     {%     call op_opt(i, arg) %}   
     dataTransfer = dataTransfer + opArg{{ i+1 }}%size 
     {%-    if arg is not global %} * opSetCore%size{% endif %} 
-    {%-    if arg is not rw_acc %} * 2.d0{% endif %}
+    {%-    if arg is not r_o_w_acc %} * 2.d0{% endif %}
     {%     endcall %}
     {%   endfor %}
     {# Indirection #}
@@ -295,21 +295,21 @@ MODULE {{ kernel['name'] }}_module
     {%   for i, arg in kernel.indirectVars.items() %}
     {%     call op_opt(i, arg) %} 
     dataTransfer = dataTransfer + opArg{{ i+1 }}%size * MIN(n_upper,getSetSizeFromOpArg(opArg{{ i+1 }}))
-    {%-    if arg is not rw_acc %} * 2.d0{% endif %}
+    {%-    if arg is not r_o_w_acc %} * 2.d0{% endif %}
     {%     endcall %}
     {%   endfor %}
     {#   Directs #}
     {%   for i, arg in kernel.directs.items() %}
     {%     call op_opt(i, arg) %} 
     dataTransfer = dataTransfer + opArg{{ i+1 }}%size * MIN(n_upper,getSetSizeFromOpArg(opArg{{ i+1 }}))
-    {%-    if arg is not rw_acc %} * 2.d0{% endif %}
+    {%-    if arg is not r_o_w_acc %} * 2.d0{% endif %}
     {%     endcall %}
     {%   endfor %}
     {#   Globals #}
     {%   for i, arg in kernel.globals.items() %}
     {%     call op_opt(i, arg) %} 
     dataTransfer = dataTransfer + opArg{{ i+1 }}%size
-    {%-    if arg is not rw_acc %} * 2.d0{% endif %}
+    {%-    if arg is not r_o_w_acc %} * 2.d0{% endif %}
     {%     endcall %}
     {%   endfor %}
     {#   Mappings #}
@@ -319,7 +319,7 @@ MODULE {{ kernel['name'] }}_module
     {% endif %}
 
     returnSetKernelTiming = setKernelTime( &
-      & {{ kernel['id'] }}, kernel//C_NULL_CHAR, &
+      & {{ kernel.id }}, kernel//C_NULL_CHAR, &
       & endTime-startTime, dataTransfer, 0.00000_4, 1 &
     & )
   END SUBROUTINE

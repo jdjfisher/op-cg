@@ -22,11 +22,11 @@ directTest = lambda arg: arg.get('map') == 'OP_ID'
 directFilter = lambda args: filter(directTest, args)
 
 env.globals['enumerate'] = enumerate
-env.globals['next'] = next
+env.globals['any'] = any
 env.globals['direct'] = directFilter
-env.globals['diff'] = lambda a, b: { k: v for k, v in a.items() if k not in b }
-env.globals['union'] = lambda a, b: a | b
-env.tests['rw_acc'] = lambda arg: arg.get('acc') in ['OP_READ', 'OP_WRITE']
+env.tests['r_o_w_acc'] = lambda arg: arg.get('acc') in ['OP_READ', 'OP_WRITE']
+env.tests['rw_acc'] = lambda arg: arg.get('acc') == 'OP_RW'
+env.tests['inc_acc'] = lambda arg: arg.get('acc') == 'OP_INC'
 env.tests['without_dim'] = lambda arg: not isinstance(arg.get('dim'), int) 
 env.tests['global'] = lambda arg: 'map' not in arg
 env.tests['direct'] = directTest
@@ -38,7 +38,7 @@ env.tests['indirect'] = lambda arg: 'map' in arg and arg.get('map') != 'OP_ID'
 # TODO: Improve
 templates = {
   ('fortran', 'seq'): env.get_template('fortran/seq.F90.j2'),
-  ('fortran', 'cuda'): None,
+  ('fortran', 'cuda'): env.get_template('fortran/cuda.F90.j2'),
   ('fortran', 'omp'): None,
   ('c', 'seq'): None,
 }

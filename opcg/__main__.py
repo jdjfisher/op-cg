@@ -11,7 +11,7 @@ import re
 # Application imports
 from generator import genOpProgram, genKernelHost, genMakefile
 from language import Lang
-from parallelization import Para
+from optimisation import Opt
 from parsers.common import Store
 
 
@@ -28,7 +28,7 @@ def main(argv=None):
   parser.add_argument('-o', '--out', help='Output Directory', type=isDirPath, default='.')
   parser.add_argument('-p', '--prefix', help='Output File Prefix', type=isValidPrefix, default='op')
   # parser.add_argument('-soa', '--soa', help='Structs of Arrays', action='store_true')
-  parser.add_argument('para', help='Target Parallelization', type=str, choices=Para.names())
+  parser.add_argument('optimisation', help='Target Optimisation', type=str, choices=Opt.names())
   parser.add_argument('file_paths', help='Input Files', type=isFilePath, nargs='+')
   args = parser.parse_args(argv)
 
@@ -45,8 +45,8 @@ def main(argv=None):
   else:
     [ extension ] = extensions 
 
-  # Determine the target language and parallelisation
-  para = Para.find(args.para)
+  # Determine the target language and optimisation
+  opt = Opt.find(args.optimisation)
   lang = Lang.find(extension)
 
   if not lang:
@@ -54,7 +54,7 @@ def main(argv=None):
 
   if args.verbose:
     print(f'Target language: {lang}')
-    print(f'Target parallelization: {para}\n')
+    print(f'Target optimisation: {opt}\n')
 
 
 
@@ -118,17 +118,17 @@ def main(argv=None):
   # Collect the paths of any generated files
   generated_paths = [] # TODO: Destroy any generated files after failure
 
-  # Generate kernel parallelisations
+  # Generate kernel optimisations
   for i, kernel in enumerate(kernels, 1):
 
     if args.verbose:
       print(f'Generating kernel host {i} of {len(kernels)}: {kernel.name}')
 
     # Form output file path 
-    path = os.path.join(args.out, f'{args.prefix}_{para.name}_{kernel.name}.{extension}')
+    path = os.path.join(args.out, f'{args.prefix}_{opt.name}_{kernel.name}.{extension}')
 
     # Generate kernel source
-    source = genKernelHost(lang, para, kernel)
+    source = genKernelHost(lang, opt, kernel)
 
     # Write the generated source file
     with open(path, 'w') as file:
@@ -155,7 +155,7 @@ def main(argv=None):
       source = genOpProgram(raw_file.read(), store)
 
       # Form output file path 
-      new_path = os.path.join(args.out, f'{args.prefix}_{para.name}_{os.path.basename(raw_path)}')
+      new_path = os.path.join(args.out, f'{args.prefix}_{opt.name}_{os.path.basename(raw_path)}')
 
       # Write the translated source file
       with open(new_path, 'w') as new_file:

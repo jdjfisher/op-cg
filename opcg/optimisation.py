@@ -1,7 +1,7 @@
 
 
 #
-class Para(object):
+class Opt(object):
   instances = []
 
   def __init__(self, name):
@@ -20,18 +20,18 @@ class Para(object):
 
   @classmethod
   def names(cls):
-    return [ p.name for p in cls.all() ]
+    return [ o.name for o in cls.all() ]
 
 
   @classmethod
   def find(cls, name):
-    return next((p for p in cls.all() if p.name == name), None)
+    return next((o for o in cls.all() if o.name == name), None)
 
 
 # 
-seq  = Para('seq'),
-cuda = Para('cuda'),
-omp  = Para('omp3'),
+seq  = Opt('seq'),
+cuda = Opt('cuda'),
+omp  = Opt('omp3'),
 
 
 

@@ -7,7 +7,7 @@ import os
 from jinja2 import Environment, FileSystemLoader, select_autoescape, Template
 
 # Local application imports
-from parallelization import Para
+from optimisation import Opt
 from language import Lang
 from parsers.common import Store
 
@@ -55,12 +55,12 @@ def genOpProgram(source: str, store: Store):
 
 
 # 
-def genKernelHost(lang: Lang, para: Para, kernel):
+def genKernelHost(lang: Lang, opt: Opt, kernel):
   # Lookup generation template
-  template = templates.get((lang.name, para.name))
+  template = templates.get((lang.name, opt.name))
 
   if not template:
-    exit(f'template not found for {lang.name}-{para.name}')
+    exit(f'template not found for {lang.name}-{opt.name}')
 
   # Generate source from the template
   return template.render(kernel=kernel)

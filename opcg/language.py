@@ -6,6 +6,7 @@ from typing import Callable
 # Application imports
 from parsers.common import Store, ParseError
 import parsers.fortran as fp
+import parsers.cpp as cp
 
 
 class Lang(object):
@@ -44,6 +45,6 @@ class Lang(object):
 
 
 
-c = Lang('c++', ['cpp'], '//', None),
+c = Lang('c++', ['cpp'], '//', cp.parse),
 f = Lang('fortran', ['F90', 'F95'], '!', fp.parse),
 

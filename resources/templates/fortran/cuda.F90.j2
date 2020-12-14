@@ -482,7 +482,6 @@ MODULE {{ kernel.name }}_module
     opDat{{ i+1 }}Cardinality = opArg{{ i+1 }}%dim
     {% endfor %}
 
-    {# Device_ #}
     {% for i in kernel.indirectVars %}
     CALL c_f_pointer(opArg{{ i+1 }}%data_d,opDat{{ i+1 }}Device_{{ kernel.name }},(/opDat{{ i+1 }}Cardinality/))
     CALL c_f_pointer(opArg{{ i+1 }}%map_data_d,opMap{{ i+1 }}Device_{{ kernel.name }},(/opMap{{ i+1 }}Cardinality/))
@@ -490,13 +489,15 @@ MODULE {{ kernel.name }}_module
     {% for i in kernel.directs %}
     CALL c_f_pointer(opArg{{ i+1 }}%data_d,opDat{{ i+1 }}Device_{{ kernel.name }},(/opDat{{ i+1 }}Cardinality/))
     {% endfor %}
-    {% for i in kernel.globals %}
-    {# if accs[g_m] == OP_WRITE or (not dims[g_m].isdigit()) or int(dims[g_m])>1:
-          code('CALL c_f_pointer(opArg'+str(g_m+1)+'%data,opDat'+str(g_m+1)+'Host,(/opDat'+str(g_m+1)+'Cardinality/))')
-        else:
-          code('CALL c_f_pointer(opArg'+str(g_m+1)+'%data,opDat'+str(g_m+1)+'Host)')
-          if accs[g_m] == OP_READ and dims[g_m].isdigit() and int(dims[g_m])==1:
-            code('opDat'+str(g_m+1)+'Host_tmp = opDat'+str(g_m+1)+'Host') #XLF workaround #}
+    {% for i, arg in kernel.globals.items() %}
+    {%   if arg['acc'] == 'OP_WRITE' or arg is without_dim or arg['dim'] > 1 %}
+    CALL c_f_pointer(opArg{{ i+1 }}%data,opDat{{ i+1 }}Host,(/opDat{{ i+1 }}Cardinality/))
+    {%   else %}
+    CALL c_f_pointer(opArg{{ i+1 }}%data,opDat{{ i+1 }}Host)
+    {%     if accs[g_m] == 'OP_READ' and arg is not without_dim and arg['dim'] == 1 %}
+    opDat{{ i+1 }}Host_tmp = opDat{{ i+1 }}Host {# XLF workaround #}
+    {%     endif %}
+    {%   endif %}
     {% endfor %}
 
     {% if kernel.indirection and not atomics %}
@@ -505,22 +506,24 @@ MODULE {{ kernel.name }}_module
     CALL c_f_pointer(actualPlan_{{ kernel.name }}%col_reord,pcol_reord,(/set%setPtr%size+set%setPtr%exec_size/))
     {% endif %}
 
-    {% for i in kernel.globals %}
-    {# ((accs[g_m]==OP_READ and ((not dims[g_m].isdigit()) or int(dims[g_m]) > 1)) or accs[g_m]==OP_WRITE #}
-     {# IF('.not. allocated(opGblDat'+str(g_m+1)+'Device'+name+')')
-        code('allocate(opGblDat'+str(g_m+1)+'Device'+name+'(opArg'+str(g_m+1)+'%dim))')
-        END IF
-        code('opGblDat'+str(g_m+1)+'Device'+name+'(1:opArg'+str(g_m+1)+'%dim) = opDat'+str(g_m+1)+'Host(1:opArg'+str(g_m+1)+'%dim)') #}
+    {% for i, arg in kernel.globals.items() %}
+    {# {%   if ((accs[g_m]==OP_READ and ((not dims[g_m].isdigit()) or int(dims[g_m]) > 1)) or arg['acc'] == 'OP_WRITE' %} #}
+    {# IF (.not. allocated(opGblDat{{ i+1 }}Device_{{ kernel.name }})) THEN
+      allocate(opGblDat{{ i+1 }}Device_{{ kernel.name }}(opArg{{ i+1 }}%dim))
+    END IF
+    opGblDat{{ i+1 }}Device_{{ kernel.name }}(1:opArg{{ i+1 }}%dim) = opDat{{ i+1 }}Host(1:opArg{{ i+1 }}%dim)  #}
+    {# {%   endif %} #}
     {% endfor %}
 
     {% if kernel.indirection and reduct %}
-      {# code('blocksPerGrid=0')
-      if not atomics:
-        DO('i2','0','actualPlan_'+name+'%ncolors')
-        code('blocksPerGrid = blocksPerGrid+(color2_offsets(i2+2)-color2_offsets(i2+1)-1)/threadsPerBlock+1')
-        ENDDO()
-      else:
-        code('blocksPerGrid = (set%setPtr%size+set%setPtr%exec_size-1)/threadsPerBlock+1') #}
+    blocksPerGrid=0
+    {%   if not atomics %}
+    DO i2 = 0, actualPlan_{{ kernel.name }}%ncolors - 1, 1
+      blocksPerGrid = blocksPerGrid+(color2_offsets(i2+2)-color2_offsets(i2+1)-1)/threadsPerBlock+1
+    END DO
+    {%   else %}
+    blocksPerGrid = (set%setPtr%size+set%setPtr%exec_size-1)/threadsPerBlock+1
+    {%   endif %}
     {% endif %}
 
 

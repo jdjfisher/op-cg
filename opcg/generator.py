@@ -40,8 +40,7 @@ env.tests['indirect'] = lambda arg: 'map' in arg and arg.get('map') != 'OP_ID'
 templates = {
   ('fortran', 'seq'): env.get_template('fortran/seq.F90.j2'),
   ('fortran', 'cuda'): env.get_template('fortran/cuda.F90.j2'),
-  ('fortran', 'omp'): None,
-  ('c', 'seq'): None,
+  ('c++', 'seq'): env.get_template('cpp/seq.hpp.j2'),
 }
 
 

@@ -3,7 +3,6 @@
 from subprocess import CalledProcessError
 # import xml.etree.ElementTree as ET
 import re
-import json
 
 # Third party imports
 import open_fortran_parser as fp
@@ -168,7 +167,7 @@ def parseArgDat(args):
   typ  = parseStringLit(args[4], regex=type_regex)
   acc  = parseIdentifier(args[5], regex=access_regex)
 
-  # Check arg compatibility
+  # Check arg compatibility TODO: Move to store
   if map_ == 'OP_ID' and idx != -1:
     raise Exception('incompatible index for direct access, expected -1')
 
@@ -224,7 +223,7 @@ def parseOptArgGbl(args):
 
 
 def parseIdentifier(node, regex=None):
-  # Move to child name node
+  # Descend to child node
   node = node.find('name')
 
   # Validate the node
@@ -248,10 +247,10 @@ def parseIntLit(node, signed=True):
   if signed and node.find('operation'):
     node = node.find('operation')
     if node.attrib['type'] == 'unary' and node.find('operator') and node.find('operator').attrib['operator'] == '-':
-      node = node.find('operand')
       negation = True
+      node = node.find('operand')
 
-  # Move to child literal node
+  # Descend to child literal node
   node = node.find('literal')
 
   # Verify and typecheck the literal node
@@ -261,13 +260,14 @@ def parseIntLit(node, signed=True):
     else:
       raise ParseError('expected integer literal')
 
-  # Return the integer value of the literal
+  # Extract the value
   value = int(node.attrib['value'])
+
   return -value if negation else value
 
 
 def parseStringLit(node, regex=None):
-  # Move to child literal node
+  # Descend to child literal node
   node = node.find('literal')
 
   # Validate the node

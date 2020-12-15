@@ -3,7 +3,7 @@
 import re
 
 # Third party imports
-from clang.cindex import Index, Config
+from clang.cindex import Index, Config, TranslationUnit, CursorKind
 import clang.cindex as cindex
 
 # Local application imports
@@ -13,12 +13,13 @@ from util import enumRegex
 
 # TODO: Generalise config
 Config.set_library_file("/usr/lib/x86_64-linux-gnu/libclang-10.so.1")
+options = TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD # Capture MACROS
 index = Index.create()
 
 
 def parse(path):
   # Invoke the Clang parser on the source
-  translation_unit = index.parse(path)
+  translation_unit = index.parse(path, options=options)
 
   # Initialise the store and search queue
   store = Store()
@@ -26,8 +27,13 @@ def parse(path):
 
   # Populate with the top-level cursors from the target file
   for child in translation_unit.cursor.get_children():
-    if child.location.file.name == translation_unit.spelling:
+
+    if child.kind in (CursorKind.MACRO_INSTANTIATION, CursorKind.MACRO_DEFINITION):
+      pass
+
+    elif child.location.file.name == translation_unit.spelling:
       q.append(child)
+
 
   # BFS
   while q:
@@ -36,8 +42,8 @@ def parse(path):
     node = q.pop()
     q.extend(node.get_children())
 
-    # 
-    if node.kind == cindex.CursorKind.CALL_EXPR:
+    # Focus on function calls
+    if node.kind == CursorKind.CALL_EXPR:
       name = node.spelling
 
       if name == 'op_init_base':
@@ -53,7 +59,7 @@ def parse(path):
         parseData(node)
       
       elif name == 'op_decl_const':
-        parseConst(node)
+        store.addConst(parseConst(node))
 
       elif name == 'op_par_loop':
         store.addLoop(parseLoop(node))
@@ -64,24 +70,34 @@ def parse(path):
   return store
 
 
-def parseInit(node):
+def parseInit(nodes):
   pass
 
 
-def parseSet(node):
+def parseSet(nodes):
   pass
 
 
-def parseMap(node):
+def parseMap(nodes):
   pass
 
 
-def parseData(node):
+def parseData(nodes):
   pass
 
 
 def parseConst(node):
-  pass
+  nodes = list(node.get_children())[1:]
+
+  if len(nodes) != 3:
+    raise ParseError('incorrect number of args passed to op_decl_const', location)
+
+  return {
+    'locations': [],
+    'dim'      : parseIntLit(nodes[0], signed=False),
+    'str'      : parseStringLit(nodes[1]),
+    'name'     : parseIdentifier(nodes[2]),
+  }
 
 
 def parseLoop(node):
@@ -93,7 +109,7 @@ def parseLoop(node):
   # Parse loop kernel and set
   kernel = nodes[0].spelling
   # _ = parseStringLit(nodes[1])
-  set_ = nodes[2]
+  set_ = nodes[2].spelling
 
   loop_args = []
 
@@ -101,7 +117,7 @@ def parseLoop(node):
   for node in nodes[3:]:
     node = descend(descend(node))
     name = node.spelling
-    args = list(node.get_children())
+    args = list(node.get_children())[1:]
 
     if name == 'op_arg_dat':
       loop_args.append(parseArgDat(args))
@@ -127,49 +143,87 @@ def parseLoop(node):
 
 
 def parseArgDat(nodes):
-  nodes = nodes[1:]
-
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_arg_dat')
 
   type_regex = r'.*' # TODO: Finish ...
-  access_regex = enumRegex(['OP_READ','OP_WRITE','OP_RW','OP_INC'])
+  # access_regex = enumRegex(['OP_READ','OP_WRITE','OP_RW','OP_INC'])
 
-  # Parse each arg
-  var  = parseIdentifier(nodes[0])
-  idx  = parseIntLit(nodes[1], signed=True)
-  # map_ = parseIdentifier(nodes[2])
-  dim  = parseIntLit(nodes[3], signed=False)
-  typ  = parseStringLit(nodes[4], regex=type_regex)
-  # acc  = parseIdentifier(nodes[5], regex=access_regex)
-
-  exit()
-  # return { 'var': var, 'idx': idx, 'map': map_, 'dim': dim, 'typ': typ, 'acc': acc }
+  return {
+    'var': parseIdentifier(nodes[0]),
+    'idx': parseIntLit(nodes[1], signed=True),
+    'map': parseIdentifier(nodes[2]) or 'OP_ID',
+    'dim': parseIntLit(nodes[3], signed=False),
+    'typ': parseStringLit(nodes[4], regex=type_regex),
+    'acc': 'OP_READ', #parseIdentifier(nodes[5]) # TODO: Fix
+  }
 
 
-def parseOptArgDat(node):
-  pass
+def parseOptArgDat(nodes):
+  if len(nodes) != 7:
+    ParseError('incorrect number of args passed to op_opt_arg_dat')
+
+    # Parse opt argument
+    opt = parseIdentifier(nodes[0])
+
+    # Parse standard argDat arguments
+    dat = parseArgDat(nodes[1:])
+    
+    # Return augmented dat
+    dat.update(opt=opt)
+    return dat
 
 
-def parseArgGbl(node):
-  pass
+def parseArgGbl(nodes):
+  if len(nodes) != 4:
+    raise ParseError('incorrect number of args passed to op_arg_gbl')
+
+  type_regex = r'.*' # TODO: Finish ...
+  # access_regex = enumRegex(['OP_READ','OP_INC','OP_MAX','OP_MIN'])
+
+  print(nodes[0].kind, nodes[0].spelling)
+  return {
+    'var': parseIdentifier(nodes[0]),
+    'dim': parseIntLit(nodes[1], signed=False),
+    'typ': parseStringLit(nodes[2], regex=type_regex),
+    'acc': 'OP_READ', # parseIdentifier(nodes[3]),  # TODO: Fix
+  }
 
 
-def parseOptArgGbl(node):
-  pass
+def parseOptArgGbl(nodes):
+  if len(nodes) != 5:
+    ParseError('incorrect number of args passed to op_opt_arg_gbl')
+
+    # Parse opt argument
+    opt = parseIdentifier(nodes[0])
+
+    # Parse standard argGbl arguments
+    dat = parseArgGbl(nodes[1:])
+    
+    # Return augmented dat
+    dat.update(opt=opt)
+    return dat
 
 
 def parseIdentifier(node, regex=None):
-
-  # Validate the node
-  if node.kind != cindex.CursorKind.UNEXPOSED_EXPR:
-    raise ParseError('expected identifier')
+  # TODO: ...
+  while node.kind == CursorKind.CSTYLE_CAST_EXPR:
+    node = list(node.get_children())[1]
 
   # Descend to child node
-  node = descend(node)
+  if node.kind == CursorKind.UNEXPOSED_EXPR:
+    node = descend(node)
+
+  # Descend to child node
+  if node.kind == CursorKind.UNARY_OPERATOR and next(node.get_tokens()).spelling in ('&', '*'):
+    node = descend(node)
+
+  # Check for null
+  if node.kind == CursorKind.GNU_NULL_EXPR:
+    return None
 
   # Validate the node
-  if node.kind != cindex.CursorKind.DECL_REF_EXPR:
+  if node.kind != CursorKind.DECL_REF_EXPR:
     raise ParseError('expected identifier')
 
   value = node.spelling
@@ -186,12 +240,12 @@ def parseIntLit(node, signed=True):
   negation = False
 
   # Check if the node is wrapped in a valid unary negation 
-  if signed and node.kind == cindex.CursorKind.UNARY_OPERATOR and next(node.get_tokens()).spelling == '-': 
+  if signed and node.kind == CursorKind.UNARY_OPERATOR and next(node.get_tokens()).spelling == '-': 
     negation = True
     node = descend(node)
 
   # Validate the node
-  if node.kind != cindex.CursorKind.INTEGER_LITERAL:
+  if node.kind != CursorKind.INTEGER_LITERAL:
     if not signed:
       raise ParseError('expected unsigned integer literal')
     else:
@@ -206,14 +260,14 @@ def parseIntLit(node, signed=True):
 def parseStringLit(node, regex=None):
 
   # Validate the node
-  if node.kind != cindex.CursorKind.UNEXPOSED_EXPR:
+  if node.kind != CursorKind.UNEXPOSED_EXPR:
     raise ParseError('expected string literal')
 
   # Descend to child node
   node = descend(node)
 
   # Validate the node
-  if node.kind != cindex.CursorKind.STRING_LITERAL:
+  if node.kind != CursorKind.STRING_LITERAL:
     raise ParseError('expected string literal')
 
   # Extract value from string delimeters
@@ -227,6 +281,5 @@ def parseStringLit(node, regex=None):
 
 
 def descend(node):
-  # TODO: Add a check
   return next(node.get_children(), None)
   

@@ -61,71 +61,81 @@ def parse(path):
     raise ParseError(error.output)
 
 
-def parseInit(args, location):
-  if len(args) != 2:
+def parseInit(nodes, location):
+  if len(nodes) != 2:
     raise ParseError('incorrect number of args passed to op_init', location)
 
-  _ = parseIntLit(args[0], signed=False)
-  _ = parseIntLit(args[1], signed=False)
+  _ = parseIntLit(nodes[0], signed=False)
+  _ = parseIntLit(nodes[1], signed=False)
 
   return {
     'location': location,
   }
 
 
-def parseSet(args, location):
-  if len(args) != 3:
-    raise ParseError('incorrect number of args passed to op_decl_set', location)
+def parseSet(nodes, location):
+  if len(nodes) != 3:
+    raise ParseError('incorrect number of nodes passed to op_decl_set', location)
 
   return {
-    'size': parseIdentifier(args[0]),
-    'name': parseIdentifier(args[1]),
-    'str' : parseStringLit(args[2]),
+    'size': parseIdentifier(nodes[0]),
+    'name': parseIdentifier(nodes[1]),
+    'str' : parseStringLit(nodes[2]),
   }
 
 
-def parseMap(args, location):
-  if len(args) != 6:
+def parseMap(nodes, location):
+  if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_decl_map', location)
 
   return {
-
+    'x'   : parseIdentifier(nodes[0]),
+    'y'   : parseIdentifier(nodes[1]),
+    'dim' : parseIntLit(nodes[2], signed=False),
+    'z'   : parseIdentifier(nodes[3]),
+    'w'   : parseIdentifier(nodes[4]),
+    'str' : parseStringLit(nodes[5]),
   }
 
 
-def parseData(args, location):
-  if len(args) != 6:
+def parseData(nodes, location):
+  if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_decl_dat', location)
 
   return {
-    
+    'set' : parseIdentifier(nodes[0]),
+    'dim' : parseIntLit(nodes[1], signed=False),
+    'typ' : parseStringLit(nodes[2]),
+    'x'   : parseIdentifier(nodes[3]),
+    'y'   : parseIdentifier(nodes[4]),
+    'str' : parseStringLit(nodes[5]),
   }
 
 
-def parseConst(args, location):
-  if len(args) != 3:
+def parseConst(nodes, location):
+  if len(nodes) != 3:
     raise ParseError('incorrect number of args passed to op_decl_const', location)
 
   return {
     'locations': [location],
-    'name'     : parseIdentifier(args[0]),
-    'dim'      : parseIntLit(args[1], signed=False),
-    'str'      : parseStringLit(args[2]),
+    'name'     : parseIdentifier(nodes[0]),
+    'dim'      : parseIntLit(nodes[1], signed=False),
+    'str'      : parseStringLit(nodes[2]),
   }
 
 
-def parseLoop(args, location):
-  if len(args) < 3:
+def parseLoop(nodes, location):
+  if len(nodes) < 3:
     raise ParseError('incorrect number of args passed to op_par_loop', location)
 
   # Parse loop kernel and set
-  kernel = parseIdentifier(args[0])
-  set_   = parseIdentifier(args[1])
+  kernel = parseIdentifier(nodes[0])
+  set_   = parseIdentifier(nodes[1])
 
   loop_args = []
 
   # Parse loop args
-  for raw_arg in args[2:]: 
+  for raw_arg in nodes[2:]: 
     name = parseIdentifier(raw_arg)
     args = raw_arg.findall('name/subscripts/subscript')
 
@@ -152,70 +162,62 @@ def parseLoop(args, location):
   }
 
 
-def parseArgDat(args):
-  if len(args) != 6:
+def parseArgDat(nodes):
+  if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_arg_dat')
 
   type_regex = r'.*' # TODO: Finish ...
   access_regex = enumRegex(['OP_READ','OP_WRITE','OP_RW','OP_INC'])
 
-  # Parse each arg
-  var  = parseIdentifier(args[0])
-  idx  = parseIntLit(args[1], signed=True)
-  map_ = parseIdentifier(args[2])
-  dim  = parseIntLit(args[3], signed=False)
-  typ  = parseStringLit(args[4], regex=type_regex)
-  acc  = parseIdentifier(args[5], regex=access_regex)
-
-  # Check arg compatibility TODO: Move to store
-  if map_ == 'OP_ID' and idx != -1:
-    raise Exception('incompatible index for direct access, expected -1')
-
-  return { 'var': var, 'idx': idx, 'map': map_, 'dim': dim, 'typ': typ, 'acc': acc }
+  return {
+    'var': parseIdentifier(nodes[0]),
+    'idx': parseIntLit(nodes[1], signed=True),
+    'map': parseIdentifier(nodes[2]),
+    'dim': parseIntLit(nodes[3], signed=False),
+    'typ': parseStringLit(nodes[4], regex=type_regex),
+    'acc': parseIdentifier(nodes[5], regex=access_regex),
+  }
 
 
-def parseOptArgDat(args):
-  if len(args) != 7:
+def parseOptArgDat(nodes):
+  if len(nodes) != 7:
     ParseError('incorrect number of args passed to op_opt_arg_dat')
 
   # Parse opt argument
-  opt = parseIdentifier(args[0])
+  opt = parseIdentifier(nodes[0])
 
   # Parse standard argDat arguments
-  dat = parseArgDat(args[1:])
+  dat = parseArgDat(nodes[1:])
   
   # Return augmented dat
   dat.update(opt=opt)
   return dat
 
 
-def parseArgGbl(args):
-  if len(args) != 4:
+def parseArgGbl(nodes):
+  if len(nodes) != 4:
     raise ParseError('incorrect number of args passed to op_arg_gbl')
 
-  # Regex for valid op loop data types TODO: finish
   type_regex = r'.*'
-
-  # Regex for valid global op loop action access types 
   access_regex = enumRegex(['OP_READ','OP_INC','OP_MAX','OP_MIN'])
   
   return {
-    'var': parseIdentifier(args[0]),
-    'dim': parseIntLit(args[1], signed=False),
-    'typ': parseStringLit(args[2], regex=type_regex),
-    'acc': parseIdentifier(args[3], regex=access_regex),
+    'var': parseIdentifier(nodes[0]),
+    'dim': parseIntLit(nodes[1], signed=False),
+    'typ': parseStringLit(nodes[2], regex=type_regex),
+    'acc': parseIdentifier(nodes[3], regex=access_regex),
   }
   
 
-def parseOptArgGbl(args):
-  if len(args) != 5:
+def parseOptArgGbl(nodes):
+  if len(nodes) != 5:
     ParseError('incorrect number of args passed to op_opt_arg_gbl')
 
   # Parse opt argument
-  opt = parseIdentifier(args[0])
+  opt = parseIdentifier(nodes[0])
 
   # Parse standard argGbl arguments
-  dat = parseArgGbl(args[1:])
+  dat = parseArgGbl(nodes[1:])
   
   # Return augmented dat
   dat.update(opt=opt)

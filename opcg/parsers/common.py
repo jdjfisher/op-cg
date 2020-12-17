@@ -1,21 +1,80 @@
+# Standard library imports
+from os.path import basename
+
+
+class ParseError(Exception):
+
+  def __init__(self, message, location=None):
+    self.message = message
+    self.location = location
+
+
+  def __str__(self):
+    if self.location:
+      return f'{self.location}: parse error: {self.message}'
+    else:
+      return f'parse error: {self.message}'
+
+
+class Location:
+  
+  def __init__(self, file: str, line: int, column: int):
+    self.file = file
+    self.line = line
+    self.column = column
+
+  def __str__(self):
+    return f'{basename(self.file)}/{self.line}:{self.column}'
+
+    
+class OpMap:
+
+  def __init__(self):
+    pass
+  
+
+class OpData:
+
+   def __init__(self):
+    pass
+
+class OpSet:
+
+  def __init__(self):
+    pass
+
+
+class OpLoop:
+
+  def __init__(self, kernel: str, set_: str, args: list):
+    self.kernel = kernel
+    self.set = set_
+    self.args = args
+
+class OpLoopArg:
+
+  def __init__(self):
+    self.var = None
+    self.map = None
+    self.idx = None
+    self.dim = None
+    self.typ = None
+    self.acc = None
+
+    if self.map == OP.ID:
+      if self.idx != -1:
+        exit('incompatible index for direct access, expected -1')
+    else:
+      if self.idx < 1 or self.idx > self.dim:
+        exit(f'out of range index, must be 1-{self.dim}')
 
 
 class Kernel:
 
-  def __init__(self, i, loop):
-    self._id = i
-    self._name = loop['kernel']
+  def __init__(self, id, loop):
+    self.id = id
+    self.name = loop['kernel']
     self._args = loop['args']
-
-
-  @property
-  def id(self):
-    return self._id
-
-
-  @property
-  def name(self):
-    return self._name
 
 
   @property
@@ -84,17 +143,18 @@ class Kernel:
 
 class Store:
   def __init__(self):
-    self.init = None 
+    self.init = False 
+    self.exit = False 
     self.consts = []
     self.loops = []
-    self.exit = None 
 
 
-  def recordInit(self, init):
-    if self.init:
-      raise ParseError('multiple calls to op_init')
-    else:
-      self.init = init
+  def recordInit(self):
+    self.init = True
+
+
+  def recordExit(self):
+    self.exit = True
 
 
   def addConst(self, const):
@@ -117,30 +177,22 @@ class Store:
 
   def addLoop(self, loop):
     # TODO: Check for repeats / compatitbility 
-    self.loops.append(loop)
 
+    self.loops.append(loop)
+  
 
   def merge(self, store):
-    # TODO: Finish
-
-    if store.init:
-      self.recordInit(store.init)
-
     for const in store.consts:
       self.addConst(const)
 
     for loop in store.loops:
       self.addLoop(loop)
 
+    if store.init:
+      self.recordInit(store)
+
     if store.exit:
-      self.recordExit(store.exit)
-
-
-  def recordExit(self, exit):
-    if self.exit:
-      raise Exception()
-    else:
-      self.exit = exit
+      self.recordExit()
 
 
   def getKernels(self): 
@@ -151,12 +203,3 @@ class Store:
     return f"{'init, ' if self.init else ''}{len(self.consts)} constants, {len(self.loops)} loops{' exit' if self.exit else ''}"
 
 
-class ParseError(Exception):
-  def __init__(self, message, location=None):
-    self.message = message
-    self.line = location['line_begin'] if location else '?'
-    self.col = location['col_begin'] if location else '?'
-
-
-  def __str__(self):
-    return self.message

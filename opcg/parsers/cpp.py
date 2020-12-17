@@ -7,13 +7,14 @@ from clang.cindex import Index, Config, TranslationUnit, CursorKind
 import clang.cindex as cindex
 
 # Local application imports
-from parsers.common import Store, ParseError
+from parsers.common import ParseError, Store, Location
 from util import enumRegex
+import op as OP
 
 
 # TODO: Generalise config
 Config.set_library_file("/usr/lib/x86_64-linux-gnu/libclang-10.so.1")
-options = TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD # Capture MACROS
+options = TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD # Capture pre-processor macros
 index = Index.create()
 
 
@@ -21,19 +22,21 @@ def parse(path):
   # Invoke the Clang parser on the source
   translation_unit = index.parse(path, options=options)
 
+  # Throw the parse error first parse error caught in the diagnostics 
+  error = next(iter(translation_unit.diagnostics), None)
+  if error:
+    raise ParseError(error.spelling, parseLocation(error))
+
   # Initialise the store and search queue
   store = Store()
   q = []
 
   # Populate with the top-level cursors from the target file
   for child in translation_unit.cursor.get_children():
-
     if child.kind in (CursorKind.MACRO_INSTANTIATION, CursorKind.MACRO_DEFINITION):
-      pass
-
+      pass # TODO: ...
     elif child.location.file.name == translation_unit.spelling:
       q.append(child)
-
 
   # BFS
   while q:
@@ -45,50 +48,70 @@ def parse(path):
     # Focus on function calls
     if node.kind == CursorKind.CALL_EXPR:
       name = node.spelling
+      args = list(node.get_children())[1:]
+      loc = parseLocation(node)
 
       if name == 'op_init_base':
-        parseInit(node)
+        store.recordInit()
 
       elif name == 'op_decl_set':
-        parseSet(node)
+        parseSet(args, loc)
       
       elif name == 'op_decl_map':
-        parseMap(node)
+        parseMap(args, loc)
       
       elif name == 'op_decl_dat':
-        parseData(node)
+        parseData(args, loc)
       
       elif name == 'op_decl_const':
-        store.addConst(parseConst(node))
+        store.addConst(parseConst(args, loc))
 
       elif name == 'op_par_loop':
-        store.addLoop(parseLoop(node))
+        store.addLoop(parseLoop(args, loc))
 
       elif name == 'op_exit':
-        pass
+        store.recordExit()
 
   return store
 
 
-def parseInit(nodes):
-  pass
+def parseSet(nodes, location):
+  if len(nodes) != 2:
+    raise ParseError('incorrect number of nodes passed to op_decl_set', location)
+
+  return {
+    'size': parseIdentifier(nodes[0]),
+    'str' : parseStringLit(nodes[1]),
+  }
 
 
-def parseSet(nodes):
-  pass
+def parseMap(nodes, location):
+  if len(nodes) != 5:
+    raise ParseError('incorrect number of args passed to op_decl_map', location)
+
+  return {
+    'x'   : parseIdentifier(nodes[0]),
+    'y'   : parseIdentifier(nodes[1]),
+    'dim' : parseIntLit(nodes[2], signed=False),
+    'z'   : parseIdentifier(nodes[3]),
+    'str' : parseStringLit(nodes[4]),
+  }
 
 
-def parseMap(nodes):
-  pass
+def parseData(nodes, location):
+  if len(nodes) != 5:
+    raise ParseError('incorrect number of args passed to op_decl_dat', location)
+
+  return {
+    'set' : parseIdentifier(nodes[0]),
+    'dim' : parseIntLit(nodes[1], signed=False),
+    'typ' : parseStringLit(nodes[2]),
+    'x'   : parseIdentifier(nodes[3]),
+    'str' : parseStringLit(nodes[4]),
+  }
 
 
-def parseData(nodes):
-  pass
-
-
-def parseConst(node):
-  nodes = list(node.get_children())[1:]
-
+def parseConst(nodes, location):
   if len(nodes) != 3:
     raise ParseError('incorrect number of args passed to op_decl_const', location)
 
@@ -100,16 +123,14 @@ def parseConst(node):
   }
 
 
-def parseLoop(node):
-  nodes = list(node.get_children())[1:]
-
+def parseLoop(nodes, location):
   if len(nodes) < 3:
     raise ParseError('incorrect number of args passed to op_par_loop')
 
   # Parse loop kernel and set
-  kernel = nodes[0].spelling
-  # _ = parseStringLit(nodes[1])
-  set_ = nodes[2].spelling
+  kernel = parseIdentifier(nodes[0])
+  _  = parseStringLit(nodes[1])
+  set_ = parseIdentifier(nodes[2]) 
 
   loop_args = []
 
@@ -132,10 +153,10 @@ def parseLoop(node):
       loop_args.append(parseOptArgGbl(args))
 
     else:
-      raise ParseError(f'Invalid loop argument {name}')
+      raise ParseError(f'invalid loop argument {name}', parseLocation(node))
 
   return {
-    # 'locations': [],
+    'locations': [],
     'kernel'   : kernel,
     'set'      : set_,
     'args'     : loop_args,
@@ -147,15 +168,15 @@ def parseArgDat(nodes):
     raise ParseError('incorrect number of args passed to op_arg_dat')
 
   type_regex = r'.*' # TODO: Finish ...
-  # access_regex = enumRegex(['OP_READ','OP_WRITE','OP_RW','OP_INC'])
+  access_regex = enumRegex(OP.DAT_ACCESS_TYPES)
 
   return {
     'var': parseIdentifier(nodes[0]),
     'idx': parseIntLit(nodes[1], signed=True),
-    'map': parseIdentifier(nodes[2]) or 'OP_ID',
+    'map': parseIdentifier(nodes[2]) or OP.ID,
     'dim': parseIntLit(nodes[3], signed=False),
     'typ': parseStringLit(nodes[4], regex=type_regex),
-    'acc': 'OP_READ', #parseIdentifier(nodes[5]) # TODO: Fix
+    'acc': OP.READ, #parseIdentifier(nodes[5]) # TODO: Fix
   }
 
 
@@ -179,20 +200,19 @@ def parseArgGbl(nodes):
     raise ParseError('incorrect number of args passed to op_arg_gbl')
 
   type_regex = r'.*' # TODO: Finish ...
-  # access_regex = enumRegex(['OP_READ','OP_INC','OP_MAX','OP_MIN'])
+  access_regex = enumRegex(OP.GBL_ACCESS_TYPES)
 
-  print(nodes[0].kind, nodes[0].spelling)
   return {
     'var': parseIdentifier(nodes[0]),
     'dim': parseIntLit(nodes[1], signed=False),
     'typ': parseStringLit(nodes[2], regex=type_regex),
-    'acc': 'OP_READ', # parseIdentifier(nodes[3]),  # TODO: Fix
+    'acc': OP.READ, # parseIdentifier(nodes[3]),  # TODO: Fix
   }
 
 
 def parseOptArgGbl(nodes):
   if len(nodes) != 5:
-    ParseError('incorrect number of args passed to op_opt_arg_gbl')
+    raise ParseError('incorrect number of args passed to op_opt_arg_gbl')
 
     # Parse opt argument
     opt = parseIdentifier(nodes[0])
@@ -278,6 +298,14 @@ def parseStringLit(node, regex=None):
     raise ParseError(f'expected string literal matching {regex}')
 
   return value
+
+
+def parseLocation(node):
+  return Location(
+    node.location.file.name,
+    node.location.line,
+    node.location.column
+  )
 
 
 def descend(node):

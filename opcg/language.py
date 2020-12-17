@@ -1,6 +1,5 @@
 
 # Standard library imports
-from os.path import basename
 from typing import Callable
 
 # Application imports
@@ -27,7 +26,7 @@ class Lang(object):
     try:
       return self.parser(path)
     except ParseError as e:
-      exit(f'{basename(path)}:{e.line}:{e.col}: parse error: {e.message}')
+      exit(e)
 
 
   def __str__(self):

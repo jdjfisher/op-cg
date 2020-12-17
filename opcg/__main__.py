@@ -2,7 +2,6 @@
 
 # Standard library imports
 from datetime import datetime
-import subprocess
 import argparse
 import json
 import os
@@ -13,6 +12,7 @@ from generator import genOpProgram, genKernelHost, genMakefile
 from language import Lang
 from optimisation import Opt
 from parsers.common import Store
+from util import getVersion
 
 
 # Program entrypoint
@@ -37,10 +37,10 @@ def main(argv=None):
 
   # Validate the file extensions
   if not extensions:
-    raise Exception('Missing file extensions, unable to determine target language.')
+    exit('Missing file extensions, unable to determine target language.')
 
   elif len(extensions) > 1:
-    raise Exception('Varying file extensions, unable to determine target language.')
+    exit('Varying file extensions, unable to determine target language.')
 
   else:
     [ extension ] = extensions 
@@ -50,12 +50,11 @@ def main(argv=None):
   lang = Lang.find(extension)
 
   if not lang:
-    raise Exception(f'Unsupported file extension: {extension}')
+    exit(f'Unsupported file extension: {extension}')
 
   if args.verbose:
     print(f'Target language: {lang}')
     print(f'Target optimisation: {opt}\n')
-
 
 
 
@@ -80,32 +79,25 @@ def main(argv=None):
       print(f'  Parsed: {store}')
 
 
+
+
   # TODO: Merge stores ...
   main_store = stores[0]
 
-  # Print warnings
+  if args.verbose:
+    print('\nMain store:', main_store)
   if not main_store.init:
     print('WARNING: No call to op_init found')
   if not main_store.exit:
     print('WARNING: No call to op_exit found')
 
-  if args.verbose:
-    print('\nMain store:', main_store, '\n')
-
   if args.dump:
     # Dump main store to a json file
     with open(os.path.join(args.out, 'store.json'), 'w') as file:
-      file.write(json.dumps(main_store.__dict__, indent=4))
-
-
-
-
+      file.write(json.dumps(main_store.__dict__, default=vars, indent=4))
 
   # TODO: Finish ...
   kernels = main_store.getKernels()
-
-
-
 
 
 
@@ -116,13 +108,10 @@ def main(argv=None):
 
 
   # Collect the paths of any generated files
-  generated_paths = [] # TODO: Destroy any generated files after failure
+  generated_paths = []
 
   # Generate kernel optimisations
   for i, kernel in enumerate(kernels, 1):
-
-    if args.verbose:
-      print(f'Generating kernel host {i} of {len(kernels)}: {kernel.name}')
 
     # Form output file path 
     path = os.path.join(args.out, f'{args.prefix}_{opt.name}_{kernel.name}.{extension}')
@@ -137,7 +126,7 @@ def main(argv=None):
       generated_paths.append(path)
 
       if args.verbose:
-        print(f'  Created kernel host file: {path}')
+        print(f'Generated kernel host {i} of {len(kernels)}: {path}')
 
 
 
@@ -145,9 +134,6 @@ def main(argv=None):
   # Generate program translations
   for i, (raw_path, store) in enumerate(zip(args.file_paths, stores), 1):
 
-    if args.verbose:
-      print(f'Translating program {i} of {len(args.file_paths)}: {raw_path}')
-    
     # Read the raw source file
     with open(raw_path, 'r') as raw_file:
 
@@ -164,7 +150,7 @@ def main(argv=None):
         generated_paths.append(new_path)
 
         if args.verbose:
-          print(f'  Created translation file: {new_path}') 
+          print(f'Generated translation {i} of {len(args.file_paths)}: {new_path}') 
 
 
 
@@ -189,13 +175,6 @@ def main(argv=None):
   if args.verbose:
     print('\nTerminating')
 
-
-
-
-
-
-def getVersion():
-  return subprocess.check_output(["git", "describe", "--always"]).strip().decode()
 
 
 def isDirPath(path):

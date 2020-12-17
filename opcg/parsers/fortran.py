@@ -8,8 +8,9 @@ import re
 import open_fortran_parser as fp
 
 # Local application imports
-from parsers.common import Store, ParseError
+from parsers.common import ParseError, Store, Location
 from util import enumRegex
+import op as OP
 
 
 def parse(path):  
@@ -25,7 +26,7 @@ def parse(path):
     for call in xml.findall('.//call'):
 
       # Store call source location
-      loc = call.attrib
+      loc = parseLocation(call)
       name = parseIdentifier(call)
 
       if call.find('name').attrib['type'] == 'procedure':
@@ -33,7 +34,7 @@ def parse(path):
         args = call.findall('name/subscripts/subscript')
 
         if name == 'op_init_base':
-          store.recordInit(parseInit(args, loc))
+          store.recordInit()
 
         elif name == 'op_decl_set':
           _ = parseSet(args, loc)
@@ -51,7 +52,7 @@ def parse(path):
           store.addLoop(parseLoop(args, loc))
 
         elif name == 'op_exit':
-          store.recordExit(loc)
+          store.recordExit()
 
     # Return the store
     return store
@@ -59,18 +60,6 @@ def parse(path):
   # Catch ofp error
   except CalledProcessError as error:
     raise ParseError(error.output)
-
-
-def parseInit(nodes, location):
-  if len(nodes) != 2:
-    raise ParseError('incorrect number of args passed to op_init', location)
-
-  _ = parseIntLit(nodes[0], signed=False)
-  _ = parseIntLit(nodes[1], signed=False)
-
-  return {
-    'location': location,
-  }
 
 
 def parseSet(nodes, location):
@@ -152,7 +141,7 @@ def parseLoop(nodes, location):
       loop_args.append(parseOptArgGbl(args))
 
     else:
-      raise ParseError(f'Invalid loop argument {name}')
+      raise ParseError(f'invalid loop argument {name}')
 
   return {
     'locations': [location],
@@ -167,7 +156,7 @@ def parseArgDat(nodes):
     raise ParseError('incorrect number of args passed to op_arg_dat')
 
   type_regex = r'.*' # TODO: Finish ...
-  access_regex = enumRegex(['OP_READ','OP_WRITE','OP_RW','OP_INC'])
+  access_regex = enumRegex(OP.DAT_ACCESS_TYPES)
 
   return {
     'var': parseIdentifier(nodes[0]),
@@ -198,8 +187,8 @@ def parseArgGbl(nodes):
   if len(nodes) != 4:
     raise ParseError('incorrect number of args passed to op_arg_gbl')
 
-  type_regex = r'.*'
-  access_regex = enumRegex(['OP_READ','OP_INC','OP_MAX','OP_MIN'])
+  type_regex = r'.*' # TODO: Finish ...
+  access_regex = enumRegex(OP.GBL_ACCESS_TYPES)
   
   return {
     'var': parseIdentifier(nodes[0]),
@@ -230,13 +219,13 @@ def parseIdentifier(node, regex=None):
 
   # Validate the node
   if not node or not node.attrib['id']:
-    raise ParseError('expected identifier')
+    raise ParseError('expected identifier', parseLocation(node))
 
   value = node.attrib['id']
 
   # Apply conditional regex constraint
   if regex and not re.match(regex, value):
-    raise ParseError(f'expected identifier matching {regex}')
+    raise ParseError(f'expected identifier matching {regex}', parseLocation(node))
   
   return value
 
@@ -257,10 +246,12 @@ def parseIntLit(node, signed=True):
 
   # Verify and typecheck the literal node
   if not node or node.attrib['type'] != 'int':
+    location = parseLocation(node)
+
     if not signed:
-      raise ParseError('expected unsigned integer literal')
+      raise ParseError('expected unsigned integer literal', location)
     else:
-      raise ParseError('expected integer literal')
+      raise ParseError('expected integer literal', location)
 
   # Extract the value
   value = int(node.attrib['value'])
@@ -274,16 +265,24 @@ def parseStringLit(node, regex=None):
 
   # Validate the node
   if not node or node.attrib['type'] != 'char':
-    raise ParseError('expected string literal')
+    raise ParseError('expected string literal', parseLocation(node))
 
   # Extract value from string delimeters
   value = node.attrib['value'][1:-1]
 
   # Apply conditional regex constraint
   if regex and not re.match(regex, value):
-    raise ParseError(f'expected string literal matching {regex}')
+    raise ParseError(f'expected string literal matching {regex}', parseLocation(node))
   
   return value
+
+
+def parseLocation(node):
+  return Location(
+    '?',
+    node.attrib.get('line_begin'), 
+    node.attrib.get('col_begin')
+  )
 
 
 

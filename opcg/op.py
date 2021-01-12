@@ -40,14 +40,6 @@ class Const:
     self.dim = dim
 
 
-class Loop:
-
-  def __init__(self, kernel: str, set_: str, args: list):
-    self.kernel = kernel
-    self.set = set_
-    self.args = args
-
-
 class Arg:
 
   def __init__(self, var: str, map_: str, idx: int, dim: int, typ: str, acc: str):
@@ -58,9 +50,17 @@ class Arg:
     self.typ = typ
     self.acc = acc
 
-    if self.map == OP.ID:
+    if self.map == ID:
       if self.idx != -1:
         exit('incompatible index for direct access, expected -1')
     else:
       if self.idx < 1 or self.idx > self.dim:
         exit(f'out of range index, must be 1-{self.dim}')
+
+
+class Loop:
+
+  def __init__(self, kernel: str, set_: str, args: [Arg]):
+    self.kernel = kernel
+    self.set = set_
+    self.args = args

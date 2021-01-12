@@ -3,7 +3,7 @@
 import re
 
 # Third party imports
-from clang.cindex import Index, Config, TranslationUnit, CursorKind
+from clang.cindex import Index, Config, TranslationUnit, Cursor, CursorKind
 import clang.cindex as cindex
 
 # Local application imports
@@ -18,7 +18,7 @@ options = TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD # Capture pre-process
 index = Index.create()
 
 
-def parse(path):
+def parse(path: str) -> Store:
   # Invoke the Clang parser on the source
   translation_unit = index.parse(path, options=options)
 
@@ -75,55 +75,55 @@ def parse(path):
   return store
 
 
-def parseSet(nodes, location):
+def parseSet(nodes: [Cursor], location: Location) -> OP.Set:
+
   if len(nodes) != 2:
     raise ParseError('incorrect number of nodes passed to op_decl_set', location)
 
-  return {
-    'size': parseIdentifier(nodes[0]),
-    'str' : parseStringLit(nodes[1]),
-  }
+  size = parseIdentifier(nodes[0])
+  name = parseStringLit(nodes[1])
+
+  return OP.Set(size, name)
 
 
-def parseMap(nodes, location):
+def parseMap(nodes: [Cursor], location: Location) -> OP.Map:
   if len(nodes) != 5:
     raise ParseError('incorrect number of args passed to op_decl_map', location)
 
-  return {
-    'x'   : parseIdentifier(nodes[0]),
-    'y'   : parseIdentifier(nodes[1]),
-    'dim' : parseIntLit(nodes[2], signed=False),
-    'z'   : parseIdentifier(nodes[3]),
-    'str' : parseStringLit(nodes[4]),
-  }
+  _   = parseIdentifier(nodes[0])
+  _   = parseIdentifier(nodes[1])
+  dim = parseIntLit(nodes[2], signed=False)
+  _   = parseIdentifier(nodes[3])
+  _   = parseStringLit(nodes[4])
+
+  return OP.Map(dim)
 
 
-def parseData(nodes, location):
+def parseData(nodes: [Cursor], location: Location) -> OP.Data:
   if len(nodes) != 5:
     raise ParseError('incorrect number of args passed to op_decl_dat', location)
 
-  return {
-    'set' : parseIdentifier(nodes[0]),
-    'dim' : parseIntLit(nodes[1], signed=False),
-    'typ' : parseStringLit(nodes[2]),
-    'x'   : parseIdentifier(nodes[3]),
-    'str' : parseStringLit(nodes[4]),
-  }
+  set_ = parseIdentifier(nodes[0])
+  dim  = parseIntLit(nodes[1], signed=False)
+  typ  = parseStringLit(nodes[2])
+  _    = parseIdentifier(nodes[3])
+  _    = parseStringLit(nodes[4])
+  
+  return OP.Data(set_, dim, typ)
 
 
-def parseConst(nodes, location):
+def parseConst(nodes: [Cursor], location: Location) -> OP.Const:
   if len(nodes) != 3:
     raise ParseError('incorrect number of args passed to op_decl_const', location)
 
-  return {
-    'locations': [],
-    'dim'      : parseIntLit(nodes[0], signed=False),
-    'str'      : parseStringLit(nodes[1]),
-    'name'     : parseIdentifier(nodes[2]),
-  }
+  dim  = parseIntLit(nodes[0], signed=False)
+  _    = parseStringLit(nodes[1])
+  name = parseIdentifier(nodes[2])
+
+  return OP.Const(name, dim)
 
 
-def parseLoop(nodes, location):
+def parseLoop(nodes: [Cursor], location: Location):
   if len(nodes) < 3:
     raise ParseError('incorrect number of args passed to op_par_loop')
 
@@ -163,7 +163,7 @@ def parseLoop(nodes, location):
   }
 
 
-def parseArgDat(nodes):
+def parseArgDat(nodes: [Cursor]):
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_arg_dat')
 
@@ -180,7 +180,7 @@ def parseArgDat(nodes):
   }
 
 
-def parseOptArgDat(nodes):
+def parseOptArgDat(nodes: [Cursor]):
   if len(nodes) != 7:
     ParseError('incorrect number of args passed to op_opt_arg_dat')
 
@@ -195,7 +195,7 @@ def parseOptArgDat(nodes):
     return dat
 
 
-def parseArgGbl(nodes):
+def parseArgGbl(nodes: [Cursor]):
   if len(nodes) != 4:
     raise ParseError('incorrect number of args passed to op_arg_gbl')
 
@@ -210,22 +210,22 @@ def parseArgGbl(nodes):
   }
 
 
-def parseOptArgGbl(nodes):
+def parseOptArgGbl(nodes: [Cursor]):
   if len(nodes) != 5:
     raise ParseError('incorrect number of args passed to op_opt_arg_gbl')
 
-    # Parse opt argument
-    opt = parseIdentifier(nodes[0])
+  # Parse opt argument
+  opt = parseIdentifier(nodes[0])
 
-    # Parse standard argGbl arguments
-    dat = parseArgGbl(nodes[1:])
-    
-    # Return augmented dat
-    dat.update(opt=opt)
-    return dat
+  # Parse standard argGbl arguments
+  dat = parseArgGbl(nodes[1:])
+  
+  # Return augmented dat
+  dat.update(opt=opt)
+  return dat
 
 
-def parseIdentifier(node, regex=None):
+def parseIdentifier(node: [Cursor], regex: str = None):
   # TODO: ...
   while node.kind == CursorKind.CSTYLE_CAST_EXPR:
     node = list(node.get_children())[1]
@@ -255,7 +255,7 @@ def parseIdentifier(node, regex=None):
   return value
 
 
-def parseIntLit(node, signed=True):
+def parseIntLit(node: [Cursor], signed: bool = True):
   # Assume the literal is not negated
   negation = False
 
@@ -277,7 +277,7 @@ def parseIntLit(node, signed=True):
   return -value if negation else value
 
 
-def parseStringLit(node, regex=None):
+def parseStringLit(node: [Cursor], regex: str = None):
 
   # Validate the node
   if node.kind != CursorKind.UNEXPOSED_EXPR:
@@ -300,7 +300,7 @@ def parseStringLit(node, regex=None):
   return value
 
 
-def parseLocation(node):
+def parseLocation(node: Cursor) -> Location:
   return Location(
     node.location.file.name,
     node.location.line,
@@ -308,6 +308,6 @@ def parseLocation(node):
   )
 
 
-def descend(node):
+def descend(node: Cursor) -> Cursor:
   return next(node.get_children(), None)
   

@@ -38,7 +38,7 @@ env.tests['indirect'] = lambda arg: 'map' in arg and arg.get('map') != OP.ID
 
 
 # TODO: Improve
-templates = {
+templates: {(str, str): Template} = {
   ('fortran', 'seq'): env.get_template('fortran/seq.F90.j2'),
   ('fortran', 'cuda'): env.get_template('fortran/cuda.F90.j2'),
   ('c++', 'seq'): env.get_template('cpp/seq.hpp.j2'),
@@ -46,7 +46,7 @@ templates = {
 
 
 # Augment source program to use generated kernel hosts
-def genOpProgram(source: str, store: Store): 
+def genOpProgram(source: str, store: Store) -> str: 
   # 1. Update headers
   # 2. Update init call
   # 3. Remove const calls
@@ -55,7 +55,7 @@ def genOpProgram(source: str, store: Store):
 
 
 # 
-def genKernelHost(lang: Lang, opt: Opt, kernel):
+def genKernelHost(lang: Lang, opt: Opt, kernel) -> str:
   # Lookup generation template
   template = templates.get((lang.name, opt.name))
 
@@ -67,7 +67,7 @@ def genKernelHost(lang: Lang, opt: Opt, kernel):
 
 
 # 
-def genMakefile(paths):
+def genMakefile(paths: [str]) -> str:
   # 
   template = env.get_template('makefile.j2')
 

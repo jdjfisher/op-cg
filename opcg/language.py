@@ -1,5 +1,5 @@
-
 # Standard library imports
+from __future__ import annotations # https://stackoverflow.com/questions/41135033/type-hinting-within-a-class
 from typing import Callable
 
 # Application imports
@@ -9,9 +9,9 @@ import parsers.cpp as cp
 
 
 class Lang(object):
-  instances: list = []
+  instances: [Lang] = []
 
-  def __init__(self, name: str, extensions: list, com_delim: str, parser: Callable[[str], Store]):
+  def __init__(self, name: str, extensions: [str], com_delim: str, parser: Callable[[str], Store]):
     self.__class__.instances.append(self)
     self.name = name
     self.extensions = extensions
@@ -19,7 +19,7 @@ class Lang(object):
     self.parser = parser
 
 
-  def parse(self, path: str):
+  def parse(self, path: str) -> Store:
     if not self.parser:
       raise NotImplementedError(f'no parser registered for the "{self.name}" language')
 
@@ -29,17 +29,17 @@ class Lang(object):
       exit(e)
 
 
-  def __str__(self):
+  def __str__(self) -> str:
       return self.name
 
 
   @classmethod
-  def all(cls):
+  def all(cls) -> [Lang]:
     return cls.instances
 
 
   @classmethod
-  def find(cls, name: str):
+  def find(cls, name: str) -> Lang:
     return next((l for l in cls.all() if name == l.name or name in l.extensions), None)
 
 

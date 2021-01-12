@@ -11,10 +11,11 @@ from util import enumRegex
 import op as OP
 
 
-# TODO: Generalise config
+# TODO: Cleanup config
 Config.set_library_file("/usr/lib/x86_64-linux-gnu/libclang-10.so.1")
 options = TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD # Capture pre-processor macros
 index = Index.create()
+macro_instances = {} # TODO: Cleanup
 
 
 def parse(path: str) -> Store:
@@ -30,10 +31,12 @@ def parse(path: str) -> Store:
   store = Store()
   q = []
 
-  # Populate with the top-level cursors from the target file
   for child in translation_unit.cursor.get_children():
-    if child.kind in (CursorKind.MACRO_INSTANTIATION, CursorKind.MACRO_DEFINITION):
-      pass # TODO: ...
+    # Collect the locations and identifiers of macro instances 
+    if child.kind in (CursorKind.MACRO_INSTANTIATION):
+      macro_instances[(child.location.line, child.location.column)] = child.displayname
+   
+    # Populate with the top-level cursors from the target file
     elif child.location.file.name == translation_unit.spelling:
       q.append(child)
 
@@ -169,7 +172,7 @@ def parseArgDat(nodes: [Cursor]) -> OP.Arg:
   map_ = parseIdentifier(nodes[2]) or OP.ID
   dim  = parseIntLit(nodes[3], signed=False)
   typ  = parseStringLit(nodes[4], regex=type_regex)
-  acc  = OP.READ #parseIdentifier(nodes[5]) # TODO: Fix
+  acc  = macro_instances[(nodes[5].location.line, nodes[5].location.column)] # TODO: Cleanup
 
   return OP.Arg(var, dim, typ, acc, map_, idx)
 
@@ -199,7 +202,7 @@ def parseArgGbl(nodes: [Cursor]) -> OP.Arg:
   var = parseIdentifier(nodes[0])
   dim = parseIntLit(nodes[1], signed=False)
   typ = parseStringLit(nodes[2], regex=type_regex)
-  acc = OP.READ # parseIdentifier(nodes[3]),  # TODO: Fix
+  acc  = macros[(nodes[3].location.line, nodes[5].location.column)] # TODO: Cleanup
   
   return OP.Arg(var, dim, typ, acc)
 

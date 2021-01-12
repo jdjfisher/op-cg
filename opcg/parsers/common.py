@@ -95,24 +95,29 @@ class Store:
   
 
   def merge(self, store):
-    map(self.addSet, store.sets)
-    map(self.addMap, store.maps)
-    map(self.addData, store.datas)
-    map(self.addConst, store.consts)
-    map(self.addLoop, store.loops)
-
     if store.init:
       self.recordInit()
 
     if store.exit:
       self.recordExit()
+    
+    for s in store.sets:
+      self.addSet(s)
 
+    for m in store.maps:
+      self.addMap(m)
 
-  def getKernels(self): 
-    return self.loops
+    for d in store.datas:
+      self.addData(d)
+
+    for c in store.consts:
+      self.addConst(c)
+
+    for l in store.loops:
+      self.addLoop(l)
 
 
   def __str__(self):
-    return f"{'init, ' if self.init else ''}{len(self.consts)} constants, {len(self.loops)} loops{' exit' if self.exit else ''}"
+    return f"{'init, ' if self.init else ''}{len(self.consts)} constants, {len(self.loops)} loops{', exit' if self.exit else ''}"
 
 

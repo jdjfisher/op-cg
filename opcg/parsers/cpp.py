@@ -122,7 +122,7 @@ def parseConst(nodes: [Cursor], location: Location) -> OP.Const:
   return OP.Const(name, dim)
 
 
-def parseLoop(nodes: [Cursor], location: Location):
+def parseLoop(nodes: [Cursor], location: Location) -> OP.Loop:
   if len(nodes) < 3:
     raise ParseError('incorrect number of args passed to op_par_loop')
 
@@ -154,32 +154,27 @@ def parseLoop(nodes: [Cursor], location: Location):
     else:
       raise ParseError(f'invalid loop argument {name}', parseLocation(node))
 
-  return {
-    'locations': [],
-    'kernel'   : kernel,
-    'set'      : set_,
-    'args'     : loop_args,
-  }
+  return OP.Loop(kernel, set_, loop_args)
 
 
-def parseArgDat(nodes: [Cursor]):
+def parseArgDat(nodes: [Cursor]) -> OP.Arg:
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_arg_dat')
 
   type_regex = r'.*' # TODO: Finish ...
   access_regex = enumRegex(OP.DAT_ACCESS_TYPES)
 
-  return {
-    'var': parseIdentifier(nodes[0]),
-    'idx': parseIntLit(nodes[1], signed=True),
-    'map': parseIdentifier(nodes[2]) or OP.ID,
-    'dim': parseIntLit(nodes[3], signed=False),
-    'typ': parseStringLit(nodes[4], regex=type_regex),
-    'acc': OP.READ, #parseIdentifier(nodes[5]) # TODO: Fix
-  }
+  var  = parseIdentifier(nodes[0])
+  idx  = parseIntLit(nodes[1], signed=True)
+  map_ = parseIdentifier(nodes[2]) or OP.ID
+  dim  = parseIntLit(nodes[3], signed=False)
+  typ  = parseStringLit(nodes[4], regex=type_regex)
+  acc  = OP.READ #parseIdentifier(nodes[5]) # TODO: Fix
+
+  return OP.Arg(var, dim, typ, acc, map_, idx)
 
 
-def parseOptArgDat(nodes: [Cursor]):
+def parseOptArgDat(nodes: [Cursor]) -> OP.Arg:
   if len(nodes) != 7:
     ParseError('incorrect number of args passed to op_opt_arg_dat')
 
@@ -190,26 +185,26 @@ def parseOptArgDat(nodes: [Cursor]):
     dat = parseArgDat(nodes[1:])
     
     # Return augmented dat
-    dat.update(opt=opt)
+    dat.opt = opt
     return dat
 
 
-def parseArgGbl(nodes: [Cursor]):
+def parseArgGbl(nodes: [Cursor]) -> OP.Arg:
   if len(nodes) != 4:
     raise ParseError('incorrect number of args passed to op_arg_gbl')
 
   type_regex = r'.*' # TODO: Finish ...
   access_regex = enumRegex(OP.GBL_ACCESS_TYPES)
 
-  return {
-    'var': parseIdentifier(nodes[0]),
-    'dim': parseIntLit(nodes[1], signed=False),
-    'typ': parseStringLit(nodes[2], regex=type_regex),
-    'acc': OP.READ, # parseIdentifier(nodes[3]),  # TODO: Fix
-  }
+  var = parseIdentifier(nodes[0])
+  dim = parseIntLit(nodes[1], signed=False)
+  typ = parseStringLit(nodes[2], regex=type_regex)
+  acc = OP.READ # parseIdentifier(nodes[3]),  # TODO: Fix
+  
+  return OP.Arg(var, dim, typ, acc)
 
 
-def parseOptArgGbl(nodes: [Cursor]):
+def parseOptArgGbl(nodes: [Cursor]) -> OP.Arg:
   if len(nodes) != 5:
     raise ParseError('incorrect number of args passed to op_opt_arg_gbl')
 
@@ -220,11 +215,11 @@ def parseOptArgGbl(nodes: [Cursor]):
   dat = parseArgGbl(nodes[1:])
   
   # Return augmented dat
-  dat.update(opt=opt)
+  dat.opt = opt
   return dat
 
 
-def parseIdentifier(node: [Cursor], regex: str = None):
+def parseIdentifier(node: [Cursor], regex: str = None) -> str:
   # TODO: ...
   while node.kind == CursorKind.CSTYLE_CAST_EXPR:
     node = list(node.get_children())[1]
@@ -254,7 +249,7 @@ def parseIdentifier(node: [Cursor], regex: str = None):
   return value
 
 
-def parseIntLit(node: [Cursor], signed: bool = True):
+def parseIntLit(node: [Cursor], signed: bool = True) -> int:
   # Assume the literal is not negated
   negation = False
 
@@ -276,7 +271,7 @@ def parseIntLit(node: [Cursor], signed: bool = True):
   return -value if negation else value
 
 
-def parseStringLit(node: [Cursor], regex: str = None):
+def parseStringLit(node: [Cursor], regex: str = None) -> str:
 
   # Validate the node
   if node.kind != CursorKind.UNEXPOSED_EXPR:

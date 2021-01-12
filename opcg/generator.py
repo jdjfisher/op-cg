@@ -41,8 +41,17 @@ templates: {(str, str): Template} = {
 }
 
 
+
+
 # Augment source program to use generated kernel hosts
-def genOpProgram(source: str, store: Store) -> str: 
+def genOpProgram(lang: Lang, source: str, store: Store) -> str: 
+  
+  # TODO: Abstract to callable
+  if lang.name == 'fortran':
+    pass
+  elif lang.name == 'c++':
+    pass
+
   # 1. Update headers
   # 2. Update init call
   # 3. Remove const calls

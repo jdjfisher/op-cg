@@ -82,7 +82,9 @@ def main(argv=None):
 
 
   # TODO: Merge stores ...
-  main_store = stores[0]
+  main_store = Store()
+  for store in stores:
+    main_store.merge(store)
 
   if args.verbose:
     print('\nMain store:', main_store)
@@ -96,9 +98,6 @@ def main(argv=None):
     with open(os.path.join(args.out, 'store.json'), 'w') as file:
       file.write(json.dumps(main_store.__dict__, default=vars, indent=4))
 
-  # TODO: Finish ...
-  loops = main_store.loops
-
 
 
 
@@ -111,7 +110,7 @@ def main(argv=None):
   generated_paths = []
 
   # Generate loop optimisations
-  for i, loop in enumerate(loops, 1):
+  for i, loop in enumerate(main_store.loops, 1):
 
     # Form output file path 
     path = os.path.join(args.out, f'{args.prefix}_{opt.name}_{loop.name}.{extension}')
@@ -126,7 +125,7 @@ def main(argv=None):
       generated_paths.append(path)
 
       if args.verbose:
-        print(f'Generated loop host {i} of {len(loops)}: {path}')
+        print(f'Generated loop host {i} of {len(main_store.loops)}: {path}')
 
 
 
@@ -138,7 +137,7 @@ def main(argv=None):
     with open(raw_path, 'r') as raw_file:
 
       # Generate the translated source
-      source = genOpProgram(raw_file.read(), store)
+      source = genOpProgram(lang, raw_file.read(), store)
 
       # Form output file path 
       new_path = os.path.join(args.out, f'{args.prefix}_{opt.name}_{os.path.basename(raw_path)}')
@@ -150,7 +149,7 @@ def main(argv=None):
         generated_paths.append(new_path)
 
         if args.verbose:
-          print(f'Generated translation {i} of {len(args.file_paths)}: {new_path}') 
+          print(f'Translated program  {i} of {len(args.file_paths)}: {new_path}') 
 
 
 

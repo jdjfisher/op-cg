@@ -109,7 +109,7 @@ def parseConst(nodes: [Element], location: Location) -> OP.Const:
   return OP.Const(name, dim)
 
 
-def parseLoop(nodes: [Element], location: Location):
+def parseLoop(nodes: [Element], location: Location) -> OP.Loop:
   if len(nodes) < 3:
     raise ParseError('incorrect number of args passed to op_par_loop', location)
 
@@ -139,32 +139,27 @@ def parseLoop(nodes: [Element], location: Location):
     else:
       raise ParseError(f'invalid loop argument {name}')
 
-  return {
-    'locations': [location],
-    'kernel'   : kernel,
-    'set'      : set_,
-    'args'     : loop_args,
-  }
+  return OP.Loop(kernel, set_, loop_args)
 
 
-def parseArgDat(nodes: [Element]):
+def parseArgDat(nodes: [Element]) -> OP.Arg:
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_arg_dat')
 
   type_regex = r'.*' # TODO: Finish ...
   access_regex = enumRegex(OP.DAT_ACCESS_TYPES)
 
-  return {
-    'var': parseIdentifier(nodes[0]),
-    'idx': parseIntLit(nodes[1], signed=True),
-    'map': parseIdentifier(nodes[2]),
-    'dim': parseIntLit(nodes[3], signed=False),
-    'typ': parseStringLit(nodes[4], regex=type_regex),
-    'acc': parseIdentifier(nodes[5], regex=access_regex),
-  }
+  var  = parseIdentifier(nodes[0])
+  idx  = parseIntLit(nodes[1], signed=True)
+  map_ = parseIdentifier(nodes[2])
+  dim  = parseIntLit(nodes[3], signed=False)
+  typ  = parseStringLit(nodes[4], regex=type_regex)
+  acc  = parseIdentifier(nodes[5], regex=access_regex)
+
+  return OP.Arg(var, dim, typ, acc, map_, idx)
 
 
-def parseOptArgDat(nodes: [Element]):
+def parseOptArgDat(nodes: [Element]) -> OP.Arg:
   if len(nodes) != 7:
     ParseError('incorrect number of args passed to op_opt_arg_dat')
 
@@ -175,26 +170,26 @@ def parseOptArgDat(nodes: [Element]):
   dat = parseArgDat(nodes[1:])
   
   # Return augmented dat
-  dat.update(opt=opt)
+  dat.opt = opt
   return dat
 
 
-def parseArgGbl(nodes: [Element]):
+def parseArgGbl(nodes: [Element]) -> OP.Arg:
   if len(nodes) != 4:
     raise ParseError('incorrect number of args passed to op_arg_gbl')
 
   type_regex = r'.*' # TODO: Finish ...
   access_regex = enumRegex(OP.GBL_ACCESS_TYPES)
   
-  return {
-    'var': parseIdentifier(nodes[0]),
-    'dim': parseIntLit(nodes[1], signed=False),
-    'typ': parseStringLit(nodes[2], regex=type_regex),
-    'acc': parseIdentifier(nodes[3], regex=access_regex),
-  }
+  var = parseIdentifier(nodes[0])
+  dim = parseIntLit(nodes[1], signed=False)
+  typ = parseStringLit(nodes[2], regex=type_regex)
+  acc = parseIdentifier(nodes[3], regex=access_regex)
+
+  return OP.Arg(var, dim, typ, acc)
   
 
-def parseOptArgGbl(nodes: [Element]):
+def parseOptArgGbl(nodes: [Element]) -> OP.Arg:
   if len(nodes) != 5:
     ParseError('incorrect number of args passed to op_opt_arg_gbl')
 
@@ -205,7 +200,7 @@ def parseOptArgGbl(nodes: [Element]):
   dat = parseArgGbl(nodes[1:])
   
   # Return augmented dat
-  dat.update(opt=opt)
+  dat.opt = opt
   return dat
 
 

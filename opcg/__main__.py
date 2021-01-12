@@ -8,7 +8,7 @@ import os
 import re 
 
 # Application imports
-from generator import genOpProgram, genKernelHost, genMakefile
+from generator import genOpProgram, genLoopHost, genMakefile
 from language import Lang
 from optimisation import Opt
 from parsers.common import Store
@@ -97,7 +97,7 @@ def main(argv=None):
       file.write(json.dumps(main_store.__dict__, default=vars, indent=4))
 
   # TODO: Finish ...
-  kernels = main_store.getKernels()
+  loops = main_store.loops
 
 
 
@@ -110,14 +110,14 @@ def main(argv=None):
   # Collect the paths of any generated files
   generated_paths = []
 
-  # Generate kernel optimisations
-  for i, kernel in enumerate(kernels, 1):
+  # Generate loop optimisations
+  for i, loop in enumerate(loops, 1):
 
     # Form output file path 
-    path = os.path.join(args.out, f'{args.prefix}_{opt.name}_{kernel.name}.{extension}')
+    path = os.path.join(args.out, f'{args.prefix}_{opt.name}_{loop.name}.{extension}')
 
-    # Generate kernel source
-    source = genKernelHost(lang, opt, kernel)
+    # Generate loop host source
+    source = genLoopHost(lang, opt, loop, i)
 
     # Write the generated source file
     with open(path, 'w') as file:
@@ -126,7 +126,7 @@ def main(argv=None):
       generated_paths.append(path)
 
       if args.verbose:
-        print(f'Generated kernel host {i} of {len(kernels)}: {path}')
+        print(f'Generated loop host {i} of {len(loops)}: {path}')
 
 
 

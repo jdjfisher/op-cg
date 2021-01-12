@@ -4,7 +4,6 @@ import re
 
 # Third party imports
 from clang.cindex import Index, Config, TranslationUnit, Cursor, CursorKind
-import clang.cindex as cindex
 
 # Local application imports
 from parsers.common import ParseError, Store, Location

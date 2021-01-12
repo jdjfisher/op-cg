@@ -29,87 +29,24 @@ class Location:
     return f'{basename(self.file)}/{self.line}:{self.column}'
 
 
-class Kernel:
-
-  def __init__(self, id, loop):
-    self.id = id
-    self.name = loop['kernel']
-    self._args = loop['args']
-
-
-  @property
-  def args(self):
-    return dict(enumerate(self._args))
-
-
-  @property
-  def indirection(self):
-    return len(self.indirects) > 0
-
-
-  @property
-  def directs(self):
-    return { i: arg for i, arg in self.args.items() if arg.get('map') == 'OP_ID' }
-
-
-  @property
-  def indirects(self):
-    return { i: arg for i, arg in self.args.items() if 'map' in arg and arg.get('map') != 'OP_ID' }
-
-
-  @property
-  def globals(self):
-    return { i: arg for i, arg in self.args.items() if 'map' not in arg }
-
-
-  @property
-  def indirectVars(self):
-    # TODO: Tidy
-    x, r = [], {}
-    for i, arg in self.indirects.items():
-      y = arg['var']
-      if y not in x:
-        x.append(y)
-        r[i] = arg
-
-    return r
-
-
-  @property
-  def indirectMaps(self):
-    # TODO: Tidy
-    x, r = [], {}
-    for i, arg in self.indirects.items():
-      y = arg['map']
-      if y not in x:
-        x.append(y)
-        r[i] = arg
-
-    return r
-
-
-  @property
-  def indirectMapRefs(self):
-    # TODO: Tidy
-    x, r = [], {}
-    for i, arg in self.indirects.items():
-      y = (arg['map'], arg['idx'])
-      if y not in x:
-        x.append(y)
-        r[i] = arg
-
-    return r
-
-
 class Store:
+  init: bool
+  exit: bool
+  sets: [OP.Set]
+  maps: [OP.Map]
+  datas: [OP.Data]
+  loops: [OP.Loop]
+  consts: [OP.Const]
+
+
   def __init__(self):
     self.init = False 
     self.exit = False 
     self.sets = []
     self.maps = []
     self.datas = []
-    self.consts = []
     self.loops = []
+    self.consts = []
 
 
   def recordInit(self):
@@ -152,7 +89,7 @@ class Store:
     self.consts.append(const)
 
 
-  def addLoop(self, loop):
+  def addLoop(self, loop: OP.Loop):
     # TODO: Check for repeats / compatitbility 
     self.loops.append(loop)
   
@@ -172,7 +109,7 @@ class Store:
 
 
   def getKernels(self): 
-    return [ Kernel(i, loop) for i, loop in enumerate(self.loops) ]
+    return self.loops
 
 
   def __str__(self):

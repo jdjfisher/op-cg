@@ -20,19 +20,15 @@ env = Environment(
   trim_blocks=True,
 )
 
-directTest = lambda arg: arg.get('map') == OP.ID
-directFilter = lambda args: filter(directTest, args)
-
 env.globals['enumerate'] = enumerate
 env.globals['any'] = any
-env.globals['direct'] = directFilter
-env.tests['r_o_w_acc'] = lambda arg: arg.get('acc') in (OP.READ, OP.WRITE)
-env.tests['rw_acc'] = lambda arg: arg.get('acc') == OP.RW
-env.tests['inc_acc'] = lambda arg: arg.get('acc') == OP.INC
-env.tests['without_dim'] = lambda arg: not isinstance(arg.get('dim'), int) 
-env.tests['global'] = lambda arg: 'map' not in arg
-env.tests['direct'] = directTest
-env.tests['indirect'] = lambda arg: 'map' in arg and arg.get('map') != OP.ID
+env.tests['r_o_w_acc'] = lambda arg: arg.acc in (OP.READ, OP.WRITE)
+env.tests['rw_acc'] = lambda arg: arg.acc == OP.RW
+env.tests['inc_acc'] = lambda arg: arg.acc == OP.INC
+env.tests['without_dim'] = lambda arg: not isinstance(arg.dim, int) 
+env.tests['global'] = lambda arg: arg.global_
+env.tests['direct'] = lambda arg: arg.direct
+env.tests['indirect'] = lambda arg: arg.indirect
 
 
 
@@ -55,7 +51,7 @@ def genOpProgram(source: str, store: Store) -> str:
 
 
 # 
-def genKernelHost(lang: Lang, opt: Opt, kernel) -> str:
+def genLoopHost(lang: Lang, opt: Opt, loop: OP.Loop, i: int) -> str:
   # Lookup generation template
   template = templates.get((lang.name, opt.name))
 
@@ -63,7 +59,7 @@ def genKernelHost(lang: Lang, opt: Opt, kernel) -> str:
     exit(f'template not found for {lang.name}-{opt.name}')
 
   # Generate source from the template
-  return template.render(kernel=kernel)
+  return template.render(kernel=loop, id=i)
 
 
 # 

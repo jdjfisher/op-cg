@@ -46,9 +46,9 @@ MODULE {{ kernel.name }}_module
     INTEGER(kind=4) opDat{{ i+1 }}Dim
     {% set dim %}opDat{{ i+1 }}Dim{% endset %}
     {% else %}
-    {% set dim = arg['dim'] %}
+    {% set dim = arg.dim %}
     {% endif %}
-    {{ arg['typ'] }} opDat{{ i+1 }}Local({{ dim }},*)
+    {{ arg.typ }} opDat{{ i+1 }}Local({{ dim }},*)
     {% endfor %}
 
     {% for i, arg in kernel.directs.items() %}
@@ -56,9 +56,9 @@ MODULE {{ kernel.name }}_module
     INTEGER(kind=4) opDat{{ i+1 }}Dim
     {% set dim %}opDat{{ i+1 }}Dim{% endset %}
     {% else %}
-    {% set dim = arg['dim'] %}
+    {% set dim = arg.dim %}
     {% endif %}
-    {{ arg['typ'] }} opDat{{ i+1 }}Local({{ dim }},*)
+    {{ arg.typ }} opDat{{ i+1 }}Local({{ dim }},*)
     {% endfor %}
 
     {% for i, arg in kernel.globals.items() %}
@@ -66,9 +66,9 @@ MODULE {{ kernel.name }}_module
     INTEGER(kind=4) opDat{{ i+1 }}Dim
     {% set dim %}opDat{{ i+1 }}Dim{% endset %}
     {% else %}
-    {% set dim = arg['dim'] %}
+    {% set dim = arg.dim %}
     {% endif %}
-    {{ arg['typ'] }} opDat{{ i+1 }}Local({{ dim }})
+    {{ arg.typ }} opDat{{ i+1 }}Local({{ dim }})
     {% endfor %}
 
     {% for i in kernel.indirectMaps %}
@@ -85,7 +85,7 @@ MODULE {{ kernel.name }}_module
       {# TODO: Refactor #}
       {%- for i, arg1 in kernel.indirectMaps.items() %} 
       {%-   for j, arg2 in kernel.indirectMapRefs.items() %} 
-      {%-     if arg1['map'] == arg2['map'] %} 
+      {%-     if arg1.map == arg2.map %} 
       map{{ j+1 }}idx = opDat{{ i+1 }}Map(1 + i1 * opDat{{ i+1 }}MapDim + {{ arg2['idx']-1 }})+1
       {%-     endif %}
       {%-   endfor %}
@@ -102,7 +102,7 @@ MODULE {{ kernel.name }}_module
         & opDat{{ i+1 }}Local(1,i1+1){{ comma(loop) }} &     
       {%    elif arg is indirect %}
       {%      for j, arg2 in kernel.indirectMapRefs.items() -%} 
-      {%        if arg['map'] == arg2['map'] and arg['idx'] == arg2['idx'] %} 
+      {%        if arg.map == arg2.map and arg.idx == arg2.idx %} 
         & opDat{{ i+1 }}Local(1,map{{ j+1 }}idx){{ comma(loop) }} &     
       {%        endif %}
       {%      endfor %}
@@ -149,19 +149,19 @@ MODULE {{ kernel.name }}_module
     {% for i, arg in kernel.indirectVars.items() %}
     INTEGER(kind=4), POINTER, DIMENSION(:) :: opDat{{ i+1 }}Map
     INTEGER(kind=4) :: opDat{{ i+1 }}MapDim
-    {{ arg['typ'] }}, POINTER, DIMENSION(:) :: opDat{{ i+1 }}Local
+    {{ arg.typ }}, POINTER, DIMENSION(:) :: opDat{{ i+1 }}Local
     INTEGER(kind=4) :: opDat{{ i+1 }}Cardinality
     {% endfor %}
 
     {# Direct #}
     {% for i, arg in kernel.directs.items() %}
-    {{ arg['typ'] }}, POINTER, DIMENSION(:) :: opDat{{ i+1 }}Local
+    {{ arg.typ }}, POINTER, DIMENSION(:) :: opDat{{ i+1 }}Local
     INTEGER(kind=4) :: opDat{{ i+1 }}Cardinality
     {% endfor %}
       
     {# Global #}
     {% for i, arg in kernel.globals.items() %}
-    {{ arg['typ'] }}, POINTER, DIMENSION(:) :: opDat{{ i+1 }}Local
+    {{ arg.typ }}, POINTER, DIMENSION(:) :: opDat{{ i+1 }}Local
     {% endfor %}
     {# TODO: Opts #}
 
@@ -175,7 +175,7 @@ MODULE {{ kernel.name }}_module
     {% endfor %}
 
     returnSetKernelTiming = setKernelTime( &
-      & {{ kernel.id }}, userSubroutine//C_NULL_CHAR, &
+      & {{ id }}, userSubroutine//C_NULL_CHAR, &
       & 0.0_8, 0.00000_4,0.00000_4, 0 &
     & )
     CALL op_timers_core(startTime)
@@ -261,15 +261,15 @@ MODULE {{ kernel.name }}_module
     CALL op_mpi_set_dirtybit(numberOfOpDats,opArgArray)
 
     {% for i, arg in kernel.globals.items() %} 
-    {%   if arg['acc'] in ['OP_INC', 'OP_MIN', 'OP_MAX', 'OP_WRITE'] %}
+    {%   if arg.acc in ['OP_INC', 'OP_MIN', 'OP_MAX', 'OP_WRITE'] %}
     {%     call op_opt(i, arg) %} 
-    {%     if arg['typ'] in ['real(8)', 'REAL(kind=8)', 'real*8', 'r8'] %}
+    {%     if arg.typ in ['real(8)', 'REAL(kind=8)', 'real*8', 'r8'] %}
     CALL op_mpi_reduce_double(opArg{{ i+1 }}, opArg{{ i+1 }}%data)
-    {%     elif arg['typ'] in ['real(4)', 'REAL(kind=4)', 'real*4', 'r4'] %} 
+    {%     elif arg.typ in ['real(4)', 'REAL(kind=4)', 'real*4', 'r4'] %} 
     CALL op_mpi_reduce_float(opArg{{ i+1 }}, opArg{{ i+1 }}%data)
-    {%     elif arg['typ'] in ['integer(4)', 'INTEGER(kind=4)', 'integer*4', 'i4'] %}
+    {%     elif arg.typ in ['integer(4)', 'INTEGER(kind=4)', 'integer*4', 'i4'] %}
     {CALL op_mpi_reduce_int(opArg{{ i+1 }}, opArg{{ i+1 }}%data)
-    {%     elif arg['typ'] in ['logical', 'logical*1'] %}
+    {%     elif arg.typ in ['logical', 'logical*1'] %}
     CALL op_mpi_reduce_bool(opArg{{ i+1 }}, opArg{{ i+1 }}%data)
     {%     endif %}
     {%     endcall %}
@@ -319,7 +319,7 @@ MODULE {{ kernel.name }}_module
     {% endif %}
 
     returnSetKernelTiming = setKernelTime( &
-      & {{ kernel.id }}, kernel//C_NULL_CHAR, &
+      & {{ id }}, kernel//C_NULL_CHAR, &
       & endTime-startTime, dataTransfer, 0.00000_4, 1 &
     & )
   END SUBROUTINE

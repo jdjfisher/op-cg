@@ -1,7 +1,8 @@
 
 {# Surround caller with op_opt conditional block #}
 {% macro op_opt(i, arg) %}
-{% if 'opt' in arg %}
+{% if arg.opt %}
+{{ arg.opt }}
 IF opArg{{ i+1 }}%opt == 1 THEN
   {{ caller() }}
 END IF

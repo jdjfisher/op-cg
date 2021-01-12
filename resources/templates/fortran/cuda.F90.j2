@@ -229,9 +229,9 @@ MODULE {{ kernel.name }}_module
     {%   if arg is without_dim %}
     & opDat{{ i+1 }}Dim, &
     {%   endif %}
-    {%   if arg is without_dim and arg['acc'] in ['OP_INC', 'OP_MIN', 'OP_MAX'] %}
+    {%   if arg is without_dim and arg.acc in ['OP_INC', 'OP_MIN', 'OP_MAX'] %}
     & scratchDevice{{ i+1 }}, &
-    {%   elif arg['dim'] == 1 and arg['acc'] == 'OP_READ' %}
+    {%   elif arg.dim == 1 and arg.acc == 'OP_READ' %}
     & opGblDat{{ i+1 }}Device_{{ kernel.name }}, &
     {%   endif %}
     {% endfor %}
@@ -356,11 +356,11 @@ MODULE {{ kernel.name }}_module
     INTEGER(kind=4) :: returnSetKernelTiming
 
     {% for i, arg in kernel.indirectVars.items() %}
-    {{ arg['typ'] }}, DIMENSION(:), DEVICE, POINTER :: opDat{{ i+1 }}Device_{{ kernel.name }}
+    {{ arg.typ }}, DIMENSION(:), DEVICE, POINTER :: opDat{{ i+1 }}Device_{{ kernel.name }}
     INTEGER(kind=4), DIMENSION(:), DEVICE, POINTER :: opMap{{ i+1 }}Device_{{ kernel.name }}
     {% endfor %}
     {% for i, arg in kernel.directs.items() %}
-    {{ arg['typ'] }}, DIMENSION(:), DEVICE, POINTER :: opDat{{ i+1 }}Device_{{ kernel.name }}
+    {{ arg.typ }}, DIMENSION(:), DEVICE, POINTER :: opDat{{ i+1 }}Device_{{ kernel.name }}
     {% endfor %}
 
     {% for i in kernel.indirectVars %}
@@ -415,16 +415,16 @@ MODULE {{ kernel.name }}_module
     INTEGER(kind=4) :: istat
 
     {% for i, arg in kernel.globals.items() %}
-    {%   if arg['acc'] == 'OP_WRITE' or arg is without_dim or arg['dim'] > 1 %}
-    {{ arg['typ'] }}, DIMENSION(:), POINTER :: opDat{{ i+1 }}Host
+    {%   if arg.acc == 'OP_WRITE' or arg is without_dim or arg.dim > 1 %}
+    {{ arg.typ }}, DIMENSION(:), POINTER :: opDat{{ i+1 }}Host
     {%   else %}
-    {{ arg['typ'] }}, POINTER :: opDat{{ i+1 }}Host
-    {%     if arg['acc'] == 'OP_READ' and arg is not without_dim and arg['dim'] == 1 %}
-    {{ arg['typ'] }} :: opDat{{ i+1 }}Host_tmp {# XLF workaround #}
+    {{ arg.typ }}, POINTER :: opDat{{ i+1 }}Host
+    {%     if arg.acc == 'OP_READ' and arg is not without_dim and arg.dim == 1 %}
+    {{ arg.typ }} :: opDat{{ i+1 }}Host_tmp {# XLF workaround #}
     {%     endif %}
     {%   endif %}
-    {%   if arg['acc'] in ['OP_INC', 'OP_MAX', 'OP_MIN'] %}
-    {{ arg['typ'] }}, DIMENSION(:), ALLOCATABLE :: reductionArrayHost{{ i+1 }}
+    {%   if arg.acc in ['OP_INC', 'OP_MAX', 'OP_MIN'] %}
+    {{ arg.typ }}, DIMENSION(:), ALLOCATABLE :: reductionArrayHost{{ i+1 }}
     {%     if arg is without_dim %}
     INTEGER(kind=4) :: scratchDevice{{ i+1 }}Size
     {%     endif %}
@@ -441,7 +441,7 @@ MODULE {{ kernel.name }}_module
     {% endfor %}
 
     returnSetKernelTiming = setKernelTime( &
-      & {{ kernel.id }} , kernel//C_NULL_CHAR, &
+      & {{ id }} , kernel//C_NULL_CHAR, &
       & 0.0_8, 0.00000_4,0.00000_4, 0
     & )
 
@@ -490,11 +490,11 @@ MODULE {{ kernel.name }}_module
     CALL c_f_pointer(opArg{{ i+1 }}%data_d,opDat{{ i+1 }}Device_{{ kernel.name }},(/opDat{{ i+1 }}Cardinality/))
     {% endfor %}
     {% for i, arg in kernel.globals.items() %}
-    {%   if arg['acc'] == 'OP_WRITE' or arg is without_dim or arg['dim'] > 1 %}
+    {%   if arg.acc == 'OP_WRITE' or arg is without_dim or arg.dim > 1 %}
     CALL c_f_pointer(opArg{{ i+1 }}%data,opDat{{ i+1 }}Host,(/opDat{{ i+1 }}Cardinality/))
     {%   else %}
     CALL c_f_pointer(opArg{{ i+1 }}%data,opDat{{ i+1 }}Host)
-    {%     if accs[g_m] == 'OP_READ' and arg is not without_dim and arg['dim'] == 1 %}
+    {%     if accs[g_m] == 'OP_READ' and arg is not without_dim and arg.dim == 1 %}
     opDat{{ i+1 }}Host_tmp = opDat{{ i+1 }}Host {# XLF workaround #}
     {%     endif %}
     {%   endif %}
@@ -573,7 +573,7 @@ MODULE {{ kernel.name }}_module
     call op_timers_core(endTime)
 
     returnSetKernelTiming = setKernelTime( &
-      &{{ kernel.id }} , kernel//C_NULL_CHAR, &
+      &{{ id }} , kernel//C_NULL_CHAR, &
       & endTime-startTime, 0.00000_4, 0.00000_4, 1 &
     & )
     calledTimes = calledTimes + 1

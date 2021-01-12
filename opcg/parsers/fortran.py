@@ -66,51 +66,46 @@ def parseSet(nodes, location):
   if len(nodes) != 3:
     raise ParseError('incorrect number of nodes passed to op_decl_set', location)
 
-  return {
-    'size': parseIdentifier(nodes[0]),
-    'name': parseIdentifier(nodes[1]),
-    'str' : parseStringLit(nodes[2]),
-  }
+  size = parseIdentifier(nodes[0])
+  name = parseIdentifier(nodes[1])
+  
+  return OP.Set(name, size)
 
 
 def parseMap(nodes, location):
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_decl_map', location)
 
-  return {
-    'x'   : parseIdentifier(nodes[0]),
-    'y'   : parseIdentifier(nodes[1]),
-    'dim' : parseIntLit(nodes[2], signed=False),
-    'z'   : parseIdentifier(nodes[3]),
-    'w'   : parseIdentifier(nodes[4]),
-    'str' : parseStringLit(nodes[5]),
-  }
+  _   = parseIdentifier(nodes[0])
+  _   = parseIdentifier(nodes[1])
+  dim = parseIntLit(nodes[2], signed=False)
+  _   = parseIdentifier(nodes[3])
+  _   = parseIdentifier(nodes[4])
+
+  return OP.Map(dim)
 
 
 def parseData(nodes, location):
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_decl_dat', location)
 
-  return {
-    'set' : parseIdentifier(nodes[0]),
-    'dim' : parseIntLit(nodes[1], signed=False),
-    'typ' : parseStringLit(nodes[2]),
-    'x'   : parseIdentifier(nodes[3]),
-    'y'   : parseIdentifier(nodes[4]),
-    'str' : parseStringLit(nodes[5]),
-  }
+  set_ = parseIdentifier(nodes[0])
+  dim  = parseIntLit(nodes[1], signed=False)
+  typ  = parseStringLit(nodes[2])
+  _    = parseIdentifier(nodes[3])
+  _    = parseIdentifier(nodes[4])
 
+  return OP.Data(set_, dim, typ)
+  
 
 def parseConst(nodes, location):
   if len(nodes) != 3:
     raise ParseError('incorrect number of args passed to op_decl_const', location)
 
-  return {
-    'locations': [location],
-    'name'     : parseIdentifier(nodes[0]),
-    'dim'      : parseIntLit(nodes[1], signed=False),
-    'str'      : parseStringLit(nodes[2]),
-  }
+  name = parseIdentifier(nodes[0])
+  dim = parseIntLit(nodes[1], signed=False)
+
+  return OP.Const(name, dim)
 
 
 def parseLoop(nodes, location):

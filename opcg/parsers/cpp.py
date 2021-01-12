@@ -32,13 +32,14 @@ def parse(path: str) -> Store:
   q = []
 
   for child in translation_unit.cursor.get_children():
-    # Collect the locations and identifiers of macro instances 
-    if child.kind in (CursorKind.MACRO_INSTANTIATION):
-      macro_instances[(child.location.line, child.location.column)] = child.displayname
-   
-    # Populate with the top-level cursors from the target file
-    elif child.location.file.name == translation_unit.spelling:
-      q.append(child)
+    # Ignore macro definitions and cursors outside of the program file
+    if child.kind != CursorKind.MACRO_DEFINITION and child.location.file.name == translation_unit.spelling:
+      # Collect the locations and identifiers of macro instances 
+      if child.kind == CursorKind.MACRO_INSTANTIATION:
+        macro_instances[(child.location.line, child.location.column)] = child.displayname
+      # Populate with the top-level cursors from the target file
+      else:
+        q.append(child)
 
   # BFS
   while q:
@@ -202,7 +203,7 @@ def parseArgGbl(nodes: [Cursor]) -> OP.Arg:
   var = parseIdentifier(nodes[0])
   dim = parseIntLit(nodes[1], signed=False)
   typ = parseStringLit(nodes[2], regex=type_regex)
-  acc  = macros[(nodes[3].location.line, nodes[5].location.column)] # TODO: Cleanup
+  acc = macro_instances[(nodes[3].location.line, nodes[3].location.column)] # TODO: Cleanup
   
   return OP.Arg(var, dim, typ, acc)
 

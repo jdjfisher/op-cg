@@ -225,7 +225,7 @@ def parseOptArgGbl(nodes: List[Cursor]) -> OP.Arg:
 
 
 def parseIdentifier(node: Cursor, regex: str = None) -> Optional[str]:
-  # TODO: ...
+  # TODO: Check this
   while node.kind == CursorKind.CSTYLE_CAST_EXPR:
     node = list(node.get_children())[1]
 
@@ -277,7 +277,6 @@ def parseIntLit(node: Cursor, signed: bool = True) -> int:
 
 
 def parseStringLit(node: Cursor, regex: str = None) -> str:
-
   # Validate the node
   if node.kind != CursorKind.UNEXPOSED_EXPR:
     raise ParseError('expected string literal')

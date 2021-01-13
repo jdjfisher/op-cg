@@ -206,23 +206,29 @@ def parseOptArgGbl(nodes: List[Element]) -> OP.Arg:
 
 
 def parseIdentifier(node: Element, regex: str = None) -> str:
+  # Parse location
+  loc = parseLocation(node)
+
   # Descend to child node
   node = node.find('name')
 
   # Validate the node
   if not node or not node.attrib['id']:
-    raise ParseError('expected identifier', parseLocation(node))
+    raise ParseError('expected identifier', loc)
 
   value = node.attrib['id']
 
   # Apply conditional regex constraint
   if regex and not re.match(regex, value):
-    raise ParseError(f'expected identifier matching {regex}', parseLocation(node))
+    raise ParseError(f'expected identifier matching {regex}', loc)
   
   return value
 
 
 def parseIntLit(node: Element, signed: bool = True) -> int:
+  # Parse location
+  loc = parseLocation(node)
+
   # Assume the literal is not negated
   negation = False
 
@@ -238,12 +244,10 @@ def parseIntLit(node: Element, signed: bool = True) -> int:
 
   # Verify and typecheck the literal node
   if not node or node.attrib['type'] != 'int':
-    location = parseLocation(node)
-
     if not signed:
-      raise ParseError('expected unsigned integer literal', location)
+      raise ParseError('expected unsigned integer literal', loc)
     else:
-      raise ParseError('expected integer literal', location)
+      raise ParseError('expected integer literal', loc)
 
   # Extract the value
   value = int(node.attrib['value'])
@@ -252,19 +256,22 @@ def parseIntLit(node: Element, signed: bool = True) -> int:
 
 
 def parseStringLit(node: Element, regex: str = None) -> str:
+  # Parse location
+  loc = parseLocation(node)
+
   # Descend to child literal node
   node = node.find('literal')
 
   # Validate the node
   if not node or node.attrib['type'] != 'char':
-    raise ParseError('expected string literal', parseLocation(node))
+    raise ParseError('expected string literal', loc)
 
   # Extract value from string delimeters
   value = node.attrib['value'][1:-1]
 
   # Apply conditional regex constraint
   if regex and not re.match(regex, value):
-    raise ParseError(f'expected string literal matching {regex}', parseLocation(node))
+    raise ParseError(f'expected string literal matching {regex}', loc)
 
   return value
 

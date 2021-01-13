@@ -1,5 +1,6 @@
 
 # Standard library imports
+from typing import List
 import json
 import os
 
@@ -34,7 +35,7 @@ env.tests['indirect'] = lambda arg: arg.indirect
 
 
 # TODO: Improve
-templates: {(str, str): Template} = {
+templates = {
   ('fortran', 'seq'): env.get_template('fortran/seq.F90.j2'),
   ('fortran', 'cuda'): env.get_template('fortran/cuda.F90.j2'),
   ('c++', 'seq'): env.get_template('cpp/seq.hpp.j2'),
@@ -95,7 +96,7 @@ def genLoopHost(lang: Lang, opt: Opt, loop: OP.Loop, i: int) -> str:
 
 
 # 
-def genMakefile(paths: [str]) -> str:
+def genMakefile(paths: List[str]) -> str:
   # 
   template = env.get_template('makefile.j2')
 

@@ -17,8 +17,6 @@ from util import getVersion
 
 # Program entrypoint
 def main(argv=None) -> None:
-  global args
-
   # Build arg parser
   parser = argparse.ArgumentParser(prog='w.i.p')
   parser.add_argument('-V', '-version', '--version', help='Version', action='version', version=getVersion())

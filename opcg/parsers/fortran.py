@@ -3,6 +3,7 @@
 from subprocess import CalledProcessError
 from xml.etree.ElementTree import Element
 # import xml.etree.ElementTree as ET
+from typing import List
 import re
 
 # Third party imports
@@ -63,17 +64,17 @@ def parse(path: str) -> Store:
     raise ParseError(error.output)
 
 
-def parseSet(nodes: [Element], loc: Location) -> OP.Set:
+def parseSet(nodes: List[Element], loc: Location) -> OP.Set:
   if len(nodes) != 3:
     raise ParseError('incorrect number of nodes passed to op_decl_set', loc)
 
-  size = parseIdentifier(nodes[0])
+  _    = parseIdentifier(nodes[0])
   name = parseIdentifier(nodes[1])
   
-  return OP.Set(name, size)
+  return OP.Set(name)
 
 
-def parseMap(nodes: [Element], loc: Location) -> OP.Map:
+def parseMap(nodes: List[Element], loc: Location) -> OP.Map:
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_decl_map', loc)
 
@@ -86,7 +87,7 @@ def parseMap(nodes: [Element], loc: Location) -> OP.Map:
   return OP.Map(dim)
 
 
-def parseData(nodes: [Element], loc: Location) -> OP.Data:
+def parseData(nodes: List[Element], loc: Location) -> OP.Data:
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_decl_dat', loc)
 
@@ -99,7 +100,7 @@ def parseData(nodes: [Element], loc: Location) -> OP.Data:
   return OP.Data(set_, dim, typ)
   
 
-def parseConst(nodes: [Element], loc: Location) -> OP.Const:
+def parseConst(nodes: List[Element], loc: Location) -> OP.Const:
   if len(nodes) != 3:
     raise ParseError('incorrect number of args passed to op_decl_const', loc)
 
@@ -109,7 +110,7 @@ def parseConst(nodes: [Element], loc: Location) -> OP.Const:
   return OP.Const(name, dim, loc)
 
 
-def parseLoop(nodes: [Element], loc: Location) -> OP.Loop:
+def parseLoop(nodes: List[Element], loc: Location) -> OP.Loop:
   if len(nodes) < 3:
     raise ParseError('incorrect number of args passed to op_par_loop', loc)
 
@@ -142,7 +143,7 @@ def parseLoop(nodes: [Element], loc: Location) -> OP.Loop:
   return OP.Loop(kernel, set_, loop_args)
 
 
-def parseArgDat(nodes: [Element]) -> OP.Arg:
+def parseArgDat(nodes: List[Element]) -> OP.Arg:
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_arg_dat')
 
@@ -159,7 +160,7 @@ def parseArgDat(nodes: [Element]) -> OP.Arg:
   return OP.Arg(var, dim, typ, acc, map_, idx)
 
 
-def parseOptArgDat(nodes: [Element]) -> OP.Arg:
+def parseOptArgDat(nodes: List[Element]) -> OP.Arg:
   if len(nodes) != 7:
     ParseError('incorrect number of args passed to op_opt_arg_dat')
 
@@ -174,7 +175,7 @@ def parseOptArgDat(nodes: [Element]) -> OP.Arg:
   return dat
 
 
-def parseArgGbl(nodes: [Element]) -> OP.Arg:
+def parseArgGbl(nodes: List[Element]) -> OP.Arg:
   if len(nodes) != 4:
     raise ParseError('incorrect number of args passed to op_arg_gbl')
 
@@ -189,7 +190,7 @@ def parseArgGbl(nodes: [Element]) -> OP.Arg:
   return OP.Arg(var, dim, typ, acc)
   
 
-def parseOptArgGbl(nodes: [Element]) -> OP.Arg:
+def parseOptArgGbl(nodes: List[Element]) -> OP.Arg:
   if len(nodes) != 5:
     ParseError('incorrect number of args passed to op_opt_arg_gbl')
 
@@ -204,7 +205,7 @@ def parseOptArgGbl(nodes: [Element]) -> OP.Arg:
   return dat
 
 
-def parseIdentifier(node: [Element], regex: str = None) -> str:
+def parseIdentifier(node: Element, regex: str = None) -> str:
   # Descend to child node
   node = node.find('name')
 
@@ -221,7 +222,7 @@ def parseIdentifier(node: [Element], regex: str = None) -> str:
   return value
 
 
-def parseIntLit(node: [Element], signed: bool = True) -> int:
+def parseIntLit(node: Element, signed: bool = True) -> int:
   # Assume the literal is not negated
   negation = False
 
@@ -250,7 +251,7 @@ def parseIntLit(node: [Element], signed: bool = True) -> int:
   return -value if negation else value
 
 
-def parseStringLit(node: [Element], regex: str = None) -> str:
+def parseStringLit(node: Element, regex: str = None) -> str:
   # Descend to child literal node
   node = node.find('literal')
 
@@ -271,10 +272,10 @@ def parseStringLit(node: [Element], regex: str = None) -> str:
 def parseLocation(node: Element) -> Location:
   return Location(
     '?',
-    node.attrib.get('line_begin'), 
-    node.attrib.get('col_begin'),
-    node.attrib.get('line_end'), 
-    node.attrib.get('col_end')
+    int(node.attrib.get('line_begin')), 
+    int(node.attrib.get('col_begin')),
+    int(node.attrib.get('line_end')), 
+    int(node.attrib.get('col_end'))
   )
 
 

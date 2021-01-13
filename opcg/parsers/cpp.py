@@ -1,5 +1,6 @@
 
 # Standard library imports
+from typing import Optional, List
 import re
 
 # Third party imports
@@ -78,18 +79,18 @@ def parse(path: str) -> Store:
   return store
 
 
-def parseSet(nodes: [Cursor], loc: Location) -> OP.Set:
+def parseSet(nodes: List[Cursor], loc: Location) -> OP.Set:
 
   if len(nodes) != 2:
     raise ParseError('incorrect number of nodes passed to op_decl_set', loc)
 
-  size = parseIdentifier(nodes[0])
+  _    = parseIdentifier(nodes[0])
   name = parseStringLit(nodes[1])
 
-  return OP.Set(size, name)
+  return OP.Set(name)
 
 
-def parseMap(nodes: [Cursor], loc: Location) -> OP.Map:
+def parseMap(nodes: List[Cursor], loc: Location) -> OP.Map:
   if len(nodes) != 5:
     raise ParseError('incorrect number of args passed to op_decl_map', loc)
 
@@ -102,7 +103,7 @@ def parseMap(nodes: [Cursor], loc: Location) -> OP.Map:
   return OP.Map(dim)
 
 
-def parseData(nodes: [Cursor], loc: Location) -> OP.Data:
+def parseData(nodes: List[Cursor], loc: Location) -> OP.Data:
   if len(nodes) != 5:
     raise ParseError('incorrect number of args passed to op_decl_dat', loc)
 
@@ -115,7 +116,7 @@ def parseData(nodes: [Cursor], loc: Location) -> OP.Data:
   return OP.Data(set_, dim, typ)
 
 
-def parseConst(nodes: [Cursor], loc: Location) -> OP.Const:
+def parseConst(nodes: List[Cursor], loc: Location) -> OP.Const:
   if len(nodes) != 3:
     raise ParseError('incorrect number of args passed to op_decl_const', loc)
 
@@ -126,7 +127,7 @@ def parseConst(nodes: [Cursor], loc: Location) -> OP.Const:
   return OP.Const(name, dim)
 
 
-def parseLoop(nodes: [Cursor], loc: Location) -> OP.Loop:
+def parseLoop(nodes: List[Cursor], loc: Location) -> OP.Loop:
   if len(nodes) < 3:
     raise ParseError('incorrect number of args passed to op_par_loop')
 
@@ -161,7 +162,7 @@ def parseLoop(nodes: [Cursor], loc: Location) -> OP.Loop:
   return OP.Loop(kernel, set_, loop_args)
 
 
-def parseArgDat(nodes: [Cursor]) -> OP.Arg:
+def parseArgDat(nodes: List[Cursor]) -> OP.Arg:
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_arg_dat')
 
@@ -178,22 +179,22 @@ def parseArgDat(nodes: [Cursor]) -> OP.Arg:
   return OP.Arg(var, dim, typ, acc, map_, idx)
 
 
-def parseOptArgDat(nodes: [Cursor]) -> OP.Arg:
+def parseOptArgDat(nodes: List[Cursor]) -> OP.Arg:
   if len(nodes) != 7:
     ParseError('incorrect number of args passed to op_opt_arg_dat')
 
-    # Parse opt argument
-    opt = parseIdentifier(nodes[0])
+  # Parse opt argument
+  opt = parseIdentifier(nodes[0])
 
-    # Parse standard argDat arguments
-    dat = parseArgDat(nodes[1:])
-    
-    # Return augmented dat
-    dat.opt = opt
-    return dat
+  # Parse standard argDat arguments
+  dat = parseArgDat(nodes[1:])
+  
+  # Return augmented dat
+  dat.opt = opt
+  return dat
 
 
-def parseArgGbl(nodes: [Cursor]) -> OP.Arg:
+def parseArgGbl(nodes: List[Cursor]) -> OP.Arg:
   if len(nodes) != 4:
     raise ParseError('incorrect number of args passed to op_arg_gbl')
 
@@ -208,7 +209,7 @@ def parseArgGbl(nodes: [Cursor]) -> OP.Arg:
   return OP.Arg(var, dim, typ, acc)
 
 
-def parseOptArgGbl(nodes: [Cursor]) -> OP.Arg:
+def parseOptArgGbl(nodes: List[Cursor]) -> OP.Arg:
   if len(nodes) != 5:
     raise ParseError('incorrect number of args passed to op_opt_arg_gbl')
 
@@ -223,7 +224,7 @@ def parseOptArgGbl(nodes: [Cursor]) -> OP.Arg:
   return dat
 
 
-def parseIdentifier(node: [Cursor], regex: str = None) -> str:
+def parseIdentifier(node: Cursor, regex: str = None) -> Optional[str]:
   # TODO: ...
   while node.kind == CursorKind.CSTYLE_CAST_EXPR:
     node = list(node.get_children())[1]
@@ -253,7 +254,7 @@ def parseIdentifier(node: [Cursor], regex: str = None) -> str:
   return value
 
 
-def parseIntLit(node: [Cursor], signed: bool = True) -> int:
+def parseIntLit(node: Cursor, signed: bool = True) -> int:
   # Assume the literal is not negated
   negation = False
 
@@ -275,7 +276,7 @@ def parseIntLit(node: [Cursor], signed: bool = True) -> int:
   return -value if negation else value
 
 
-def parseStringLit(node: [Cursor], regex: str = None) -> str:
+def parseStringLit(node: Cursor, regex: str = None) -> str:
 
   # Validate the node
   if node.kind != CursorKind.UNEXPOSED_EXPR:
@@ -308,6 +309,6 @@ def parseLocation(node: Cursor) -> Location:
   )
 
 
-def descend(node: Cursor) -> Cursor:
+def descend(node: Cursor) -> Optional[Cursor]:
   return next(node.get_children(), None)
   

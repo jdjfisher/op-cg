@@ -1,5 +1,6 @@
 # Standard library imports
 from os.path import basename
+from typing import List
 
 # Application imports
 import op as OP
@@ -34,14 +35,14 @@ class Location:
 class Store:
   init: bool
   exit: bool
-  sets: [OP.Set]
-  maps: [OP.Map]
-  datas: [OP.Data]
-  loops: [OP.Loop]
-  consts: [OP.Const]
+  sets: List[OP.Set]
+  maps: List[OP.Map]
+  datas: List[OP.Data]
+  loops: List[OP.Loop]
+  consts: List[OP.Const]
 
 
-  def __init__(self):
+  def __init__(self) -> None:
     self.init = False 
     self.exit = False 
     self.sets = []
@@ -51,37 +52,37 @@ class Store:
     self.consts = []
 
 
-  def recordInit(self):
+  def recordInit(self) -> None:
     self.init = True
 
 
-  def recordExit(self):
+  def recordExit(self) -> None:
     self.exit = True
 
 
-  def addSet(self, set_: OP.Set):
+  def addSet(self, set_: OP.Set) -> None:
     self.sets.append(set_)
 
 
-  def addMap(self, map_: OP.Map):
+  def addMap(self, map_: OP.Map) -> None:
     self.maps.append(map_)
 
 
-  def addData(self, data: OP.Data):
+  def addData(self, data: OP.Data) -> None:
     self.datas.append(data)
 
 
-  def addConst(self, const: OP.Const):
+  def addConst(self, const: OP.Const) -> None:
     # Search for previous decleration
     prev = next((c for c in self.consts if c.name == const.name), None)
 
     # If there is a previous decleration verify compatibilty and then skip
     if prev:
       if const.dim != prev.dim:
-        raise ParseError(f"dim mismatch in repeated decleration of '{const['name']}' const")  
+        raise ParseError(f"dim mismatch in repeated decleration of '{const.name}' const")  
       
       elif const.dim != prev.dim:
-        raise ParseError(f"size mismatch in repeated decleration of '{const['name']}' const") 
+        raise ParseError(f"size mismatch in repeated decleration of '{const.name}' const") 
       
       else:
         # prev.locations += const.locations
@@ -91,12 +92,12 @@ class Store:
     self.consts.append(const)
 
 
-  def addLoop(self, loop: OP.Loop):
+  def addLoop(self, loop: OP.Loop) -> None:
     # TODO: Check for repeats / compatitbility 
     self.loops.append(loop)
   
 
-  def merge(self, store):
+  def merge(self, store) -> None:
     if store.init:
       self.recordInit()
 
@@ -119,7 +120,7 @@ class Store:
       self.addLoop(l)
 
 
-  def __str__(self):
+  def __str__(self) -> str:
     return f"{'init, ' if self.init else ''}{len(self.consts)} constants, {len(self.loops)} loops{', exit' if self.exit else ''}"
 
 

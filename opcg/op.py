@@ -1,3 +1,6 @@
+# Standard library imports
+from typing import List
+
 ID = 'OP_ID'
 
 INC   = 'OP_INC'
@@ -12,19 +15,23 @@ GBL_ACCESS_TYPES = [READ, INC, MAX, MIN]
 
 
 class Set:
+  name: str
 
-  def __init__(self, name: str, size: int):
+  def __init__(self, name: str):
     self.name = name
-    self.size = size
 
 
 class Map:
+  dim: int
 
   def __init__(self, dim: int):
     self.dim = dim
   
 
 class Data:
+  set: str
+  dim: int
+  typ: str
 
   def __init__(self, set_: str, dim: int, typ: str):
     self.set = set_
@@ -33,6 +40,9 @@ class Data:
 
 
 class Const:
+  name: str
+  dim: int
+  # loc: 
 
   def __init__(self, name: str, dim: int, loc=None):
     self.name = name
@@ -41,6 +51,7 @@ class Const:
 
 
 class Arg:
+  opt: str
 
   def __init__(self, var: str, dim: int, typ: str, acc: str, map_: str = None, idx: int = None):
     self.var = var
@@ -49,6 +60,7 @@ class Arg:
     self.acc = acc
     self.map = map_
     self.idx = idx
+    self.opt = None
 
     # if map_ == ID:
     #   if idx != -1:
@@ -75,7 +87,7 @@ class Arg:
 
 class Loop:
 
-  def __init__(self, kernel: str, set_: str, args: [Arg]):
+  def __init__(self, kernel: str, set_: str, args: List[Arg]):
     self.name = kernel
     self.set = set_
     self.args = dict(enumerate(args))

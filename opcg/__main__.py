@@ -16,7 +16,7 @@ from util import getVersion
 
 
 # Program entrypoint
-def main(argv=None):
+def main(argv=None) -> None:
   global args
 
   # Build arg parser
@@ -27,7 +27,7 @@ def main(argv=None):
   parser.add_argument('-m', '--makefile', help='Create Makefile', action='store_true')
   parser.add_argument('-o', '--out', help='Output Directory', type=isDirPath, default='.')
   parser.add_argument('-p', '--prefix', help='Output File Prefix', type=isValidPrefix, default='op')
-  # parser.add_argument('-soa', '--soa', help='Structs of Arrays', action='store_true')
+  parser.add_argument('-soa', '--soa', help='Structs of Arrays', action='store_true')
   parser.add_argument('optimisation', help='Target Optimisation', type=str, choices=Opt.names())
   parser.add_argument('file_paths', help='Input Files', type=isFilePath, nargs='+')
   args = parser.parse_args(argv)
@@ -137,7 +137,7 @@ def main(argv=None):
     with open(raw_path, 'r') as raw_file:
 
       # Generate the translated source
-      source = genOpProgram(lang, raw_file.read(), store)
+      source = genOpProgram(lang, opt, raw_file.read(), store, args.soa)
 
       # Form output file path 
       new_path = os.path.join(args.out, f'{args.prefix}_{opt.name}_{os.path.basename(raw_path)}')

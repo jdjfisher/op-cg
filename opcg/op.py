@@ -1,4 +1,3 @@
-
 ID = 'OP_ID'
 
 INC   = 'OP_INC'
@@ -35,9 +34,10 @@ class Data:
 
 class Const:
 
-  def __init__(self, name: str, dim: int):
+  def __init__(self, name: str, dim: int, loc=None):
     self.name = name
     self.dim = dim
+    self.loc = loc
 
 
 class Arg:

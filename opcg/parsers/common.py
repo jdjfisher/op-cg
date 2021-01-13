@@ -20,10 +20,12 @@ class ParseError(Exception):
 
 class Location:
   
-  def __init__(self, file: str, line: int, column: int):
+  def __init__(self, file: str, line: int, column: int, end_line: int = None, end_column: int = None):
     self.file = file
     self.line = line
     self.column = column
+    self.end_line = end_line
+    self.end_column = end_column
 
   def __str__(self):
     return f'{basename(self.file)}/{self.line}:{self.column}'

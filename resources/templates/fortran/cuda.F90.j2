@@ -7,7 +7,7 @@
 {% set atomics = indirect_inc and not indirect_rw %}
 
 
-MODULE {{ kernel.name }}_module
+MODULE {{ opt.name }}_{{ kernel.name }}_module
 
   USE OP2_CONSTANTS
   USE OP2_FORTRAN_DECLARATIONS

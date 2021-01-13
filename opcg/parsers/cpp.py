@@ -78,10 +78,10 @@ def parse(path: str) -> Store:
   return store
 
 
-def parseSet(nodes: [Cursor], location: Location) -> OP.Set:
+def parseSet(nodes: [Cursor], loc: Location) -> OP.Set:
 
   if len(nodes) != 2:
-    raise ParseError('incorrect number of nodes passed to op_decl_set', location)
+    raise ParseError('incorrect number of nodes passed to op_decl_set', loc)
 
   size = parseIdentifier(nodes[0])
   name = parseStringLit(nodes[1])
@@ -89,9 +89,9 @@ def parseSet(nodes: [Cursor], location: Location) -> OP.Set:
   return OP.Set(size, name)
 
 
-def parseMap(nodes: [Cursor], location: Location) -> OP.Map:
+def parseMap(nodes: [Cursor], loc: Location) -> OP.Map:
   if len(nodes) != 5:
-    raise ParseError('incorrect number of args passed to op_decl_map', location)
+    raise ParseError('incorrect number of args passed to op_decl_map', loc)
 
   _   = parseIdentifier(nodes[0])
   _   = parseIdentifier(nodes[1])
@@ -102,9 +102,9 @@ def parseMap(nodes: [Cursor], location: Location) -> OP.Map:
   return OP.Map(dim)
 
 
-def parseData(nodes: [Cursor], location: Location) -> OP.Data:
+def parseData(nodes: [Cursor], loc: Location) -> OP.Data:
   if len(nodes) != 5:
-    raise ParseError('incorrect number of args passed to op_decl_dat', location)
+    raise ParseError('incorrect number of args passed to op_decl_dat', loc)
 
   set_ = parseIdentifier(nodes[0])
   dim  = parseIntLit(nodes[1], signed=False)
@@ -115,9 +115,9 @@ def parseData(nodes: [Cursor], location: Location) -> OP.Data:
   return OP.Data(set_, dim, typ)
 
 
-def parseConst(nodes: [Cursor], location: Location) -> OP.Const:
+def parseConst(nodes: [Cursor], loc: Location) -> OP.Const:
   if len(nodes) != 3:
-    raise ParseError('incorrect number of args passed to op_decl_const', location)
+    raise ParseError('incorrect number of args passed to op_decl_const', loc)
 
   dim  = parseIntLit(nodes[0], signed=False)
   _    = parseStringLit(nodes[1])
@@ -126,7 +126,7 @@ def parseConst(nodes: [Cursor], location: Location) -> OP.Const:
   return OP.Const(name, dim)
 
 
-def parseLoop(nodes: [Cursor], location: Location) -> OP.Loop:
+def parseLoop(nodes: [Cursor], loc: Location) -> OP.Loop:
   if len(nodes) < 3:
     raise ParseError('incorrect number of args passed to op_par_loop')
 
@@ -300,9 +300,11 @@ def parseStringLit(node: [Cursor], regex: str = None) -> str:
 
 def parseLocation(node: Cursor) -> Location:
   return Location(
-    node.location.file.name,
-    node.location.line,
-    node.location.column
+    node.extent.start.file.name,
+    node.extent.start.line,
+    node.extent.start.column,
+    node.extent.end.line,
+    node.extent.end.column
   )
 
 

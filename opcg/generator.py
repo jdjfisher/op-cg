@@ -44,19 +44,42 @@ templates: {(str, str): Template} = {
 
 
 # Augment source program to use generated kernel hosts
-def genOpProgram(lang: Lang, source: str, store: Store) -> str: 
+def genOpProgram(lang: Lang, opt: Opt, source: str, store: Store, soa: bool = False) -> str: 
   
+  # lines = source.splitlines(True)
+  translation = source
+
   # TODO: Abstract to callable
   if lang.name == 'fortran':
-    pass
+
+    # 1. Update headers
+    before, after = source.split('  use OP2_Fortran_Reference\n', 1) # TODO: Make more robust
+    for loop in store.loops:
+      before += f'  use {opt.name}_{loop.name}_module\n' 
+
+    translation = before + after
+
+    # 2. Update init call
+    if soa:
+      pass # TODO: ...
+
+    # 3. Remove const calls
+    for const in store.consts:
+      pass
+
+    # 4. Update loop calls
+    for loop in store.loops:
+      pass
+
+
   elif lang.name == 'c++':
+    # 1. Update headers
+    # 2. Update init call
+    # 3. Remove const calls
+    # 4. Update loop calls
     pass
 
-  # 1. Update headers
-  # 2. Update init call
-  # 3. Remove const calls
-  # 4. Update loop calls
-  return source
+  return translation
 
 
 # 
@@ -68,7 +91,7 @@ def genLoopHost(lang: Lang, opt: Opt, loop: OP.Loop, i: int) -> str:
     exit(f'template not found for {lang.name}-{opt.name}')
 
   # Generate source from the template
-  return template.render(kernel=loop, id=i)
+  return template.render(kernel=loop, opt=opt, id=i)
 
 
 # 

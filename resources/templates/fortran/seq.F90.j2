@@ -1,7 +1,7 @@
 {# Template imports #}
 {% from 'fortran/macros.j2' import op_opt, comma %}
 
-MODULE {{ kernel.name }}_module
+MODULE {{ opt.name }}_{{ kernel.name }}_module
 
   USE OP2_FORTRAN_DECLARATIONS
   USE OP2_FORTRAN_RT_SUPPORT

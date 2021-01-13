@@ -63,9 +63,9 @@ def parse(path: str) -> Store:
     raise ParseError(error.output)
 
 
-def parseSet(nodes: [Element], location: Location) -> OP.Set:
+def parseSet(nodes: [Element], loc: Location) -> OP.Set:
   if len(nodes) != 3:
-    raise ParseError('incorrect number of nodes passed to op_decl_set', location)
+    raise ParseError('incorrect number of nodes passed to op_decl_set', loc)
 
   size = parseIdentifier(nodes[0])
   name = parseIdentifier(nodes[1])
@@ -73,9 +73,9 @@ def parseSet(nodes: [Element], location: Location) -> OP.Set:
   return OP.Set(name, size)
 
 
-def parseMap(nodes: [Element], location: Location) -> OP.Map:
+def parseMap(nodes: [Element], loc: Location) -> OP.Map:
   if len(nodes) != 6:
-    raise ParseError('incorrect number of args passed to op_decl_map', location)
+    raise ParseError('incorrect number of args passed to op_decl_map', loc)
 
   _   = parseIdentifier(nodes[0])
   _   = parseIdentifier(nodes[1])
@@ -86,9 +86,9 @@ def parseMap(nodes: [Element], location: Location) -> OP.Map:
   return OP.Map(dim)
 
 
-def parseData(nodes: [Element], location: Location) -> OP.Data:
+def parseData(nodes: [Element], loc: Location) -> OP.Data:
   if len(nodes) != 6:
-    raise ParseError('incorrect number of args passed to op_decl_dat', location)
+    raise ParseError('incorrect number of args passed to op_decl_dat', loc)
 
   set_ = parseIdentifier(nodes[0])
   dim  = parseIntLit(nodes[1], signed=False)
@@ -99,19 +99,19 @@ def parseData(nodes: [Element], location: Location) -> OP.Data:
   return OP.Data(set_, dim, typ)
   
 
-def parseConst(nodes: [Element], location: Location) -> OP.Const:
+def parseConst(nodes: [Element], loc: Location) -> OP.Const:
   if len(nodes) != 3:
-    raise ParseError('incorrect number of args passed to op_decl_const', location)
+    raise ParseError('incorrect number of args passed to op_decl_const', loc)
 
   name = parseIdentifier(nodes[0])
   dim = parseIntLit(nodes[1], signed=False)
 
-  return OP.Const(name, dim)
+  return OP.Const(name, dim, loc)
 
 
-def parseLoop(nodes: [Element], location: Location) -> OP.Loop:
+def parseLoop(nodes: [Element], loc: Location) -> OP.Loop:
   if len(nodes) < 3:
-    raise ParseError('incorrect number of args passed to op_par_loop', location)
+    raise ParseError('incorrect number of args passed to op_par_loop', loc)
 
   # Parse loop kernel and set
   kernel = parseIdentifier(nodes[0])
@@ -272,7 +272,9 @@ def parseLocation(node: Element) -> Location:
   return Location(
     '?',
     node.attrib.get('line_begin'), 
-    node.attrib.get('col_begin')
+    node.attrib.get('col_begin'),
+    node.attrib.get('line_end'), 
+    node.attrib.get('col_end')
   )
 
 

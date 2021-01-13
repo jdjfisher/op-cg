@@ -14,7 +14,7 @@ install:
 
 lint:
 	mypy opcg
-	# flake8 ...
+	pylint opcg --indent-string='  '
 
 test:
 	pytest

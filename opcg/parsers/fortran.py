@@ -140,7 +140,7 @@ def parseLoop(nodes: List[Element], loc: Location) -> OP.Loop:
     else:
       raise ParseError(f'invalid loop argument {name}')
 
-  return OP.Loop(kernel, set_, loop_args)
+  return OP.Loop(kernel, set_, loop_args, loc)
 
 
 def parseArgDat(nodes: List[Element]) -> OP.Arg:
@@ -265,7 +265,7 @@ def parseStringLit(node: Element, regex: str = None) -> str:
   # Apply conditional regex constraint
   if regex and not re.match(regex, value):
     raise ParseError(f'expected string literal matching {regex}', parseLocation(node))
-  
+
   return value
 
 
@@ -277,10 +277,3 @@ def parseLocation(node: Element) -> Location:
     int(node.attrib.get('line_end')), 
     int(node.attrib.get('col_end'))
   )
-
-
-
-
-
-
-

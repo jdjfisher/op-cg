@@ -1,5 +1,5 @@
 # Standard library imports
-from typing import List
+from typing import Dict, List
 
 ID = 'OP_ID'
 
@@ -44,13 +44,15 @@ class Const:
   dim: int
   # loc: 
 
-  def __init__(self, name: str, dim: int, loc=None):
+  def __init__(self, name: str, dim: int, loc):
     self.name = name
     self.dim = dim
     self.loc = loc
 
 
 class Arg:
+  var: str
+  # ...
   opt: str
 
   def __init__(self, var: str, dim: int, typ: str, acc: str, map_: str = None, idx: int = None):
@@ -86,11 +88,16 @@ class Arg:
 
 
 class Loop:
+  name: str
+  set: str
+  args: Dict[int, Arg] 
+  # loc: 
 
-  def __init__(self, kernel: str, set_: str, args: List[Arg]):
+  def __init__(self, kernel: str, set_: str, args: List[Arg], loc = None):
     self.name = kernel
     self.set = set_
     self.args = dict(enumerate(args))
+    self.loc = loc
 
 
   @property

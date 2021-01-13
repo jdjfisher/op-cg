@@ -1,8 +1,9 @@
 
 # Standard library imports
-from typing import List
+from typing import Tuple, Dict, List
 import json
 import os
+import re
 
 # Third party imports
 from jinja2 import Environment, FileSystemLoader, select_autoescape, Template
@@ -35,7 +36,7 @@ env.tests['indirect'] = lambda arg: arg.indirect
 
 
 # TODO: Improve
-templates = {
+templates: Dict[Tuple[str, str], Template] = {
   ('fortran', 'seq'): env.get_template('fortran/seq.F90.j2'),
   ('fortran', 'cuda'): env.get_template('fortran/cuda.F90.j2'),
   ('c++', 'seq'): env.get_template('cpp/seq.hpp.j2'),
@@ -45,42 +46,41 @@ templates = {
 
 
 # Augment source program to use generated kernel hosts
-def genOpProgram(lang: Lang, opt: Opt, source: str, store: Store, soa: bool = False) -> str: 
+def genOpProgram(lang: Lang, opt: Opt, source: str, store: Store, soa: bool = False) -> str:
   
-  # lines = source.splitlines(True)
-  translation = source
-
   # TODO: Abstract to callable
   if lang.name == 'fortran':
+    lines = source.splitlines(True)
 
-    # 1. Update headers
-    before, after = source.split('  use OP2_Fortran_Reference\n', 1) # TODO: Make more robust
+    # 1. Comment-out const calls
+    for const in store.consts:
+      lines[const.loc.line - 1] = lang.com_delim + ' ' + lines[const.loc.line - 1]
+
+    # 2. Update loop calls
     for loop in store.loops:
-      before += f'  use {opt.name}_{loop.name}_module\n' 
+      before, after = re.split(r'op_par_loop_[1-9]\d*', lines[loop.loc.line - 1], 1)
+      after = after.replace(loop.name, f'"{loop.name}"') # TODO: This assumes that the kernel arg is on the same line as the call
+      lines[loop.loc.line - 1] = before + loop.name + '_host' + after
 
-    translation = before + after
-
-    # 2. Update init call
+    # 3. Update init call
     if soa:
       pass # TODO: ...
 
-    # 3. Remove const calls
-    for const in store.consts:
-      pass
-
-    # 4. Update loop calls
+    # 4. Update headers
+    before, after = ''.join(lines).split('  use OP2_Fortran_Reference\n', 1) # TODO: Make more robust
     for loop in store.loops:
-      pass
+      before += f'  use {opt.name}_{loop.name}_module\n' 
 
+    source = before + after
 
   elif lang.name == 'c++':
-    # 1. Update headers
-    # 2. Update init call
-    # 3. Remove const calls
-    # 4. Update loop calls
+    # 1. Remove const calls
+    # 2. Update loop calls
+    # 3. Update init call
+    # 4. Update headers
     pass
 
-  return translation
+  return source
 
 
 # 

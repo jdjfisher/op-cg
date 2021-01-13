@@ -124,7 +124,7 @@ def parseConst(nodes: List[Cursor], loc: Location) -> OP.Const:
   _    = parseStringLit(nodes[1])
   name = parseIdentifier(nodes[2])
 
-  return OP.Const(name, dim)
+  return OP.Const(name, dim, loc)
 
 
 def parseLoop(nodes: List[Cursor], loc: Location) -> OP.Loop:
@@ -159,7 +159,7 @@ def parseLoop(nodes: List[Cursor], loc: Location) -> OP.Loop:
     else:
       raise ParseError(f'invalid loop argument {name}', parseLocation(node))
 
-  return OP.Loop(kernel, set_, loop_args)
+  return OP.Loop(kernel, set_, loop_args, loc)
 
 
 def parseArgDat(nodes: List[Cursor]) -> OP.Arg:

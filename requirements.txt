@@ -2,3 +2,4 @@ open-fortran-parser
 clang
 jinja2
 pytest
+pylint

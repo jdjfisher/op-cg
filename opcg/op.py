@@ -95,6 +95,7 @@ class Arg:
     self.opt = None
 
     # TODO: 0 indexing for c, 1 indexing for f
+    # TODO: range check idx with mapping dim not dat dim
     # if map_ == ID:
     #   if idx != -1:
     #     raise OpError('incompatible index for direct access, expected -1', loc)

@@ -1,7 +1,7 @@
 # Standard library imports
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Callable, List
+from typing import Callable, List, ClassVar
 
 # Application imports
 from parsers.common import Store, ParseError
@@ -10,12 +10,13 @@ import parsers.cpp as cp
 
 
 class Lang(object):
+  instances: ClassVar[List[Lang]] = []
+
   name: str
   extensions: List[str]
   com_delim: str
   types: List[str]
   parser: Callable[[str], Store]
-  instances: List[Lang] = []
 
 
   def __init__(
@@ -74,7 +75,7 @@ c = Lang(
   parser=cp.parse,
   com_delim='//', 
   extensions=['cpp'], 
-  types=['int', 'double'], 
+  types=['float', 'double', 'int', 'uint', 'll', 'ull', 'bool'], 
 )
 
 f = Lang(

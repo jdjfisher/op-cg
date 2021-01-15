@@ -1,9 +1,9 @@
 # Standard library imports
 from __future__ import annotations
-from typing import List
+from typing import List, ClassVar
 
 class Opt(object):
-  instances: List[Opt] = []
+  instances: ClassVar[List[Opt]] = []
 
   def __init__(self, name: str):
     self.__class__.instances.append(self)

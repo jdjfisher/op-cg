@@ -131,10 +131,10 @@ def main(argv=None) -> None:
     with open(raw_path, 'r') as raw_file:
 
       # Generate the translated source
-      source = genOpProgram(lang, opt, raw_file.read(), store, args.soa)
+      source = genOpProgram(lang, raw_file.read(), store, args.soa)
 
       # Form output file path 
-      new_path = os.path.join(args.out, f'{args.prefix}_{opt.name}_{os.path.basename(raw_path)}')
+      new_path = os.path.join(args.out, f'{args.prefix}_{os.path.basename(raw_path)}')
 
       # Write the translated source file
       with open(new_path, 'w') as new_file:

@@ -47,7 +47,7 @@ templates: Dict[Tuple[Lang, Opt], Template] = {
 
 
 # Augment source program to use generated kernel hosts
-def genOpProgram(lang: Lang, opt: Opt, source: str, store: Store, soa: bool = False) -> str:
+def genOpProgram(lang: Lang, source: str, store: Store, soa: bool = False) -> str:
   
   # TODO: Abstract to callable
   if lang.name == 'fortran':
@@ -72,7 +72,7 @@ def genOpProgram(lang: Lang, opt: Opt, source: str, store: Store, soa: bool = Fa
     # 4. Update headers
     before, after = source.split('  use OP2_Fortran_Reference\n', 1) # TODO: Make more robust
     for loop in store.loops:
-      before += f'  use {opt.name}_{loop.name}_module\n' 
+      before += f'  use {loop.name}_module\n' 
 
     source = before + after
 
@@ -95,7 +95,7 @@ def genLoopHost(lang: Lang, opt: Opt, loop: OP.Loop, i: int) -> str:
     exit(f'template not found for {lang.name}-{opt.name}')
 
   # Generate source from the template
-  return template.render(kernel=loop, opt=opt, id=i)
+  return template.render(kernel=loop, id=i)
 
 
 # 

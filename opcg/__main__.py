@@ -76,20 +76,16 @@ def main(argv=None) -> None:
     if args.verbose:
       print(f'  Parsed: {store}')
 
-
-
-
-  # TODO: Merge stores ...
+  # Fold all the parsed stores into one
   main_store = Store()
   for store in stores:
     main_store.merge(store)
 
+  # Run semantic checks on the store content
+  main_store.validate(lang)
+
   if args.verbose:
     print('\nMain store:', main_store)
-  if not main_store.init:
-    print('WARNING: No call to op_init found')
-  if not main_store.exit:
-    print('WARNING: No call to op_exit found')
 
   if args.dump:
     # Dump main store to a json file

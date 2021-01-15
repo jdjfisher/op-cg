@@ -4,6 +4,7 @@ from os.path import basename
 from typing import List
 
 # Application imports
+from op import OpError
 import op as OP
 
 
@@ -124,6 +125,57 @@ class Store:
 
     for l in store.loops:
       self.addLoop(l)
+
+
+  def validate(self, lang: Lang) -> None:
+    if not self.init:
+      print('WARNING: No call to op_init found')
+
+    if not self.exit:
+      print('WARNING: No call to op_exit found')
+
+    # Collect the names of defined sets
+    set_names = [ s.name for s in self.sets ]
+
+    # Validate data declerations
+    for data in self.datas:
+      if data.set not in set_names:
+        raise OpError(f'undefined set "{data.set}" referenced in data decleration', data.loc)
+
+    # Validate map declerations
+    for map_ in self.maps:
+      # Validate both sets
+      for set_ in (map_.from_set, map_.to_set):
+        if set_ not in set_names:
+          raise OpError(f'undefined set "{set_}" referenced in map decleration', map_.loc)
+
+    # Validate loop calls
+    for loop in self.loops:
+      # Validate loop dataset
+      if loop.set not in set_names:
+        raise OpError(f'undefined set "{loop.set}" referenced in par loop call', loop.loc)
+
+      # Validate loop args
+      for arg in loop.args.values():
+        # Validate direct arguments
+        if arg.direct and arg.idx != -1:
+          raise OpError('incompatible index for direct access, expected -1', loc)
+
+        # Validate indirect arguments
+        elif arg.indirect:
+          # Look for the referenced map decleration
+          map_ = next((m for m in self.maps if m.name == arg.map), None)
+
+          if not map_:
+            raise OpError(f'undefined map "{arg.map}" referenced in par loop arg', arg.loc)
+
+          # Determine the valid index range using the given language
+          min_idx = 0 if lang.zero_idx else 1
+          max_idx = map_.dim - 1 if lang.zero_idx else map_.dim
+
+          # Perform range check
+          if arg.idx is None or arg.idx < min_idx or arg.idx > max_idx:
+            raise OpError(f'index {arg.idx} out of range, must be in the interval [{min_idx},{max_idx}]', arg.loc)
 
 
   def __str__(self) -> str:

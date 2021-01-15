@@ -13,26 +13,29 @@ class Lang(object):
   instances: ClassVar[List[Lang]] = []
 
   name: str
-  extensions: List[str]
   com_delim: str
   types: List[str]
+  extensions: List[str]
   parser: Callable[[str], Store]
+  zero_idx: bool
 
 
   def __init__(
     self, 
     name: str, 
-    extensions: List[str], 
     com_delim: str, 
     types: List[str], 
-    parser: Callable[[str], Store]
+    extensions: List[str], 
+    parser: Callable[[str], Store],
+    zero_idx: bool = True
   ):
     self.__class__.instances.append(self)
     self.name = name
-    self.extensions = extensions
     self.com_delim = com_delim
     self.types = types
+    self.extensions = extensions
     self.parser = parser
+    self.zero_idx = zero_idx
 
 
   def parse(self, path: str) -> Store:
@@ -82,7 +85,8 @@ f = Lang(
   name='fortran', 
   parser=fp.parse,
   com_delim='!',
+  zero_idx=False, 
   extensions=['F90', 'F95'], 
-  types=['integer(4)', 'real(8)'],
+  types=['integer', 'integer(4)', 'real(8)'], # TODO: Properly define these
 )
 

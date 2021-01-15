@@ -85,26 +85,29 @@ def parseMap(nodes: List[Element], loc: Location) -> OP.Map:
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_decl_map', loc)
 
-  _   = parseIdentifier(nodes[0])
-  _   = parseIdentifier(nodes[1])
-  dim = parseIntLit(nodes[2], signed=False)
-  _   = parseIdentifier(nodes[3])
-  _   = parseIdentifier(nodes[4])
+  from_set = parseIdentifier(nodes[0])
+  to_set   = parseIdentifier(nodes[1])
+  dim      = parseIntLit(nodes[2], signed=False)
+  _        = parseIdentifier(nodes[3])
+  name     = parseIdentifier(nodes[4])
+  debug    = parseStringLit(nodes[5])
 
-  return OP.Map(dim)
+  return OP.Map(name, from_set, to_set, dim, loc)
 
 
 def parseData(nodes: List[Element], loc: Location) -> OP.Data:
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_decl_dat', loc)
 
+  type_regex = enumRegex(language.f.types)
+
   set_ = parseIdentifier(nodes[0])
   dim  = parseIntLit(nodes[1], signed=False)
-  typ  = parseStringLit(nodes[2])
+  typ  = parseStringLit(nodes[2], regex=type_regex)
   _    = parseIdentifier(nodes[3])
   _    = parseIdentifier(nodes[4])
 
-  return OP.Data(set_, dim, typ)
+  return OP.Data(set_, dim, typ, loc)
   
 
 def parseConst(nodes: List[Element], loc: Location) -> OP.Const:

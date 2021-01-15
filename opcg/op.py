@@ -37,21 +37,38 @@ class Set:
 
 
 class Map:
+  name: str
+  from_set: str
+  to_set: str
   dim: int
+  # loc:
 
-  def __init__(self, dim: int):
+  def __init__(
+    self,
+    name: str,
+    from_set: str,
+    to_set: str,
+    dim: int,
+    loc
+  ):
+    self.name = name
+    self.from_set = from_set
+    self.to_set = to_set
     self.dim = dim
+    self.loc = loc
   
 
 class Data:
   set: str
   dim: int
   typ: str
+  # loc:
 
-  def __init__(self, set_: str, dim: int, typ: str):
+  def __init__(self, set_: str, dim: int, typ: str, loc):
     self.set = set_
     self.dim = dim
     self.typ = typ
+    self.loc = loc
 
 
 class Const:
@@ -93,15 +110,6 @@ class Arg:
     self.map = map_
     self.idx = idx
     self.opt = None
-
-    # TODO: 0 indexing for c, 1 indexing for f
-    # TODO: range check idx with mapping dim not dat dim
-    # if map_ == ID:
-    #   if idx != -1:
-    #     raise OpError('incompatible index for direct access, expected -1', loc)
-    # elif map_ and idx is not None:
-    #   if idx < 0 or idx >= dim:
-    #     raise OpError(f'index out of range, must be in the interval [0,{dim-1}]', loc)
 
 
   @property

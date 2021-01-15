@@ -1,6 +1,7 @@
 # Standard library imports
 from typing import List
 import subprocess
+import re
 
 
 def getVersion() -> str:
@@ -8,6 +9,6 @@ def getVersion() -> str:
 
 
 def enumRegex(values: List[str]) -> str:
-  return '(' + ')|('.join(values) + ')'
+  return '(' + ')|('.join(map(re.escape, values)) + ')'
 
 

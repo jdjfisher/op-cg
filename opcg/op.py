@@ -75,7 +75,16 @@ class Arg:
   idx: int
   opt: Optional[str]
 
-  def __init__(self, var: str, dim: int, typ: str, acc: str, loc, map_: str = None, idx: int = None):
+  def __init__(
+    self, 
+    var: str, 
+    dim: int, 
+    typ: str, 
+    acc: str, 
+    loc, 
+    map_: str = None, 
+    idx: int = None
+  ):
     self.var = var
     self.dim = dim
     self.typ = typ
@@ -112,14 +121,14 @@ class Arg:
 class Loop:
   name: str
   set: str
-  args: Dict[int, Arg] 
   # loc: 
+  args: Dict[int, Arg] 
 
-  def __init__(self, kernel: str, set_: str, args: List[Arg], loc = None):
+  def __init__(self, kernel: str, set_: str, loc, args: List[Arg]):
     self.name = kernel
     self.set = set_
-    self.args = dict(enumerate(args))
     self.loc = loc
+    self.args = dict(enumerate(args))
 
 
   @property

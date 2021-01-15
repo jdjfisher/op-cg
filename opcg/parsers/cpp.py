@@ -9,6 +9,7 @@ from clang.cindex import Index, Config, TranslationUnit, Cursor, CursorKind
 # Local application imports
 from parsers.common import ParseError, Store, Location
 from util import enumRegex
+import language
 import op as OP
 
 
@@ -55,7 +56,7 @@ def parse(path: str) -> Store:
       args = list(node.get_children())[1:]
       loc = parseLocation(node)
 
-      if name == 'op_init_base':
+      if name == 'op_init':
         store.recordInit(loc)
 
       elif name == 'op_decl_set':
@@ -160,14 +161,14 @@ def parseLoop(nodes: List[Cursor], loc: Location) -> OP.Loop:
     else:
       raise ParseError(f'invalid loop argument {name}', parseLocation(node))
 
-  return OP.Loop(kernel, set_, loop_args, loc)
+  return OP.Loop(kernel, set_, loc, loop_args)
 
 
 def parseArgDat(nodes: List[Cursor], loc: Location) -> OP.Arg:
   if len(nodes) != 6:
-    raise ParseError('incorrect number of args passed to op_arg_dat')
+    raise ParseError('incorrect number of args passed to op_arg_dat', loc)
 
-  type_regex = r'.*' # TODO: Finish ...
+  type_regex = enumRegex(language.c.types)
   access_regex = enumRegex(OP.DAT_ACCESS_TYPES)
 
   var  = parseIdentifier(nodes[0])
@@ -182,7 +183,7 @@ def parseArgDat(nodes: List[Cursor], loc: Location) -> OP.Arg:
 
 def parseOptArgDat(nodes: List[Cursor], loc: Location) -> OP.Arg:
   if len(nodes) != 7:
-    ParseError('incorrect number of args passed to op_opt_arg_dat')
+    ParseError('incorrect number of args passed to op_opt_arg_dat', loc)
 
   # Parse opt argument
   opt = parseIdentifier(nodes[0])
@@ -197,9 +198,9 @@ def parseOptArgDat(nodes: List[Cursor], loc: Location) -> OP.Arg:
 
 def parseArgGbl(nodes: List[Cursor], loc: Location) -> OP.Arg:
   if len(nodes) != 4:
-    raise ParseError('incorrect number of args passed to op_arg_gbl')
+    raise ParseError('incorrect number of args passed to op_arg_gbl', loc)
 
-  type_regex = r'.*' # TODO: Finish ...
+  type_regex = enumRegex(language.c.types)
   access_regex = enumRegex(OP.GBL_ACCESS_TYPES)
 
   var = parseIdentifier(nodes[0])
@@ -212,7 +213,7 @@ def parseArgGbl(nodes: List[Cursor], loc: Location) -> OP.Arg:
 
 def parseOptArgGbl(nodes: List[Cursor], loc: Location) -> OP.Arg:
   if len(nodes) != 5:
-    raise ParseError('incorrect number of args passed to op_opt_arg_gbl')
+    raise ParseError('incorrect number of args passed to op_opt_arg_gbl', loc)
 
   # Parse opt argument
   opt = parseIdentifier(nodes[0])
@@ -237,6 +238,10 @@ def parseIdentifier(node: Cursor, regex: str = None) -> str:
   # Descend to child node
   if node.kind == CursorKind.UNARY_OPERATOR and next(node.get_tokens()).spelling in ('&', '*'):
     node = descend(node)
+
+  # Check for null
+  if node.kind == CursorKind.GNU_NULL_EXPR:
+    return ''
 
   # Validate the node
   if node.kind != CursorKind.DECL_REF_EXPR:

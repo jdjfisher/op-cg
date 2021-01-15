@@ -12,6 +12,7 @@ import open_fortran_parser as fp
 # Local application imports
 from parsers.common import ParseError, Store, Location
 from util import enumRegex
+import language
 import op as OP
 
 
@@ -147,14 +148,14 @@ def parseLoop(nodes: List[Element], loc: Location) -> OP.Loop:
     else:
       raise ParseError(f'invalid loop argument {name}')
 
-  return OP.Loop(kernel, set_, loop_args, loc)
+  return OP.Loop(kernel, set_, loc, loop_args)
 
 
 def parseArgDat(nodes: List[Element], loc: Location) -> OP.Arg:
   if len(nodes) != 6:
-    raise ParseError('incorrect number of args passed to op_arg_dat')
+    raise ParseError('incorrect number of args passed to op_arg_dat', loc)
 
-  type_regex = r'.*' # TODO: Finish ...
+  type_regex = enumRegex(language.f.types)
   access_regex = enumRegex(OP.DAT_ACCESS_TYPES)
 
   var  = parseIdentifier(nodes[0])
@@ -169,7 +170,7 @@ def parseArgDat(nodes: List[Element], loc: Location) -> OP.Arg:
 
 def parseOptArgDat(nodes: List[Element], loc: Location) -> OP.Arg:
   if len(nodes) != 7:
-    ParseError('incorrect number of args passed to op_opt_arg_dat')
+    ParseError('incorrect number of args passed to op_opt_arg_dat', loc)
 
   # Parse opt argument
   opt = parseIdentifier(nodes[0])
@@ -184,9 +185,9 @@ def parseOptArgDat(nodes: List[Element], loc: Location) -> OP.Arg:
 
 def parseArgGbl(nodes: List[Element], loc: Location) -> OP.Arg:
   if len(nodes) != 4:
-    raise ParseError('incorrect number of args passed to op_arg_gbl')
+    raise ParseError('incorrect number of args passed to op_arg_gbl', loc)
 
-  type_regex = r'.*' # TODO: Finish ...
+  type_regex = enumRegex(language.f.types)
   access_regex = enumRegex(OP.GBL_ACCESS_TYPES)
   
   var = parseIdentifier(nodes[0])
@@ -199,7 +200,7 @@ def parseArgGbl(nodes: List[Element], loc: Location) -> OP.Arg:
 
 def parseOptArgGbl(nodes: List[Element], loc: Location) -> OP.Arg:
   if len(nodes) != 5:
-    ParseError('incorrect number of args passed to op_opt_arg_gbl')
+    ParseError('incorrect number of args passed to op_opt_arg_gbl', loc)
 
   # Parse opt argument
   opt = parseIdentifier(nodes[0])

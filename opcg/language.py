@@ -1,5 +1,6 @@
 # Standard library imports
 from __future__ import annotations
+from dataclasses import dataclass, field
 from typing import Callable, List
 
 # Application imports
@@ -9,13 +10,27 @@ import parsers.cpp as cp
 
 
 class Lang(object):
+  name: str
+  extensions: List[str]
+  com_delim: str
+  types: List[str]
+  parser: Callable[[str], Store]
   instances: List[Lang] = []
 
-  def __init__(self, name: str, extensions: List[str], com_delim: str, parser: Callable[[str], Store]):
+
+  def __init__(
+    self, 
+    name: str, 
+    extensions: List[str], 
+    com_delim: str, 
+    types: List[str], 
+    parser: Callable[[str], Store]
+  ):
     self.__class__.instances.append(self)
     self.name = name
     self.extensions = extensions
     self.com_delim = com_delim
+    self.types = types
     self.parser = parser
 
 
@@ -51,7 +66,22 @@ class Lang(object):
     return next((l for l in cls.all() if name == l.name or name in l.extensions))
 
 
-# Define languages here
-c = Lang('c++', ['cpp'], '//', cp.parse)
-f = Lang('fortran', ['F90', 'F95'], '!', fp.parse)
+
+# Define languages here ...
+
+c = Lang(
+  name='c++', 
+  parser=cp.parse,
+  com_delim='//', 
+  extensions=['cpp'], 
+  types=['int', 'double'], 
+)
+
+f = Lang(
+  name='fortran', 
+  parser=fp.parse,
+  com_delim='!',
+  extensions=['F90', 'F95'], 
+  types=['integer(4)', 'real(8)'],
+)
 

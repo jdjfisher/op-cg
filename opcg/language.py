@@ -25,7 +25,7 @@ class Lang(object):
 
     try:
       return self.parser(path)
-    except ParseError as e:
+    except Exception as e:
       exit(e)
 
 

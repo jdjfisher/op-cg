@@ -12,7 +12,7 @@ class ParseError(Exception):
     self.message = message
     self.location = location
 
-  def __str__(self):
+  def __str__(self) -> str:
     if self.location:
       return f'{self.location}: parse error: {self.message}'
     else:
@@ -28,12 +28,13 @@ class Location:
     self.end_line = end_line
     self.end_column = end_column
 
-  def __str__(self):
+
+  def __str__(self) -> str:
     return f'{basename(self.file)}/{self.line}:{self.column}'
 
 
 class Store:
-  init: bool
+  # init: 
   exit: bool
   sets: List[OP.Set]
   maps: List[OP.Map]
@@ -43,7 +44,7 @@ class Store:
 
 
   def __init__(self) -> None:
-    self.init = False 
+    self.init = None 
     self.exit = False 
     self.sets = []
     self.maps = []
@@ -52,8 +53,11 @@ class Store:
     self.consts = []
 
 
-  def recordInit(self) -> None:
-    self.init = True
+  def recordInit(self, loc) -> None:
+    if self.init:
+      exit('multiple calls to op_init')
+
+    self.init = loc
 
 
   def recordExit(self) -> None:
@@ -85,7 +89,6 @@ class Store:
         raise ParseError(f"size mismatch in repeated decleration of '{const.name}' const") 
       
       else:
-        # prev.locations += const.locations
         return
       
     # Store const
@@ -98,8 +101,7 @@ class Store:
   
 
   def merge(self, store) -> None:
-    if store.init:
-      self.recordInit()
+    self.recordInit(store.init)
 
     if store.exit:
       self.recordExit()

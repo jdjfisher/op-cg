@@ -14,6 +14,19 @@ DAT_ACCESS_TYPES = [READ, WRITE, RW, INC]
 GBL_ACCESS_TYPES = [READ, INC, MAX, MIN]
 
 
+class OpError(Exception):
+
+  def __init__(self, message, location=None):
+    self.message = message
+    self.location = location
+
+  def __str__(self) -> str:
+    if self.location:
+      return f'{self.location}: OP error: {self.message}'
+    else:
+      return f'OP error: {self.message}'
+
+
 class Set:
   name: str
 
@@ -55,21 +68,22 @@ class Arg:
   # ...
   opt: str
 
-  def __init__(self, var: str, dim: int, typ: str, acc: str, map_: str = None, idx: int = None):
+  def __init__(self, var: str, dim: int, typ: str, acc: str, loc, map_: str = None, idx: int = None):
     self.var = var
     self.dim = dim
     self.typ = typ
     self.acc = acc
+    self.loc = loc
     self.map = map_
     self.idx = idx
     self.opt = None
 
-    # if map_ == ID:
-    #   if idx != -1:
-    #     exit('incompatible index for direct access, expected -1')
-    # elif map_ and idx is not None:
-    #   if idx < 1 or idx > dim:
-    #     exit(f'out of range index, must be in range 1-{dim}')
+    if map_ == ID:
+      if idx != -1:
+        raise OpError('incompatible index for direct access, expected -1', loc)
+    elif map_ and idx is not None:
+      if idx < 0 or idx >= dim:
+        raise OpError(f'index out of range, must be in the interval [0,{dim-1}]', loc)
 
 
   @property

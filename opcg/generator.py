@@ -62,12 +62,14 @@ def genOpProgram(lang: Lang, opt: Opt, source: str, store: Store, soa: bool = Fa
       after = after.replace(loop.name, f'"{loop.name}"') # TODO: This assumes that the kernel arg is on the same line as the call
       lines[loop.loc.line - 1] = before + loop.name + '_host' + after
 
+    source = ''.join(lines)
+
     # 3. Update init call
-    if soa:
-      pass # TODO: ...
+    if soa or True:
+      _ = re.search(r'op_(mpi_)?init', source) # TODO: Finish
 
     # 4. Update headers
-    before, after = ''.join(lines).split('  use OP2_Fortran_Reference\n', 1) # TODO: Make more robust
+    before, after = source.split('  use OP2_Fortran_Reference\n', 1) # TODO: Make more robust
     for loop in store.loops:
       before += f'  use {opt.name}_{loop.name}_module\n' 
 

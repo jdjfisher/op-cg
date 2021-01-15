@@ -2,7 +2,6 @@
 # Standard library imports
 from subprocess import CalledProcessError
 from xml.etree.ElementTree import Element
-# import xml.etree.ElementTree as ET
 from typing import List
 import re
 
@@ -15,11 +14,17 @@ from util import enumRegex
 import op as OP
 
 
+# The current current file being parsed
+_current_file: str = '?'
+
+
 def parse(path: str) -> Store:  
   try:
     # Try to parse the source
     xml = fp.parse(path, raise_on_error=True)
-    # ET.dump(xml)
+    # xml.etree.ElementTree.dump(xml)
+    global _current_file
+    _current_file = path
 
     # Create a store
     store = Store()
@@ -36,7 +41,7 @@ def parse(path: str) -> Store:
         args = call.findall('name/subscripts/subscript')
 
         if name == 'op_init_base':
-          store.recordInit()
+          store.recordInit(loc)
 
         elif name == 'op_decl_set':
           store.addSet(parseSet(args, loc))
@@ -123,19 +128,20 @@ def parseLoop(nodes: List[Element], loc: Location) -> OP.Loop:
   # Parse loop args
   for raw_arg in nodes[2:]: 
     name = parseIdentifier(raw_arg)
+    arg_loc = parseLocation(raw_arg)
     args = raw_arg.findall('name/subscripts/subscript')
 
     if name == 'op_arg_dat':
-      loop_args.append(parseArgDat(args))
+      loop_args.append(parseArgDat(args, arg_loc))
 
     elif name == 'op_opt_arg_dat':
-      loop_args.append(parseOptArgDat(args))
+      loop_args.append(parseOptArgDat(args, arg_loc))
 
     elif name == 'op_arg_gbl':
-      loop_args.append(parseArgGbl(args))
+      loop_args.append(parseArgGbl(args, arg_loc))
 
     elif name == 'op_opt_arg_gbl':
-      loop_args.append(parseOptArgGbl(args))
+      loop_args.append(parseOptArgGbl(args, arg_loc))
 
     else:
       raise ParseError(f'invalid loop argument {name}')
@@ -143,7 +149,7 @@ def parseLoop(nodes: List[Element], loc: Location) -> OP.Loop:
   return OP.Loop(kernel, set_, loop_args, loc)
 
 
-def parseArgDat(nodes: List[Element]) -> OP.Arg:
+def parseArgDat(nodes: List[Element], loc: Location) -> OP.Arg:
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_arg_dat')
 
@@ -157,10 +163,10 @@ def parseArgDat(nodes: List[Element]) -> OP.Arg:
   typ  = parseStringLit(nodes[4], regex=type_regex)
   acc  = parseIdentifier(nodes[5], regex=access_regex)
 
-  return OP.Arg(var, dim, typ, acc, map_, idx)
+  return OP.Arg(var, dim, typ, acc, loc, map_, idx)
 
 
-def parseOptArgDat(nodes: List[Element]) -> OP.Arg:
+def parseOptArgDat(nodes: List[Element], loc: Location) -> OP.Arg:
   if len(nodes) != 7:
     ParseError('incorrect number of args passed to op_opt_arg_dat')
 
@@ -168,14 +174,14 @@ def parseOptArgDat(nodes: List[Element]) -> OP.Arg:
   opt = parseIdentifier(nodes[0])
 
   # Parse standard argDat arguments
-  dat = parseArgDat(nodes[1:])
+  dat = parseArgDat(nodes[1:], loc)
   
   # Return augmented dat
   dat.opt = opt
   return dat
 
 
-def parseArgGbl(nodes: List[Element]) -> OP.Arg:
+def parseArgGbl(nodes: List[Element], loc: Location) -> OP.Arg:
   if len(nodes) != 4:
     raise ParseError('incorrect number of args passed to op_arg_gbl')
 
@@ -187,10 +193,10 @@ def parseArgGbl(nodes: List[Element]) -> OP.Arg:
   typ = parseStringLit(nodes[2], regex=type_regex)
   acc = parseIdentifier(nodes[3], regex=access_regex)
 
-  return OP.Arg(var, dim, typ, acc)
+  return OP.Arg(var, dim, typ, acc, loc)
   
 
-def parseOptArgGbl(nodes: List[Element]) -> OP.Arg:
+def parseOptArgGbl(nodes: List[Element], loc: Location) -> OP.Arg:
   if len(nodes) != 5:
     ParseError('incorrect number of args passed to op_opt_arg_gbl')
 
@@ -198,7 +204,7 @@ def parseOptArgGbl(nodes: List[Element]) -> OP.Arg:
   opt = parseIdentifier(nodes[0])
 
   # Parse standard argGbl arguments
-  dat = parseArgGbl(nodes[1:])
+  dat = parseArgGbl(nodes[1:], loc)
   
   # Return augmented dat
   dat.opt = opt
@@ -278,7 +284,7 @@ def parseStringLit(node: Element, regex: str = None) -> str:
 
 def parseLocation(node: Element) -> Location:
   return Location(
-    '?',
+    _current_file,
     int(node.attrib.get('line_begin')), 
     int(node.attrib.get('col_begin')),
     int(node.attrib.get('line_end')), 

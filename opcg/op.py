@@ -1,5 +1,5 @@
 # Standard library imports
-from typing import Dict, List
+from typing import Optional, Dict, List
 
 ID = 'OP_ID'
 
@@ -15,14 +15,16 @@ GBL_ACCESS_TYPES = [READ, INC, MAX, MIN]
 
 
 class OpError(Exception):
+  message: str
+  # loc:
 
-  def __init__(self, message, location=None):
+  def __init__(self, message: str, loc = None):
     self.message = message
-    self.location = location
+    self.loc = loc
 
   def __str__(self) -> str:
-    if self.location:
-      return f'{self.location}: OP error: {self.message}'
+    if self.loc:
+      return f'{self.loc}: OP error: {self.message}'
     else:
       return f'OP error: {self.message}'
 
@@ -65,8 +67,13 @@ class Const:
 
 class Arg:
   var: str
-  # ...
-  opt: str
+  dim: int
+  typ: str
+  acc: str
+  # loc:
+  map: str
+  idx: int
+  opt: Optional[str]
 
   def __init__(self, var: str, dim: int, typ: str, acc: str, loc, map_: str = None, idx: int = None):
     self.var = var
@@ -78,12 +85,13 @@ class Arg:
     self.idx = idx
     self.opt = None
 
-    if map_ == ID:
-      if idx != -1:
-        raise OpError('incompatible index for direct access, expected -1', loc)
-    elif map_ and idx is not None:
-      if idx < 0 or idx >= dim:
-        raise OpError(f'index out of range, must be in the interval [0,{dim-1}]', loc)
+    # TODO: 0 indexing for c, 1 indexing for f
+    # if map_ == ID:
+    #   if idx != -1:
+    #     raise OpError('incompatible index for direct access, expected -1', loc)
+    # elif map_ and idx is not None:
+    #   if idx < 0 or idx >= dim:
+    #     raise OpError(f'index out of range, must be in the interval [0,{dim-1}]', loc)
 
 
   @property

@@ -118,7 +118,7 @@ MODULE {{ opt.name }}_{{ kernel.name }}_module
 
 
   ! Host function for kernel
-  SUBROUTINE {{ kernel.name }}_host ( &
+  SUBROUTINE op_par_loop_{{ kernel.name }}_host ( &
     & kernel, &
     & set, &
     {% for i in kernel.args %}

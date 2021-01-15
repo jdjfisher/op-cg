@@ -301,7 +301,7 @@ MODULE {{ opt.name }}_{{ kernel.name }}_module
 
   END SUBROUTINE
 
-  attributes (host) SUBROUTINE {{ kernel.name }}_host( &
+  attributes (host) SUBROUTINE op_par_loop_{{ kernel.name }}_host( &
     & kernel, &
     & set, &
     {% for i in kernel.args %}
@@ -330,7 +330,7 @@ MODULE {{ opt.name }}_{{ kernel.name }}_module
 
 
   ! Stub for GPU execution
-  attributes (host) SUBROUTINE {{ kernel.name }}_host_gpu( &
+  attributes (host) SUBROUTINE op_par_loop_{{ kernel.name }}_host_gpu( &
     & kernel, &
     & set, &
     {% for i in kernel.args %}

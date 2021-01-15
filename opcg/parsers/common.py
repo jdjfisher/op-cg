@@ -1,4 +1,5 @@
 # Standard library imports
+from __future__ import annotations
 from os.path import basename
 from typing import List
 
@@ -7,26 +8,29 @@ import op as OP
 
 
 class ParseError(Exception):
+  message: str
+  # loc:
 
-  def __init__(self, message, location=None):
+  def __init__(self, message: str, loc = None):
     self.message = message
-    self.location = location
+    self.loc = loc
 
   def __str__(self) -> str:
-    if self.location:
-      return f'{self.location}: parse error: {self.message}'
+    if self.loc:
+      return f'{self.loc}: parse error: {self.message}'
     else:
       return f'parse error: {self.message}'
 
 
 class Location:
+  file: str
+  line: int
+  column: int
   
-  def __init__(self, file: str, line: int, column: int, end_line: int = None, end_column: int = None):
+  def __init__(self, file: str, line: int, column: int):
     self.file = file
     self.line = line
     self.column = column
-    self.end_line = end_line
-    self.end_column = end_column
 
 
   def __str__(self) -> str:
@@ -100,7 +104,7 @@ class Store:
     self.loops.append(loop)
   
 
-  def merge(self, store) -> None:
+  def merge(self, store: Store) -> None:
     self.recordInit(store.init)
 
     if store.exit:

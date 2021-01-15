@@ -225,7 +225,7 @@ def parseOptArgGbl(nodes: List[Cursor], loc: Location) -> OP.Arg:
   return dat
 
 
-def parseIdentifier(node: Cursor, regex: str = None) -> Optional[str]:
+def parseIdentifier(node: Cursor, regex: str = None) -> str:
   # TODO: Check this
   while node.kind == CursorKind.CSTYLE_CAST_EXPR:
     node = list(node.get_children())[1]
@@ -237,10 +237,6 @@ def parseIdentifier(node: Cursor, regex: str = None) -> Optional[str]:
   # Descend to child node
   if node.kind == CursorKind.UNARY_OPERATOR and next(node.get_tokens()).spelling in ('&', '*'):
     node = descend(node)
-
-  # Check for null
-  if node.kind == CursorKind.GNU_NULL_EXPR:
-    return None
 
   # Validate the node
   if node.kind != CursorKind.DECL_REF_EXPR:
@@ -301,11 +297,9 @@ def parseStringLit(node: Cursor, regex: str = None) -> str:
 
 def parseLocation(node: Cursor) -> Location:
   return Location(
-    node.extent.start.file.name,
-    node.extent.start.line,
-    node.extent.start.column,
-    node.extent.end.line,
-    node.extent.end.column
+    node.location.file.name,
+    node.location.line,
+    node.location.column
   )
 
 

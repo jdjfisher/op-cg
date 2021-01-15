@@ -1,6 +1,6 @@
 # Standard library imports
-from __future__ import annotations # https://stackoverflow.com/questions/41135033/type-hinting-within-a-class
-from typing import Optional, List
+from __future__ import annotations
+from typing import List
 
 class Opt(object):
   instances: List[Opt] = []
@@ -14,6 +14,14 @@ class Opt(object):
     return self.name
 
 
+  def __eq__(self, other) -> bool:
+    return self.name == other.name if isinstance(other, Opt) else False
+
+
+  def __hash__(self) -> int:
+    return hash(self.name)
+
+
   @classmethod
   def all(cls) -> List[Opt]:
     return cls.instances
@@ -25,14 +33,14 @@ class Opt(object):
 
 
   @classmethod
-  def find(cls, name: str) -> Optional[Opt]:
-    return next((o for o in cls.all() if o.name == name), None)
+  def find(cls, name: str) -> Opt:
+    return next((o for o in cls.all() if o.name == name))
 
 
-# 
-seq  = Opt('seq'),
-cuda = Opt('cuda'),
-omp  = Opt('omp3'),
+# Define optimisations here
+seq  = Opt('seq')
+cuda = Opt('cuda')
+omp  = Opt('omp3')
 
 
 

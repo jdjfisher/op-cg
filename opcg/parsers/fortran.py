@@ -2,6 +2,7 @@
 # Standard library imports
 from subprocess import CalledProcessError
 from xml.etree.ElementTree import Element
+from pathlib import Path
 from typing import List
 import re
 
@@ -21,7 +22,7 @@ _current_file: str = '?'
 def parse(path: str) -> Store:  
   try:
     # Try to parse the source
-    xml = fp.parse(path, raise_on_error=True)
+    xml = fp.parse(Path(path), raise_on_error=True)
     # xml.etree.ElementTree.dump(xml)
     global _current_file
     _current_file = path
@@ -285,8 +286,6 @@ def parseStringLit(node: Element, regex: str = None) -> str:
 def parseLocation(node: Element) -> Location:
   return Location(
     _current_file,
-    int(node.attrib.get('line_begin')), 
-    int(node.attrib.get('col_begin')),
-    int(node.attrib.get('line_end')), 
-    int(node.attrib.get('col_end'))
+    int(node.attrib['line_begin']), 
+    int(node.attrib['col_begin'])
   )

@@ -12,7 +12,6 @@ import open_fortran_parser as fp
 # Local application imports
 from parsers.common import ParseError, Store, Location
 from util import enumRegex
-import language
 import op as OP
 
 
@@ -75,10 +74,11 @@ def parseSet(nodes: List[Element], loc: Location) -> OP.Set:
   if len(nodes) != 3:
     raise ParseError('incorrect number of nodes passed to op_decl_set', loc)
 
-  _    = parseIdentifier(nodes[0])
-  name = parseIdentifier(nodes[1])
+  _     = parseIdentifier(nodes[0])
+  ptr   = parseIdentifier(nodes[1])
+  debug = parseStringLit(nodes[2])
   
-  return OP.Set(name)
+  return OP.Set(ptr)
 
 
 def parseMap(nodes: List[Element], loc: Location) -> OP.Map:
@@ -89,33 +89,33 @@ def parseMap(nodes: List[Element], loc: Location) -> OP.Map:
   to_set   = parseIdentifier(nodes[1])
   dim      = parseIntLit(nodes[2], signed=False)
   _        = parseIdentifier(nodes[3])
-  name     = parseIdentifier(nodes[4])
+  ptr      = parseIdentifier(nodes[4])
   debug    = parseStringLit(nodes[5])
 
-  return OP.Map(name, from_set, to_set, dim, loc)
+  return OP.Map(from_set, to_set, dim, ptr, loc)
 
 
 def parseData(nodes: List[Element], loc: Location) -> OP.Data:
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_decl_dat', loc)
 
-  type_regex = enumRegex(language.f.types)
+  set_  = parseIdentifier(nodes[0])
+  dim   = parseIntLit(nodes[1], signed=False)
+  typ   = parseStringLit(nodes[2])
+  _     = parseIdentifier(nodes[3])
+  ptr   = parseIdentifier(nodes[4])
+  debug = parseStringLit(nodes[5])
 
-  set_ = parseIdentifier(nodes[0])
-  dim  = parseIntLit(nodes[1], signed=False)
-  typ  = parseStringLit(nodes[2], regex=type_regex)
-  _    = parseIdentifier(nodes[3])
-  _    = parseIdentifier(nodes[4])
-
-  return OP.Data(set_, dim, typ, loc)
+  return OP.Data(set_, dim, typ, ptr, loc)
   
 
 def parseConst(nodes: List[Element], loc: Location) -> OP.Const:
   if len(nodes) != 3:
     raise ParseError('incorrect number of args passed to op_decl_const', loc)
 
-  name = parseIdentifier(nodes[0])
-  dim = parseIntLit(nodes[1], signed=False)
+  name  = parseIdentifier(nodes[0])
+  dim   = parseIntLit(nodes[1], signed=False)
+  debug = parseStringLit(nodes[2])
 
   return OP.Const(name, dim, loc)
 
@@ -158,14 +158,13 @@ def parseArgDat(nodes: List[Element], loc: Location) -> OP.Arg:
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_arg_dat', loc)
 
-  type_regex = enumRegex(language.f.types)
   access_regex = enumRegex(OP.DAT_ACCESS_TYPES)
 
   var  = parseIdentifier(nodes[0])
   idx  = parseIntLit(nodes[1], signed=True)
   map_ = parseIdentifier(nodes[2])
   dim  = parseIntLit(nodes[3], signed=False)
-  typ  = parseStringLit(nodes[4], regex=type_regex)
+  typ  = parseStringLit(nodes[4])
   acc  = parseIdentifier(nodes[5], regex=access_regex)
 
   return OP.Arg(var, dim, typ, acc, loc, map_, idx)
@@ -190,12 +189,11 @@ def parseArgGbl(nodes: List[Element], loc: Location) -> OP.Arg:
   if len(nodes) != 4:
     raise ParseError('incorrect number of args passed to op_arg_gbl', loc)
 
-  type_regex = enumRegex(language.f.types)
   access_regex = enumRegex(OP.GBL_ACCESS_TYPES)
   
   var = parseIdentifier(nodes[0])
   dim = parseIntLit(nodes[1], signed=False)
-  typ = parseStringLit(nodes[2], regex=type_regex)
+  typ = parseStringLit(nodes[2])
   acc = parseIdentifier(nodes[3], regex=access_regex)
 
   return OP.Arg(var, dim, typ, acc, loc)

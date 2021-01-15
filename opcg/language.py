@@ -87,6 +87,6 @@ f = Lang(
   com_delim='!',
   zero_idx=False, 
   extensions=['F90', 'F95'], 
-  types=['integer', 'integer(4)', 'real(8)'], # TODO: Properly define these
+  types=['integer(4)', 'real(8)'], # TODO: Check these
 )
 

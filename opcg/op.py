@@ -30,31 +30,31 @@ class OpError(Exception):
 
 
 class Set:
-  name: str
+  ptr: str
 
-  def __init__(self, name: str):
-    self.name = name
+  def __init__(self, ptr: str):
+    self.ptr = ptr
 
 
 class Map:
-  name: str
   from_set: str
   to_set: str
   dim: int
+  ptr: str
   # loc:
 
   def __init__(
     self,
-    name: str,
     from_set: str,
     to_set: str,
     dim: int,
+    ptr: str,
     loc
   ):
-    self.name = name
     self.from_set = from_set
     self.to_set = to_set
     self.dim = dim
+    self.ptr = ptr
     self.loc = loc
   
 
@@ -62,12 +62,14 @@ class Data:
   set: str
   dim: int
   typ: str
+  ptr: str
   # loc:
 
-  def __init__(self, set_: str, dim: int, typ: str, loc):
+  def __init__(self, set_: str, dim: int, typ: str, ptr: str, loc):
     self.set = set_
     self.dim = dim
     self.typ = typ
+    self.ptr = ptr
     self.loc = loc
 
 

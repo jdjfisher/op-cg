@@ -9,7 +9,6 @@ from clang.cindex import Index, Config, TranslationUnit, Cursor, CursorKind
 # Local application imports
 from parsers.common import ParseError, Store, Location
 from util import enumRegex
-import language
 import op as OP
 
 
@@ -85,10 +84,12 @@ def parseSet(nodes: List[Cursor], loc: Location) -> OP.Set:
   if len(nodes) != 2:
     raise ParseError('incorrect number of nodes passed to op_decl_set', loc)
 
-  _    = parseIdentifier(nodes[0])
-  name = parseStringLit(nodes[1])
+  _     = parseIdentifier(nodes[0])
+  debug = parseStringLit(nodes[1])
 
-  return OP.Set(name)
+  ptr = debug # TODO: Fetch proper ptr identifier by traversing out of the function call 
+
+  return OP.Set(ptr)
 
 
 def parseMap(nodes: List[Cursor], loc: Location) -> OP.Map:
@@ -99,25 +100,26 @@ def parseMap(nodes: List[Cursor], loc: Location) -> OP.Map:
   to_set   = parseIdentifier(nodes[1])
   dim      = parseIntLit(nodes[2], signed=False)
   _        = parseIdentifier(nodes[3])
-  name     = parseStringLit(nodes[4])
-  # debug    = parseStringLit(nodes[5])
+  debug     = parseStringLit(nodes[4])
 
-  return OP.Map(name, from_set, to_set, dim, loc)
+  ptr = debug # TODO: Fetch proper ptr identifier by traversing out of the function call 
+
+  return OP.Map(from_set, to_set, dim, ptr, loc)
 
 
 def parseData(nodes: List[Cursor], loc: Location) -> OP.Data:
   if len(nodes) != 5:
     raise ParseError('incorrect number of args passed to op_decl_dat', loc)
 
-  type_regex = enumRegex(language.c.types)
+  set_  = parseIdentifier(nodes[0])
+  dim   = parseIntLit(nodes[1], signed=False)
+  typ   = parseStringLit(nodes[2])
+  _     = parseIdentifier(nodes[3])
+  debug = parseStringLit(nodes[4])
 
-  set_ = parseIdentifier(nodes[0])
-  dim  = parseIntLit(nodes[1], signed=False)
-  typ  = parseStringLit(nodes[2], regex=type_regex)
-  _    = parseIdentifier(nodes[3])
-  _    = parseStringLit(nodes[4])
-  
-  return OP.Data(set_, dim, typ, loc)
+  ptr = debug # TODO: Fetch proper ptr identifier by traversing out of the function call 
+
+  return OP.Data(set_, dim, typ, ptr, loc)
 
 
 def parseConst(nodes: List[Cursor], loc: Location) -> OP.Const:
@@ -125,7 +127,7 @@ def parseConst(nodes: List[Cursor], loc: Location) -> OP.Const:
     raise ParseError('incorrect number of args passed to op_decl_const', loc)
 
   dim  = parseIntLit(nodes[0], signed=False)
-  _    = parseStringLit(nodes[1])
+  typ  = parseStringLit(nodes[1])
   name = parseIdentifier(nodes[2])
 
   return OP.Const(name, dim, loc)
@@ -171,14 +173,13 @@ def parseArgDat(nodes: List[Cursor], loc: Location) -> OP.Arg:
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_arg_dat', loc)
 
-  type_regex = enumRegex(language.c.types)
   access_regex = enumRegex(OP.DAT_ACCESS_TYPES)
 
   var  = parseIdentifier(nodes[0])
   idx  = parseIntLit(nodes[1], signed=True)
   map_ = parseIdentifier(nodes[2]) or OP.ID
   dim  = parseIntLit(nodes[3], signed=False)
-  typ  = parseStringLit(nodes[4], regex=type_regex)
+  typ  = parseStringLit(nodes[4])
   acc  = macro_instances[(nodes[5].location.line, nodes[5].location.column)] # TODO: Cleanup
 
   return OP.Arg(var, dim, typ, acc, loc, map_, idx)
@@ -203,12 +204,11 @@ def parseArgGbl(nodes: List[Cursor], loc: Location) -> OP.Arg:
   if len(nodes) != 4:
     raise ParseError('incorrect number of args passed to op_arg_gbl', loc)
 
-  type_regex = enumRegex(language.c.types)
   access_regex = enumRegex(OP.GBL_ACCESS_TYPES)
 
   var = parseIdentifier(nodes[0])
   dim = parseIntLit(nodes[1], signed=False)
-  typ = parseStringLit(nodes[2], regex=type_regex)
+  typ = parseStringLit(nodes[2])
   acc = macro_instances[(nodes[3].location.line, nodes[3].location.column)] # TODO: Cleanup
   
   return OP.Arg(var, dim, typ, acc, loc)

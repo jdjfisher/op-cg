@@ -4,6 +4,7 @@ from os.path import basename
 from typing import List
 
 # Application imports
+# from language import Lang
 from op import OpError
 import op as OP
 
@@ -134,37 +135,53 @@ class Store:
     if not self.exit:
       print('WARNING: No call to op_exit found')
 
-    # Collect the names of defined sets
-    set_names = [ s.name for s in self.sets ]
+    # Collect the pointers of defined sets
+    set_ptrs = [ s.ptr for s in self.sets ]
 
     # Validate data declerations
     for data in self.datas:
-      if data.set not in set_names:
+      # Validate set
+      if data.set not in set_ptrs:
         raise OpError(f'undefined set "{data.set}" referenced in data decleration', data.loc)
+
+      # Validate type
+      if data.typ not in lang.types:
+        raise OpError(f'unsupported datatype "{data.typ}" for the {lang.name} language', data.loc)
 
     # Validate map declerations
     for map_ in self.maps:
       # Validate both sets
       for set_ in (map_.from_set, map_.to_set):
-        if set_ not in set_names:
+        if set_ not in set_ptrs:
           raise OpError(f'undefined set "{set_}" referenced in map decleration', map_.loc)
 
     # Validate loop calls
     for loop in self.loops:
       # Validate loop dataset
-      if loop.set not in set_names:
+      if loop.set not in set_ptrs:
         raise OpError(f'undefined set "{loop.set}" referenced in par loop call', loop.loc)
 
       # Validate loop args
       for arg in loop.args.values():
-        # Validate direct arguments
-        if arg.direct and arg.idx != -1:
-          raise OpError('incompatible index for direct access, expected -1', loc)
 
-        # Validate indirect arguments
+        # Validate the data referenced in the arg 
+        if not arg.global_:
+          # Look for the referenced data
+          data = next((d for d in self.datas if d.ptr == arg.var), None)
+
+          if not data:
+            raise OpError(f'undefined data "{arg.var}" referenced in par loop arg', arg.loc)
+          elif arg.typ != data.typ:
+            raise OpError(f'type mismatch of par loop data, expected {data.typ}', arg.loc)
+
+        # Validate direct args
+        if arg.direct and arg.idx != -1:
+          raise OpError('incompatible index for direct access, expected -1', arg.loc)
+
+        # Validate indirect args
         elif arg.indirect:
           # Look for the referenced map decleration
-          map_ = next((m for m in self.maps if m.name == arg.map), None)
+          map_ = next((m for m in self.maps if m.ptr == arg.map), None)
 
           if not map_:
             raise OpError(f'undefined map "{arg.map}" referenced in par loop arg', arg.loc)

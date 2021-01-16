@@ -1,19 +1,42 @@
 # Standard library imports
 from __future__ import annotations
+from typing import TYPE_CHECKING, Optional, List
+from typing_extensions import Protocol
 from os.path import basename
-from typing import List
+from pathlib import Path
 
 # Application imports
-# from language import Lang
 from op import OpError
+from util import safeFind
 import op as OP
+if TYPE_CHECKING:
+  from language import Lang
+
+
+class Parser(Protocol):
+  def __call__(self, path: Path) -> Store: ...
+
+
+class Location:
+  file: str
+  line: int
+  column: int
+  
+  def __init__(self, file: str, line: int, column: int) -> None:
+    self.file = file
+    self.line = line
+    self.column = column
+
+
+  def __str__(self) -> str:
+    return f'{basename(self.file)}/{self.line}:{self.column}'
 
 
 class ParseError(Exception):
   message: str
-  # loc:
+  loc: Optional[Location]
 
-  def __init__(self, message: str, loc = None):
+  def __init__(self, message: str, loc: Location = None) -> None:
     self.message = message
     self.loc = loc
 
@@ -22,21 +45,6 @@ class ParseError(Exception):
       return f'{self.loc}: parse error: {self.message}'
     else:
       return f'parse error: {self.message}'
-
-
-class Location:
-  file: str
-  line: int
-  column: int
-  
-  def __init__(self, file: str, line: int, column: int):
-    self.file = file
-    self.line = line
-    self.column = column
-
-
-  def __str__(self) -> str:
-    return f'{basename(self.file)}/{self.line}:{self.column}'
 
 
 class Store:
@@ -84,7 +92,7 @@ class Store:
 
   def addConst(self, const: OP.Const) -> None:
     # Search for previous decleration
-    prev = next((c for c in self.consts if c.name == const.name), None)
+    prev = safeFind(self.consts, lambda c: c.name == const.name)
 
     # If there is a previous decleration verify compatibilty and then skip
     if prev:
@@ -167,12 +175,14 @@ class Store:
         # Validate the data referenced in the arg 
         if not arg.global_:
           # Look for the referenced data
-          data = next((d for d in self.datas if d.ptr == arg.var), None)
+          data_ = safeFind(self.datas, lambda d: d.ptr == arg.var)
 
-          if not data:
+          if not data_:
             raise OpError(f'undefined data "{arg.var}" referenced in par loop arg', arg.loc)
-          elif arg.typ != data.typ:
-            raise OpError(f'type mismatch of par loop data, expected {data.typ}', arg.loc)
+          elif arg.typ != data_.typ:
+            raise OpError(f'type mismatch of par loop data, expected {data_.typ}', arg.loc)
+          elif arg.dim != data_.dim:
+            raise OpError(f'dimension mismatch of par loop data, expected {data_.dim}', arg.loc)
 
         # Validate direct args
         if arg.direct and arg.idx != -1:
@@ -181,7 +191,7 @@ class Store:
         # Validate indirect args
         elif arg.indirect:
           # Look for the referenced map decleration
-          map_ = next((m for m in self.maps if m.ptr == arg.map), None)
+          map_ = safeFind(self.maps, lambda m: m.ptr == arg.map)
 
           if not map_:
             raise OpError(f'undefined map "{arg.map}" referenced in par loop arg', arg.loc)

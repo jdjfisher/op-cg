@@ -19,13 +19,13 @@ import op as OP
 _current_file: str = '?'
 
 
-def parse(path: str) -> Store:  
+def parse(path: Path) -> Store:  
   try:
     # Try to parse the source
     xml = fp.parse(Path(path), raise_on_error=True)
     # xml.etree.ElementTree.dump(xml)
     global _current_file
-    _current_file = path
+    _current_file = str(path)
 
     # Create a store
     store = Store()

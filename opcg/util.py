@@ -1,7 +1,11 @@
 # Standard library imports
-from typing import List
+from typing import TypeVar, Callable, Generic, Optional, List
 import subprocess
 import re
+
+
+# Generic type
+T = TypeVar('T')
 
 
 def getVersion() -> str:
@@ -12,3 +16,9 @@ def enumRegex(values: List[str]) -> str:
   return '(' + ')|('.join(map(re.escape, values)) + ')'
 
 
+def find(xs: List[T], p: Callable[[T], bool]) -> T:
+  return next(x for x in xs if p(x))
+
+
+def safeFind(xs: List[T], p: Callable[[T], bool]) -> Optional[T]:
+  return next(( x for x in xs if p(x) ), None)

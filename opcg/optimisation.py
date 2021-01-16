@@ -2,10 +2,13 @@
 from __future__ import annotations
 from typing import List, ClassVar
 
+# Application imports
+from util import find
+
 class Opt(object):
   instances: ClassVar[List[Opt]] = []
 
-  def __init__(self, name: str):
+  def __init__(self, name: str) -> None:
     self.__class__.instances.append(self)
     self.name = name
 
@@ -34,7 +37,7 @@ class Opt(object):
 
   @classmethod
   def find(cls, name: str) -> Opt:
-    return next((o for o in cls.all() if o.name == name))
+    return find(cls.all(), lambda o: o.name == name)
 
 
 # Define optimisations here

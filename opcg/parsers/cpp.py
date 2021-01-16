@@ -1,6 +1,7 @@
 
 # Standard library imports
 from typing import Optional, List
+from pathlib import Path
 import re
 
 # Third party imports
@@ -19,7 +20,7 @@ index = Index.create()
 macro_instances = {} # TODO: Cleanup
 
 
-def parse(path: str) -> Store:
+def parse(path: Path) -> Store:
   # Invoke the Clang parser on the source
   translation_unit = index.parse(path, options=options)
 

@@ -2,11 +2,13 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable, List, ClassVar
+from pathlib import Path
 
 # Application imports
-from parsers.common import Store, ParseError
+from parsers.common import Parser, Store, ParseError
 import parsers.fortran as fp
 import parsers.cpp as cp
+from util import find
 
 
 class Lang(object):
@@ -16,7 +18,7 @@ class Lang(object):
   com_delim: str
   types: List[str]
   extensions: List[str]
-  parser: Callable[[str], Store]
+  parser: Parser
   zero_idx: bool
 
 
@@ -26,9 +28,9 @@ class Lang(object):
     com_delim: str, 
     types: List[str], 
     extensions: List[str], 
-    parser: Callable[[str], Store],
+    parser: Parser,
     zero_idx: bool = True
-  ):
+  ) -> None:
     self.__class__.instances.append(self)
     self.name = name
     self.com_delim = com_delim
@@ -38,7 +40,7 @@ class Lang(object):
     self.zero_idx = zero_idx
 
 
-  def parse(self, path: str) -> Store:
+  def parse(self, path: Path) -> Store:
     if not self.parser:
       raise NotImplementedError(f'no parser registered for the "{self.name}" language')
 
@@ -67,7 +69,7 @@ class Lang(object):
 
   @classmethod
   def find(cls, name: str) -> Lang:
-    return next((l for l in cls.all() if name == l.name or name in l.extensions))
+    return find(cls.all(), lambda l: name == l.name or name in l.extensions)
 
 
 

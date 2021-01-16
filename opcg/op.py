@@ -1,14 +1,20 @@
 # Standard library imports
-from typing import Optional, Dict, List
+from __future__ import annotations
+from typing import TYPE_CHECKING, Final, Optional, Dict, List
 
-ID = 'OP_ID'
+# Application imports
+if TYPE_CHECKING:
+  from parser.common import Location
 
-INC   = 'OP_INC'
-MAX   = 'OP_MAX'
-MIN   = 'OP_MIN'
-RW    = 'OP_RW'
-READ  = 'OP_READ'
-WRITE = 'OP_WRITE'
+
+ID: Final[str] = 'OP_ID'
+
+INC: Final[str] = 'OP_INC'
+MAX: Final[str] = 'OP_MAX'
+MIN: Final[str] = 'OP_MIN'
+RW: Final[str] = 'OP_RW'
+READ: Final[str] = 'OP_READ'
+WRITE: Final[str] = 'OP_WRITE'
 
 DAT_ACCESS_TYPES = [READ, WRITE, RW, INC]
 GBL_ACCESS_TYPES = [READ, INC, MAX, MIN]
@@ -16,9 +22,9 @@ GBL_ACCESS_TYPES = [READ, INC, MAX, MIN]
 
 class OpError(Exception):
   message: str
-  # loc:
+  loc: Location
 
-  def __init__(self, message: str, loc = None):
+  def __init__(self, message: str, loc: Location = None) -> None:
     self.message = message
     self.loc = loc
 
@@ -32,7 +38,7 @@ class OpError(Exception):
 class Set:
   ptr: str
 
-  def __init__(self, ptr: str):
+  def __init__(self, ptr: str) -> None:
     self.ptr = ptr
 
 
@@ -41,7 +47,7 @@ class Map:
   to_set: str
   dim: int
   ptr: str
-  # loc:
+  loc: Location
 
   def __init__(
     self,
@@ -49,8 +55,8 @@ class Map:
     to_set: str,
     dim: int,
     ptr: str,
-    loc
-  ):
+    loc: Location
+  ) -> None:
     self.from_set = from_set
     self.to_set = to_set
     self.dim = dim
@@ -63,9 +69,16 @@ class Data:
   dim: int
   typ: str
   ptr: str
-  # loc:
+  loc: Location
 
-  def __init__(self, set_: str, dim: int, typ: str, ptr: str, loc):
+  def __init__(
+    self,
+    set_: str,
+    dim: int,
+    typ: str,
+    ptr: str,
+    loc: Location
+  ) -> None:
     self.set = set_
     self.dim = dim
     self.typ = typ
@@ -76,9 +89,9 @@ class Data:
 class Const:
   name: str
   dim: int
-  # loc: 
+  loc: Location
 
-  def __init__(self, name: str, dim: int, loc):
+  def __init__(self, name: str, dim: int, loc: Location) -> None:
     self.name = name
     self.dim = dim
     self.loc = loc
@@ -89,9 +102,9 @@ class Arg:
   dim: int
   typ: str
   acc: str
-  # loc:
-  map: str
-  idx: int
+  loc: Location
+  map: Optional[str]
+  idx: Optional[int]
   opt: Optional[str]
 
   def __init__(
@@ -100,10 +113,10 @@ class Arg:
     dim: int, 
     typ: str, 
     acc: str, 
-    loc, 
+    loc: Location,
     map_: str = None, 
     idx: int = None
-  ):
+  ) -> None:
     self.var = var
     self.dim = dim
     self.typ = typ
@@ -132,10 +145,10 @@ class Arg:
 class Loop:
   name: str
   set: str
-  # loc: 
+  loc: Location
   args: Dict[int, Arg] 
 
-  def __init__(self, kernel: str, set_: str, loc, args: List[Arg]):
+  def __init__(self, kernel: str, set_: str, loc: Location, args: List[Arg]) -> None:
     self.name = kernel
     self.set = set_
     self.loc = loc

@@ -192,6 +192,10 @@ class Store:
             if data_.set != loop.set:
               raise OpError(f'cannot directly access the "{arg.var}" dataset from the "{loop.set}" loop set', arg.loc)
 
+            # Check that the same dataset has not already been directly accessed
+            if safeFind(loop.directs.values(), lambda a: a is not arg and a.var == arg.var):
+              raise OpError(f'duplicate direct accesses to the "{arg.var}" dataset in the same par loop', arg.loc)
+
           # Validate indirect args
           elif arg.indirect:
             # Look for the referenced map decleration
@@ -215,6 +219,11 @@ class Store:
             # Perform range check
             if arg.idx is None or arg.idx < min_idx or arg.idx > max_idx:
               raise OpError(f'index {arg.idx} out of range, must be in the interval [{min_idx},{max_idx}]', arg.loc)
+
+            # Check duplicate indirect accesses     
+            predicate = lambda a: a is not arg and a.var == arg.var and a.map == arg.map and a.idx == arg.idx
+            if safeFind(loop.indirects.values(), predicate):
+              raise OpError(f'duplicate indirect accesses in the same par loop', arg.loc)
 
 
   def __str__(self) -> str:

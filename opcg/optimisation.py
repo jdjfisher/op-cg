@@ -18,7 +18,7 @@ class Opt(object):
 
 
   def __eq__(self, other) -> bool:
-    return self.name == other.name if isinstance(other, Opt) else False
+    return self.name == other.name if type(other) is type(self) else False
 
 
   def __hash__(self) -> int:

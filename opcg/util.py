@@ -1,5 +1,5 @@
 # Standard library imports
-from typing import TypeVar, Callable, Generic, Optional, List
+from typing import TypeVar, Callable, Generic, Optional, Iterable, List
 import subprocess
 import re
 
@@ -16,9 +16,9 @@ def enumRegex(values: List[str]) -> str:
   return '(' + ')|('.join(map(re.escape, values)) + ')'
 
 
-def find(xs: List[T], p: Callable[[T], bool]) -> T:
+def find(xs: Iterable[T], p: Callable[[T], bool]) -> T:
   return next(x for x in xs if p(x))
 
 
-def safeFind(xs: List[T], p: Callable[[T], bool]) -> Optional[T]:
+def safeFind(xs: Iterable[T], p: Callable[[T], bool]) -> Optional[T]:
   return next(( x for x in xs if p(x) ), None)

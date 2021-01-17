@@ -9,7 +9,7 @@ from clang.cindex import Index, Config, TranslationUnit, Cursor, CursorKind
 
 # Local application imports
 from parsers.common import ParseError, Store, Location
-from util import enumRegex
+from util import enumRegex, safeFind
 import op as OP
 
 
@@ -29,9 +29,9 @@ def parse(path: Path) -> Store:
   if error:
     raise ParseError(error.spelling, parseLocation(error))
 
-  # Initialise the store and search queue
+  # Initialise the store and search stack
   store = Store()
-  q = []
+  stack = []
 
   for child in translation_unit.cursor.get_children():
     # Ignore macro definitions and cursors outside of the program file
@@ -41,14 +41,20 @@ def parse(path: Path) -> Store:
         macro_instances[(child.location.line, child.location.column)] = child.displayname
       # Populate with the top-level cursors from the target file
       else:
-        q.append(child)
+        stack.append(child)
 
-  # BFS
-  while q:
-    
-    # Manage the queue
-    node = q.pop()
-    q.extend(node.get_children())
+  ptr: str
+
+  # DFS
+  while stack:
+    # Manage the stack
+    node = stack.pop()
+    stack.extend(node.get_children())
+
+    # TODO: This is a bit of a hack. Cleanup
+    if node.kind == CursorKind.VAR_DECL:
+      if safeFind(node.get_children(), lambda n: n.kind == CursorKind.CALL_EXPR):
+        ptr = node.spelling
 
     # Focus on function calls
     if node.kind == CursorKind.CALL_EXPR:
@@ -60,13 +66,13 @@ def parse(path: Path) -> Store:
         store.recordInit(loc)
 
       elif name == 'op_decl_set':
-        store.addSet(parseSet(args, loc))
+        store.addSet(parseSet(args, ptr, loc))
       
       elif name == 'op_decl_map':
-        store.addMap(parseMap(args, loc))
+        store.addMap(parseMap(args, ptr, loc))
       
       elif name == 'op_decl_dat':
-        store.addData(parseData(args, loc))
+        store.addData(parseData(args, ptr, loc))
       
       elif name == 'op_decl_const':
         store.addConst(parseConst(args, loc))
@@ -80,20 +86,17 @@ def parse(path: Path) -> Store:
   return store
 
 
-def parseSet(nodes: List[Cursor], loc: Location) -> OP.Set:
-
+def parseSet(nodes: List[Cursor], ptr: str, loc: Location) -> OP.Set:
   if len(nodes) != 2:
     raise ParseError('incorrect number of nodes passed to op_decl_set', loc)
 
   _     = parseIdentifier(nodes[0])
   debug = parseStringLit(nodes[1])
 
-  ptr = debug # TODO: Fetch proper ptr identifier by traversing out of the function call 
-
   return OP.Set(ptr)
 
 
-def parseMap(nodes: List[Cursor], loc: Location) -> OP.Map:
+def parseMap(nodes: List[Cursor], ptr: str, loc: Location) -> OP.Map:
   if len(nodes) != 5:
     raise ParseError('incorrect number of args passed to op_decl_map', loc)
 
@@ -103,12 +106,10 @@ def parseMap(nodes: List[Cursor], loc: Location) -> OP.Map:
   _        = parseIdentifier(nodes[3])
   debug     = parseStringLit(nodes[4])
 
-  ptr = debug # TODO: Fetch proper ptr identifier by traversing out of the function call 
-
   return OP.Map(from_set, to_set, dim, ptr, loc)
 
 
-def parseData(nodes: List[Cursor], loc: Location) -> OP.Data:
+def parseData(nodes: List[Cursor], ptr: str, loc: Location) -> OP.Data:
   if len(nodes) != 5:
     raise ParseError('incorrect number of args passed to op_decl_dat', loc)
 
@@ -117,8 +118,6 @@ def parseData(nodes: List[Cursor], loc: Location) -> OP.Data:
   typ   = parseStringLit(nodes[2])
   _     = parseIdentifier(nodes[3])
   debug = parseStringLit(nodes[4])
-
-  ptr = debug # TODO: Fetch proper ptr identifier by traversing out of the function call 
 
   return OP.Data(set_, dim, typ, ptr, loc)
 

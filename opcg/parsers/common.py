@@ -171,12 +171,11 @@ class Store:
 
       # Validate loop args
       for arg in loop.args.values():
-
-        # Validate the data referenced in the arg 
         if not arg.global_:
           # Look for the referenced data
           data_ = safeFind(self.datas, lambda d: d.ptr == arg.var)
 
+          # Validate the data referenced in the arg 
           if not data_:
             raise OpError(f'undefined data "{arg.var}" referenced in par loop arg', arg.loc)
           elif arg.typ != data_.typ:
@@ -184,25 +183,38 @@ class Store:
           elif arg.dim != data_.dim:
             raise OpError(f'dimension mismatch of par loop data, expected {data_.dim}', arg.loc)
 
-        # Validate direct args
-        if arg.direct and arg.idx != -1:
-          raise OpError('incompatible index for direct access, expected -1', arg.loc)
+          # Validate direct args
+          if arg.direct:
+            # Validate index
+            if arg.idx != -1:
+              raise OpError('incompatible index for direct access, expected -1', arg.loc)
+            # Check the dataset can be accessed directly
+            if data_.set != loop.set:
+              raise OpError(f'cannot directly access the "{arg.var}" dataset from the "{loop.set}" loop set', arg.loc)
 
-        # Validate indirect args
-        elif arg.indirect:
-          # Look for the referenced map decleration
-          map_ = safeFind(self.maps, lambda m: m.ptr == arg.map)
+          # Validate indirect args
+          elif arg.indirect:
+            # Look for the referenced map decleration
+            map_ = safeFind(self.maps, lambda m: m.ptr == arg.map)
 
-          if not map_:
-            raise OpError(f'undefined map "{arg.map}" referenced in par loop arg', arg.loc)
+            if not map_:
+              raise OpError(f'undefined map "{arg.map}" referenced in par loop arg', arg.loc)
 
-          # Determine the valid index range using the given language
-          min_idx = 0 if lang.zero_idx else 1
-          max_idx = map_.dim - 1 if lang.zero_idx else map_.dim
+            # Check that the mapping maps from the loop set
+            if map_.from_set != loop.set:
+              raise OpError(f'cannot apply the "{arg.map}" mapping to the "{loop.set}" loop set', arg.loc)
 
-          # Perform range check
-          if arg.idx is None or arg.idx < min_idx or arg.idx > max_idx:
-            raise OpError(f'index {arg.idx} out of range, must be in the interval [{min_idx},{max_idx}]', arg.loc)
+            # Check that the mapping maps to the data set
+            if map_.to_set != data_.set:
+              raise OpError(f'cannot map to the "{arg.var}" dataset with the "{arg.map}" mapping', arg.loc)
+
+            # Determine the valid index range using the given language
+            min_idx = 0 if lang.zero_idx else 1
+            max_idx = map_.dim - 1 if lang.zero_idx else map_.dim
+
+            # Perform range check
+            if arg.idx is None or arg.idx < min_idx or arg.idx > max_idx:
+              raise OpError(f'index {arg.idx} out of range, must be in the interval [{min_idx},{max_idx}]', arg.loc)
 
 
   def __str__(self) -> str:

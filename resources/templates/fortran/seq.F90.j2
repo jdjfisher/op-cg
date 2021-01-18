@@ -14,25 +14,24 @@ MODULE {{ kernel.name }}_module
   #include "{{ kernel.name }}.inc"
 
 
-
   ! Wrapper for kernel function
   SUBROUTINE {{ kernel.name }}_wrap ( & 
-    {# #}
-    {% for i in kernel.indirectVars %}
-    & opDat{{ i+1 }}Local, &
+    {# Indirects #}
+    {% for arg in kernel.indirectVars %}
+    & indDat_{{ arg.map }}_{{ arg.var }}, &
     {% endfor %}
-    {#  #}
-    {% for i in kernel.directs %}
-    & opDat{{ i+1 }}Local, &
+    {# Directs #}
+    {% for arg in kernel.directs %}
+    & dirDat_{{ arg.var }}, &
     {% endfor %}
-    {#  #}
-    {% for i in kernel.globals %}
-    & opDat{{ i+1 }}Local, &
+    {# Globals #}
+    {% for arg in kernel.globals  %}
+    & gblDat_{{ arg.var }}, &
     {% endfor %}
-    {#  #}
-    {% for i in kernel.indirectMaps %}
-    & opDat{{ i+1 }}Map, &
-    & opDat{{ i+1 }}MapDim, & 
+    {# Maps #}
+    {% for arg in kernel.indirectMaps  %}
+    & map_{{ arg.map }}, &
+    & mapDim_{{ arg.map }}, & 
     {% endfor %}
     {#  #}
     & bottom, &
@@ -41,77 +40,65 @@ MODULE {{ kernel.name }}_module
 
     IMPLICIT NONE
 
-    {% for i, arg in kernel.indirectVars.items() %}
+    {% for arg in kernel.indirectVars %}
     {% if arg is without_dim %}
-    INTEGER(kind=4) opDat{{ i+1 }}Dim
-    {% set dim %}opDat{{ i+1 }}Dim{% endset %}
+    {% set dim %}indDatDim_{{ arg.map }}_{{ arg.var }}{% endset %}
+    INTEGER(kind=4) {{ dim }}
     {% else %}
     {% set dim = arg.dim %}
     {% endif %}
-    {{ arg.typ }} opDat{{ i+1 }}Local({{ dim }},*)
+    {{ arg.typ }} indDat_{{ arg.map }}_{{ arg.var }}({{ dim }},*)
     {% endfor %}
-
-    {% for i, arg in kernel.directs.items() %}
+    {#- -#}
+    {% for arg in kernel.directs %}
     {% if arg is without_dim %}
-    INTEGER(kind=4) opDat{{ i+1 }}Dim
-    {% set dim %}opDat{{ i+1 }}Dim{% endset %}
+    {% set dim %}dirDatDim_{{ arg.var }}{% endset %}
+    INTEGER(kind=4) {{ dim }}
     {% else %}
     {% set dim = arg.dim %}
     {% endif %}
-    {{ arg.typ }} opDat{{ i+1 }}Local({{ dim }},*)
+    {{ arg.typ }} dirDat_{{ arg.var }}({{ dim }},*)
     {% endfor %}
-
-    {% for i, arg in kernel.globals.items() %}
+    {#- -#}
+    {% for arg in kernel.globals %}
     {% if arg is without_dim %}
-    INTEGER(kind=4) opDat{{ i+1 }}Dim
-    {% set dim %}opDat{{ i+1 }}Dim{% endset %}
+    {% set dim %}gblDatDim_{{ arg.var }}{% endset %}
+    INTEGER(kind=4) {{ dim }}
     {% else %}
     {% set dim = arg.dim %}
     {% endif %}
-    {{ arg.typ }} opDat{{ i+1 }}Local({{ dim }})
+    {{ arg.typ }} gblDat_{{ arg.var }}({{ dim }},*)
     {% endfor %}
 
     {% for i in kernel.indirectMaps %}
-    INTEGER(kind=4) opDat{{ i+1 }}Map(*)
-    INTEGER(kind=4) opDat{{ i+1 }}MapDim
+    INTEGER(kind=4) map_{{ i.map }}(*)
+    INTEGER(kind=4) mapDim_{{ i.map }}
+    {% endfor %}
+    {% for arg in kernel.indirects %}
+    INTEGER(kind=4) mapIdx_{{ arg.map }}_{{ arg.idx-1 }}
     {% endfor %}
     INTEGER(kind=4) bottom,top,i1
-    INTEGER(kind=4) {% for i in kernel.indirectMapRefs -%} 
-    map{{ i+1 }}idx{{ comma(loop) }} 
-    {%- endfor %}
 
-
-    DO i1 = bottom, top-1, 1
-      {# TODO: Refactor #}
-      {%- for i, arg1 in kernel.indirectMaps.items() %} 
-      {%-   for j, arg2 in kernel.indirectMapRefs.items() %} 
-      {%-     if arg1.map == arg2.map %} 
-      map{{ j+1 }}idx = opDat{{ i+1 }}Map(1 + i1 * opDat{{ i+1 }}MapDim + {{ arg2['idx']-1 }})+1
-      {%-     endif %}
-      {%-   endfor %}
+    DO i = bottom, top - 1, 1
+      {%- for arg in kernel.indirects %} 
+      mapIdx_{{ arg.map }}_{{ arg.idx-1 }} = map_{{ arg.map }}(1 + i * mapDim_{{ arg.map }} + {{ arg.idx-1 }})+1
       {%- endfor %}
 
 
       ! Kernel call
-      {# TODO: Refactor #}
       CALL {{ kernel.name }}( &
-      {%  for i, arg in kernel.args.items() %}
-      {%    if arg is global %}
-        & opDat{{ i+1 }}Local(1){{ comma(loop) }} &     
+      {%  for arg in kernel.args %}
+      {%    if arg is indirect %}
+        & indDat_{{ arg.var }}(1,mapIdx_{{ arg.map }}_{{ arg.idx-1 }}){{ comma(loop) }} &
       {%    elif arg is direct %}
-        & opDat{{ i+1 }}Local(1,i1+1){{ comma(loop) }} &     
-      {%    elif arg is indirect %}
-      {%      for j, arg2 in kernel.indirectMapRefs.items() -%} 
-      {%        if arg.map == arg2.map and arg.idx == arg2.idx %} 
-        & opDat{{ i+1 }}Local(1,map{{ j+1 }}idx){{ comma(loop) }} &     
-      {%        endif %}
-      {%      endfor %}
+        & dirDat_{{ arg.var }}(1,i+1){{ comma(loop) }} &     
+      {%    elif arg is global %}
+        & gblDat_{{ arg.var }}(1){{ comma(loop) }} &     
       {%    endif %}
       {%  endfor %}
       & )
 
     END DO
-
 
   END SUBROUTINE
 
@@ -121,8 +108,8 @@ MODULE {{ kernel.name }}_module
   SUBROUTINE op_par_loop_{{ kernel.name }}_host ( &
     & kernel, &
     & set, &
-    {% for i in kernel.args %}
-    & opArg{{ i+1 }}{{ comma(loop) }} &            
+    {% for arg in kernel.args %}
+    & opArg{{ arg.i+1 }}{{ comma(loop) }} &            
     {% endfor %}
     & )
 
@@ -130,8 +117,8 @@ MODULE {{ kernel.name }}_module
     character(kind=c_char,len=*), INTENT(IN) :: userSubroutine
     type ( op_set ) , INTENT(IN) :: set
 
-    {% for i in kernel.args %}
-    type ( op_arg ) , INTENT(IN) :: opArg{{ i+1 }}
+    {% for arg in kernel.args %}
+    type ( op_arg ) , INTENT(IN) :: opArg{{ arg.i+1 }}
     {% endfor %}
 
     type ( op_arg ) , DIMENSION({{ kernel.args | length }}) :: opArgArray
@@ -144,34 +131,35 @@ MODULE {{ kernel.name }}_module
     INTEGER(kind=4) :: n_upper
     type ( op_set_core ) , POINTER :: opSetCore
 
-
-    {# Indirect #}
-    {% for i, arg in kernel.indirectVars.items() %}
-    INTEGER(kind=4), POINTER, DIMENSION(:) :: opDat{{ i+1 }}Map
-    INTEGER(kind=4) :: opDat{{ i+1 }}MapDim
-    {{ arg.typ }}, POINTER, DIMENSION(:) :: opDat{{ i+1 }}Local
-    INTEGER(kind=4) :: opDat{{ i+1 }}Cardinality
-    {% endfor %}
-
-    {# Direct #}
-    {% for i, arg in kernel.directs.items() %}
-    {{ arg.typ }}, POINTER, DIMENSION(:) :: opDat{{ i+1 }}Local
-    INTEGER(kind=4) :: opDat{{ i+1 }}Cardinality
-    {% endfor %}
-      
-    {# Global #}
-    {% for i, arg in kernel.globals.items() %}
-    {{ arg.typ }}, POINTER, DIMENSION(:) :: opDat{{ i+1 }}Local
-    {% endfor %}
     {# TODO: Opts #}
+
+    {# Indirect dats #}
+    {% for arg in kernel.indirectVars %}
+    {{ arg.typ }}, POINTER, DIMENSION(:) :: indDat_{{ arg.var }}
+    INTEGER(kind=4) :: indDatCard_{{ arg.map }}_{{ arg.var }}
+    {% endfor %}
+    {# Direct dats #}
+    {% for arg in kernel.directs %}
+    {{ arg.typ }}, POINTER, DIMENSION(:) :: dirDat_{{ arg.var }}
+    INTEGER(kind=4) :: dirDatCard_{{ arg.var }}
+    {% endfor %}
+    {# Global dats #}
+    {% for arg in kernel.globals %}
+    {{ arg.typ }}, POINTER, DIMENSION(:) :: gblDat_{{ arg.var }}
+    {% endfor %}
+    {# Maps #}
+    {% for i in kernel.indirectMaps  %}
+    INTEGER(kind=4), POINTER, DIMENSION(:) :: map_{{ i.map }}
+    INTEGER(kind=4) :: mapDim_{{ i.map }}
+    {% endfor %}
 
     INTEGER(kind=4) :: i1
     REAL(kind=4) :: dataTransfer
 
     numberOfOpDats = {{ kernel.args | length }}
 
-    {% for i in kernel.args %}
-    opArgArray({{ i+1 }}) = opArg{{ i+1 }}      
+    {% for arg in kernel.args %}
+    opArgArray({{ arg.i+1 }}) = opArg{{ arg.i+1 }}      
     {% endfor %}
 
     returnSetKernelTiming = setKernelTime( &
@@ -184,45 +172,51 @@ MODULE {{ kernel.name }}_module
 
     opSetCore => set%setPtr
 
-    {% for i in kernel.indirectVars %}
-    opDat{{ i+1 }}Cardinality = opArg{{ i+1 }}%dim * getSetSizeFromOpArg(opArg{{ i+1 }})
-    opDat{{ i+1 }}MapDim = getMapDimFromOpArg(opArg{{ i+1 }})
+    {# Indirect #}
+    {% for arg in kernel.indirectVars %}
+    indDatCard_{{ arg.map }}_{{ arg.var }} = opArg{{ arg.i+1 }}%dim * getSetSizeFromOpArg(opArg{{ arg.i+1 }})
     {% endfor %}
-    {% for i in kernel.directs %}
-    opDat{{ i+1 }}Cardinality = opArg{{ i+1 }}%dim * getSetSizeFromOpArg(opArg{{ i+1 }})
+    {# Direct #}
+    {% for arg in kernel.directs %}
+    dirDatCard_{{ arg.var }} = opArg{{ arg.i+1 }}%dim * getSetSizeFromOpArg(opArg{{ arg.i+1 }})
     {% endfor %}
-
-    {% for i in kernel.indirectVars %}
-    CALL c_f_pointer(opArg{{ i+1 }}%data,opDat{{ i+1 }}Local,(/opDat{{ i+1 }}Cardinality/))
-    CALL c_f_pointer(opArg{{ i+1 }}%map_data,opDat{{ i+1 }}Map,(/opSetCore%size*opDat{{ i+1 }}MapDim/))
-    {% endfor %}
-
-    {% for i in kernel.directs %}
-    CALL c_f_pointer(opArg{{ i+1 }}%data,opDat{{ i+1 }}Local,(/opDat{{ i+1 }}Cardinality/))
+    {# Maps #}
+    {% for arg in kernel.indirectMaps  %}
+    mapDim_{{ arg.map }} = getMapDimFromOpArg(opArg{{ arg.i+1 }})
     {% endfor %}
 
-    {% for i in kernel.globals %}
-    CALL c_f_pointer(opArg{{ i+1 }}%data,opDat{{ i+1 }}Local, (/opArg{{ i+1 }}%dim/))
+    {# Indirect #}
+    {% for arg in kernel.indirectVars %}
+    CALL c_f_pointer(opArg{{ arg.i+1 }}%data, indDat_{{ arg.map }}_{{ arg.var }}, (/indDatCard_{{ arg.map }}_{{ arg.var }}/))
+    CALL c_f_pointer(opArg{{ arg.i+1 }}%map_data, map_{{ arg.map }}, (/opSetCore%size*mapDim_{{ arg.map }}/))
+    {% endfor %}
+    {# Direct #}
+    {% for arg in kernel.directs %}
+    CALL c_f_pointer(opArg{{ arg.i+1 }}%data, dirDat_{{ arg.var }}, (/dirDatCard_{{ arg.var }}/))
+    {% endfor %}
+    {# Global #}
+    {% for arg in kernel.globals %}
+    CALL c_f_pointer(opArg{{ arg.i+1 }}%data, gblDat_{{ arg.var }}, (/opArg{{ arg.i+1 }}%dim/))
     {% endfor %}
 
 
     CALL {{ kernel.name }}_wrap( &
-      {# #}
-      {% for i in kernel.indirectVars %}
-      & opDat{{ i+1 }}Local, &
+      {# Indirects #}
+      {% for arg in kernel.indirectVars %}
+      & indDat_{{ arg.map }}_{{ arg.var }}, &
       {% endfor %}
-      {#  #}
-      {% for i in kernel.directs %}
-      & opDat{{ i+1 }}Local, &
+      {# Directs #}
+      {% for arg in kernel.directs %}
+      & dirDat_{{ arg.var }}, &
       {% endfor %}
-      {#  #}
-      {% for i in kernel.globals %}
-      & opDat{{ i+1 }}Local, &
+      {# Globals #}
+      {% for arg in kernel.globals  %}
+      & gblDat_{{ arg.var }}, &
       {% endfor %}
-      {#  #}
-      {% for i in kernel.indirectMaps %}
-      & opDat{{ i+1 }}Map, &
-      & opDat{{ i+1 }}MapDim, & 
+      {# Maps #}
+      {% for arg in kernel.indirectMaps  %}
+      & map_{{ arg.map }}, &
+      & mapDim_{{ arg.map }}, & 
       {% endfor %}
       {#  #}
       & 0, & 
@@ -232,22 +226,22 @@ MODULE {{ kernel.name }}_module
     CALL op_mpi_wait_all(numberOfOpDats, opArgArray)
 
     CALL {{ kernel.name }}_wrap( &
-      {# #}
-      {% for i in kernel.indirectVars %}
-      & opDat{{ i+1 }}Local, &
+      {# Indirects #}
+      {% for arg in kernel.indirectVars %}
+      & indDat_{{ arg.map }}_{{ arg.var }}, &
       {% endfor %}
-      {#  #}
-      {% for i in kernel.directs %}
-      & opDat{{ i+1 }}Local, &
+      {# Directs #}
+      {% for arg in kernel.directs %}
+      & dirDat_{{ arg.var }}, &
       {% endfor %}
-      {#  #}
-      {% for i in kernel.globals %}
-      & opDat{{ i+1 }}Local, &
+      {# Globals #}
+      {% for arg in kernel.globals  %}
+      & gblDat_{{ arg.var }}, &
       {% endfor %}
-      {#  #}
-      {% for i in kernel.indirectMaps %}
-      & opDat{{ i+1 }}Map, &
-      & opDat{{ i+1 }}MapDim, & 
+      {# Maps #}
+      {% for arg in kernel.indirectMaps  %}
+      & map_{{ arg.map }}, &
+      & mapDim_{{ arg.map }}, & 
       {% endfor %}
       {#  #}
       & opSetCore%core_size, & 
@@ -260,17 +254,17 @@ MODULE {{ kernel.name }}_module
 
     CALL op_mpi_set_dirtybit(numberOfOpDats,opArgArray)
 
-    {% for i, arg in kernel.globals.items() %} 
+    {% for arg in kernel.globals %} 
     {%   if arg.acc in ['OP_INC', 'OP_MIN', 'OP_MAX', 'OP_WRITE'] %}
-    {%     call op_opt(i, arg) %} 
+    {%     call op_opt(arg) %} 
     {%     if arg.typ in ['real(8)', 'REAL(kind=8)', 'real*8', 'r8'] %}
-    CALL op_mpi_reduce_double(opArg{{ i+1 }}, opArg{{ i+1 }}%data)
+    CALL op_mpi_reduce_double(opArg{{ arg.i+1 }}, opArg{{ arg.i+1 }}%data)
     {%     elif arg.typ in ['real(4)', 'REAL(kind=4)', 'real*4', 'r4'] %} 
-    CALL op_mpi_reduce_float(opArg{{ i+1 }}, opArg{{ i+1 }}%data)
+    CALL op_mpi_reduce_float(opArg{{ arg.i+1 }}, opArg{{ arg.i+1 }}%data)
     {%     elif arg.typ in ['integer(4)', 'INTEGER(kind=4)', 'integer*4', 'i4'] %}
-    {CALL op_mpi_reduce_int(opArg{{ i+1 }}, opArg{{ i+1 }}%data)
+    {CALL op_mpi_reduce_int(opArg{{ arg.i+1 }}, opArg{{ arg.i+1 }}%data)
     {%     elif arg.typ in ['logical', 'logical*1'] %}
-    CALL op_mpi_reduce_bool(opArg{{ i+1 }}, opArg{{ i+1 }}%data)
+    CALL op_mpi_reduce_bool(opArg{{ arg.i+1 }}, opArg{{ arg.i+1 }}%data)
     {%     endif %}
     {%     endcall %}
     {%   endif %}
@@ -282,9 +276,9 @@ MODULE {{ kernel.name }}_module
 
     {# No indirection #}
     {% if not kernel.indirection %}
-    {%   for i, arg in kernel.args.items() %}
-    {%     call op_opt(i, arg) %}   
-    dataTransfer = dataTransfer + opArg{{ i+1 }}%size 
+    {%   for arg in kernel.args %}
+    {%     call op_opt(arg) %}   
+    dataTransfer = dataTransfer + opArg{{ arg.i+1 }}%size 
     {%-    if arg is not global %} * opSetCore%size{% endif %} 
     {%-    if arg is not r_o_w_acc %} * 2.d0{% endif %}
     {%     endcall %}
@@ -292,29 +286,29 @@ MODULE {{ kernel.name }}_module
     {# Indirection #}
     {% else %}
     {#   Indirects #}
-    {%   for i, arg in kernel.indirectVars.items() %}
-    {%     call op_opt(i, arg) %} 
-    dataTransfer = dataTransfer + opArg{{ i+1 }}%size * MIN(n_upper,getSetSizeFromOpArg(opArg{{ i+1 }}))
+    {%   for arg in kernel.indirectVars %}
+    {%     call op_opt(arg) %} 
+    dataTransfer = dataTransfer + opArg{{ arg.i+1 }}%size * MIN(n_upper,getSetSizeFromOpArg(opArg{{ arg.i+1 }}))
     {%-    if arg is not r_o_w_acc %} * 2.d0{% endif %}
     {%     endcall %}
     {%   endfor %}
     {#   Directs #}
-    {%   for i, arg in kernel.directs.items() %}
-    {%     call op_opt(i, arg) %} 
-    dataTransfer = dataTransfer + opArg{{ i+1 }}%size * MIN(n_upper,getSetSizeFromOpArg(opArg{{ i+1 }}))
+    {%   for arg in kernel.directs %}
+    {%     call op_opt(arg) %} 
+    dataTransfer = dataTransfer + opArg{{ arg.i+1 }}%size * MIN(n_upper,getSetSizeFromOpArg(opArg{{ arg.i+1 }}))
     {%-    if arg is not r_o_w_acc %} * 2.d0{% endif %}
     {%     endcall %}
     {%   endfor %}
     {#   Globals #}
-    {%   for i, arg in kernel.globals.items() %}
-    {%     call op_opt(i, arg) %} 
-    dataTransfer = dataTransfer + opArg{{ i+1 }}%size
+    {%   for arg in kernel.globals %}
+    {%     call op_opt(arg) %} 
+    dataTransfer = dataTransfer + opArg{{ arg.i+1 }}%size
     {%-    if arg is not r_o_w_acc %} * 2.d0{% endif %}
     {%     endcall %}
     {%   endfor %}
     {#   Mappings #}
-    {%   for i in kernel.indirectMaps %}
-    dataTransfer = dataTransfer + n_upper * opDat{{ i+1 }}MapDim * 4.d0
+    {%   for arg in kernel.indirectMaps %}
+    dataTransfer = dataTransfer + n_upper * mapDim_{{ arg.map }} * 4.d0
     {%   endfor %}
     {% endif %}
 

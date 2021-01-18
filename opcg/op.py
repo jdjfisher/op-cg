@@ -98,13 +98,14 @@ class Const:
 
 
 class Arg:
-  var: str
-  dim: int
-  typ: str
-  acc: str
-  loc: Location
-  map: Optional[str]
-  idx: Optional[int]
+  i: int = 0 # Loop argumnet index
+  var: str   # Dataset identifier
+  dim: int   # Dataset dimension (redundant)
+  typ: str   # Dataset type (redundant)
+  acc: str   # Dataset access operation
+  loc: Location      # Source code location
+  map: Optional[str] # Indirect mapping indentifier
+  idx: Optional[int] # Indirect mapping index
   opt: Optional[str]
 
   def __init__(
@@ -138,7 +139,7 @@ class Arg:
 
 
   @property
-  def global_(self):
+  def global_(self) -> bool:
     return self.map is None 
 
 
@@ -146,70 +147,57 @@ class Loop:
   name: str
   set: str
   loc: Location
-  args: Dict[int, Arg] 
+  args: List[Arg] 
 
   def __init__(self, kernel: str, set_: str, loc: Location, args: List[Arg]) -> None:
     self.name = kernel
     self.set = set_
     self.loc = loc
-    self.args = dict(enumerate(args))
+    self.args = args
+    for i, arg in enumerate(args):
+      arg.i = i
 
 
   @property
-  def indirection(self):
+  def indirection(self) -> bool:
     return len(self.indirects) > 0
 
 
   @property
-  def directs(self):
-    return { i: arg for i, arg in self.args.items() if arg.direct }
+  def directs(self) -> List[Arg]:
+    return [ arg for arg in self.args if arg.direct ]
 
 
   @property
-  def indirects(self):
-    return { i: arg for i, arg in self.args.items() if arg.indirect }
+  def indirects(self) -> List[Arg]:
+    return [ arg for arg in self.args if arg.indirect ]
 
 
   @property
-  def globals(self):
-    return { i: arg for i, arg in self.args.items() if arg.global_ }
+  def globals(self) -> List[Arg]:
+    return [ arg for arg in self.args if arg.global_ ]
 
 
   @property
-  def indirectVars(self):
+  def indirectVars(self) -> List[Arg]:
     # TODO: Tidy
-    x, r = [], {}
-    for i, arg in self.indirects.items():
-      y = arg.var
-      if y not in x:
-        x.append(y)
-        r[i] = arg
+    x, r = [], []
+    for arg in self.indirects:
+      if arg.var not in x:
+        x.append(arg.var)
+        r.append(arg)
 
     return r
 
 
   @property
-  def indirectMaps(self):
+  def indirectMaps(self) -> List[Arg]:
     # TODO: Tidy
-    x, r = [], {}
-    for i, arg in self.indirects.items():
-      y = arg.map
-      if y not in x:
-        x.append(y)
-        r[i] = arg
-
-    return r
-
-
-  @property
-  def indirectMapRefs(self):
-    # TODO: Tidy
-    x, r = [], {}
-    for i, arg in self.indirects.items():
-      y = (arg.map, arg.idx)
-      if y not in x:
-        x.append(y)
-        r[i] = arg
+    x, r = [], []
+    for arg in self.indirects:
+      if arg.map not in x:
+        x.append(arg.map)
+        r.append(arg)
 
     return r
 

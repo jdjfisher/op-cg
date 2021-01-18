@@ -1,4 +1,7 @@
-.SILENT:
+# .SILENT:
+
+all:
+	exit
 
 fseq: # temp for development 
 	python3 opcg seq -vdm examples/fortran/airfoil/airfoil.F90 -o temp/

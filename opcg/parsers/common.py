@@ -170,7 +170,7 @@ class Store:
         raise OpError(f'undefined set "{loop.set}" referenced in par loop call', loop.loc)
 
       # Validate loop args
-      for arg in loop.args.values():
+      for arg in loop.args:
         if not arg.global_:
           # Look for the referenced data
           data_ = safeFind(self.datas, lambda d: d.ptr == arg.var)
@@ -193,7 +193,7 @@ class Store:
               raise OpError(f'cannot directly access the "{arg.var}" dataset from the "{loop.set}" loop set', arg.loc)
 
             # Check that the same dataset has not already been directly accessed
-            if safeFind(loop.directs.values(), lambda a: a is not arg and a.var == arg.var):
+            if safeFind(loop.directs, lambda a: a is not arg and a.var == arg.var):
               raise OpError(f'duplicate direct accesses to the "{arg.var}" dataset in the same par loop', arg.loc)
 
           # Validate indirect args
@@ -222,7 +222,7 @@ class Store:
 
             # Check duplicate indirect accesses     
             predicate = lambda a: a is not arg and a.var == arg.var and a.map == arg.map and a.idx == arg.idx
-            if safeFind(loop.indirects.values(), predicate):
+            if safeFind(loop.indirects, predicate):
               raise OpError(f'duplicate indirect accesses in the same par loop', arg.loc)
 
 

@@ -2,13 +2,9 @@
 
 ## Getting Started
 
-- Navigate to project directory `cd wip`
+- Navigate to project directory `op-cg`
 - Install python packages `pip3 install -r requirements.txt`
 - Invoke the CLI with `python3 opcg`
-
-## Testing 
-
-...
 
 ## Requirements
 

@@ -280,7 +280,7 @@ MODULE {{ parloop.name|upper }}_MODULE
     {%     call op_opt(arg) %}   
     dataTransfer = dataTransfer + opArg{{ arg.i+1 }}%size 
     {%-    if arg is not global %} * opSetCore%size{% endif %} 
-    {%-    if arg is not r_o_w_acc %} * 2.d0{% endif %}
+    {%-    if arg is not r_or_w_acc %} * 2.d0{% endif %}
     {%     endcall %}
     {%   endfor %}
     {# Indirection #}
@@ -289,21 +289,21 @@ MODULE {{ parloop.name|upper }}_MODULE
     {%   for arg in parloop.indirectVars %}
     {%     call op_opt(arg) %} 
     dataTransfer = dataTransfer + opArg{{ arg.i+1 }}%size * MIN(n_upper,getSetSizeFromOpArg(opArg{{ arg.i+1 }}))
-    {%-    if arg is not r_o_w_acc %} * 2.d0{% endif %}
+    {%-    if arg is not r_or_w_acc %} * 2.d0{% endif %}
     {%     endcall %}
     {%   endfor %}
     {#   Directs #}
     {%   for arg in parloop.directs %}
     {%     call op_opt(arg) %} 
     dataTransfer = dataTransfer + opArg{{ arg.i+1 }}%size * MIN(n_upper,getSetSizeFromOpArg(opArg{{ arg.i+1 }}))
-    {%-    if arg is not r_o_w_acc %} * 2.d0{% endif %}
+    {%-    if arg is not r_or_w_acc %} * 2.d0{% endif %}
     {%     endcall %}
     {%   endfor %}
     {#   Globals #}
     {%   for arg in parloop.globals %}
     {%     call op_opt(arg) %} 
     dataTransfer = dataTransfer + opArg{{ arg.i+1 }}%size
-    {%-    if arg is not r_o_w_acc %} * 2.d0{% endif %}
+    {%-    if arg is not r_or_w_acc %} * 2.d0{% endif %}
     {%     endcall %}
     {%   endfor %}
     {#   Mappings #}

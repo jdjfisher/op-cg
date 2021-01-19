@@ -1,4 +1,5 @@
 open-fortran-parser
+python-dotenv
 clang
 jinja2
 pytest

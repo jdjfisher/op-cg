@@ -13,16 +13,15 @@ from util import enumRegex, safeFind
 import op as OP
 
 
-# TODO: Cleanup config
-Config.set_library_file("/usr/lib/x86_64-linux-gnu/libclang-10.so.1")
-options = TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD # Capture pre-processor macros
-index = Index.create()
 macro_instances = {} # TODO: Cleanup
 
 
 def parse(path: Path) -> Store:
-  # Invoke the Clang parser on the source
-  translation_unit = index.parse(path, options=options)
+  # Init libclang
+  index = Index.create()
+
+  # Invoke Clang parser on the source
+  translation_unit = index.parse(path, options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
 
   # Throw the parse error first parse error caught in the diagnostics 
   error = next(iter(translation_unit.diagnostics), None)

@@ -144,18 +144,23 @@ class Arg:
 
 
 class Loop:
-  name: str
+  kernel: str
   set: str
   loc: Location
   args: List[Arg] 
 
   def __init__(self, kernel: str, set_: str, loc: Location, args: List[Arg]) -> None:
-    self.name = kernel
+    self.kernel = kernel
     self.set = set_
     self.loc = loc
     self.args = args
     for i, arg in enumerate(args):
       arg.i = i
+
+
+  @property
+  def name(self) -> str: 
+    return self.kernel # TODO: Unique name for incompatiable loops on the same kernel
 
 
   @property

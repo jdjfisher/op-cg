@@ -1,9 +1,11 @@
-FILES = {{ files|join(' ') }}
+PROGRAM = {{ translations|join(' ') }}
+{{ opt.name|upper }}_HOSTS = {{ hosts|join(' ') }}
 
+   
 
 all:
 	echo "TODO"
 
 
 clean:
-	rm -f $(FILES)
+	rm -f $(PROGRAM) $(HOSTS)

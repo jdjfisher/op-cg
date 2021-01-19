@@ -60,19 +60,19 @@ def genOpProgram(lang: Lang, source: str, store: Store, soa: bool = False) -> st
     # 2. Update loop calls
     for loop in store.loops:
       before, after = re.split(r'op_par_loop_[1-9]\d*', lines[loop.loc.line - 1], 1)
-      after = after.replace(loop.name, f'"{loop.name}"') # TODO: This assumes that the kernel arg is on the same line as the call
+      after = after.replace(loop.kernel, f'"{loop.kernel}"') # TODO: This assumes that the kernel arg is on the same line as the call
       lines[loop.loc.line - 1] = before + f'op_par_loop_{loop.name}_host' + after
 
     source = ''.join(lines)
 
     # 3. Update init call
     if soa:
-      _ = re.search(r'op_(mpi_)?init', source) # TODO: Finish
+      _ = re.search(r'op_(mpi_)?init(_base)?', source) # TODO: Finish
 
     # 4. Update headers
     before, after = source.split('  use OP2_Fortran_Reference\n', 1) # TODO: Make more robust
     for loop in store.loops:
-      before += f'  use {loop.name}_module\n' 
+      before += f'  use {loop.name.upper()}_MODULE\n' 
 
     source = before + after
 
@@ -95,14 +95,19 @@ def genLoopHost(lang: Lang, opt: Opt, loop: OP.Loop, i: int) -> str:
     exit(f'template not found for {lang.name}-{opt.name}')
 
   # Generate source from the template
-  return template.render(kernel=loop, id=i)
+  return template.render(parloop=loop, id=i)
 
 
 # 
-def genMakefile(paths: List[str]) -> str:
+def genMakefile(opt: Opt, translations: List[str], hosts: List[str]) -> str:
   # Lookup generation template
   template = env.get_template('makefile.j2')
 
-  files = [ basename(path) for path in paths ]
+  translations = [ basename(path) for path in translations ]
+  hosts = [ basename(path) for path in hosts ]
 
-  return template.render(files=files)
+  return template.render(
+    translations=translations,
+    hosts=hosts,
+    opt=opt,
+  )

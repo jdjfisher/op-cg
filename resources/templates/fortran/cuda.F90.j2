@@ -4,12 +4,12 @@
 {# Template imports #}
 {% from 'fortran/macros.j2' import comma %}
 
-{# {% set indirect_rw = any([ arg['acc'] == 'OP_RW' for arg in kernel.indirects.values() ]) %} #}
-{% set indirect_rw = 'OP_RW' in kernel.indirects.values()|selectattr('acc') %}
+{# {% set indirect_rw = any([ arg['acc'] == 'OP_RW' for arg in parloop.indirects.values() ]) %} #}
+{% set indirect_rw = 'OP_RW' in parloop.indirects.values()|selectattr('acc') %}
 {% set indirect_inc = true %}
 {% set atomics = indirect_inc and not indirect_rw %}
 
-MODULE {{ kernel.name }}_module
+MODULE {{ parloop.name|upper }}_MODULE
 
   USE OP2_CONSTANTS
   USE OP2_FORTRAN_DECLARATIONS
@@ -22,12 +22,12 @@ MODULE {{ kernel.name }}_module
     USE OMP_LIB
   #endif
 
-  ! {{ kernel.name }} variable declarations
+  ! {{ parloop.kernel }} variable declarations
 
   {# TODO: Strides for SoA #}
 
-  {% if kernel.indirection %}
-  TYPE ( c_ptr )  :: planRet_{{ kernel.name }}
+  {% if parloop.indirection %}
+  TYPE ( c_ptr )  :: planRet_{{ parloop.kernel }}
   {% endif %}
 
   {# TODO: Any SoA #}
@@ -200,45 +200,45 @@ MODULE {{ kernel.name }}_module
   {% endif %}
 
   attributes (host) &
-  #include "{{ kernel.name }}.inc"
+  #include "{{ parloop.kernel }}.inc"
   attributes (device) &
 
   {# TODO: Inline user kernel? #}
 
   ! CUDA kernel function
-  attributes (global) SUBROUTINE op_cuda_{{ kernel.name }}( &
+  attributes (global) SUBROUTINE op_cuda_{{ parloop.name }}( &
     {# TODO: OPT flags #}
     {#  #}
-    {% for i, arg in kernel.indirectVars.items() %}
+    {% for i, arg in parloop.indirectVars.items() %}
     {%   if arg is without_dim %}
     & opDat{{ i+1 }}Dim, &
     {%   endif %}
-    & opDat{{ i+1 }}Device_{{ kernel.name }}, &
+    & opDat{{ i+1 }}Device_{{ parloop.kernel }}, &
     {% endfor %}
     {#  #}
-    {% for i in kernel.indirectMaps %}
+    {% for i in parloop.indirectMaps %}
     & opDat{{ i+1 }}Map, &
     {% endfor %}
     {#  #}
-    {% for i, arg in kernel.directs.items() %}
+    {% for i, arg in parloop.directs.items() %}
     {%   if arg is without_dim %}
     & opDat{{ i+1 }}Dim, &
     {%   endif %}
-    & opDat{{ i+1 }}Device_{{ kernel.name }}, &
+    & opDat{{ i+1 }}Device_{{ parloop.kernel }}, &
     {% endfor %}
     {#  #}
-    {% for i, arg in kernel.globals.items() %}
+    {% for i, arg in parloop.globals.items() %}
     {%   if arg is without_dim %}
     & opDat{{ i+1 }}Dim, &
     {%   endif %}
     {%   if arg is without_dim and arg.acc in ['OP_INC', 'OP_MIN', 'OP_MAX'] %}
     & scratchDevice{{ i+1 }}, &
     {%   elif arg.dim == 1 and arg.acc == 'OP_READ' %}
-    & opGblDat{{ i+1 }}Device_{{ kernel.name }}, &
+    & opGblDat{{ i+1 }}Device_{{ parloop.kernel }}, &
     {%   endif %}
     {% endfor %}
     {#  #}
-    {% if kernel.indirection %}
+    {% if parloop.indirection %}
     & start, &
     & end, &
     {%   if not atomics %}
@@ -262,7 +262,7 @@ MODULE {{ kernel.name }}_module
     INTEGER(kind=4), DEVICE, INTENT(IN) :: opDat1Map(*)
     INTEGER(kind=4), DEVICE, INTENT(IN) :: opDat3Map(*) #}
 
-    INTEGER(kind=4) {% for i in kernel.indirectMapRefs -%} 
+    INTEGER(kind=4) {% for i in parloop.indirectMapRefs -%} 
     map{{ i+1 }}idx{{ comma(loop) }} 
     {%- endfor %}
 
@@ -274,7 +274,7 @@ MODULE {{ kernel.name }}_module
     INTEGER(kind=4) :: i2 #}
 
 
-    {% if kernel.indirection %}
+    {% if parloop.indirection %}
     i1 = threadIdx%x - 1 + (blockIdx%x - 1) * blockDim%x
     IF (i1+start < end) THEN
       i3 = i1+start
@@ -303,10 +303,10 @@ MODULE {{ kernel.name }}_module
 
   END SUBROUTINE
 
-  attributes (host) SUBROUTINE op_par_loop_{{ kernel.name }}_host( &
+  attributes (host) SUBROUTINE op_par_loop_{{ parloop.name }}_host( &
     & kernel, &
     & set, &
-    {% for i in kernel.args %}
+    {% for i in parloop.args %}
     & opArg{{ i+1 }}{{ comma(loop) }} &            
     {% endfor %}
     & )
@@ -315,15 +315,15 @@ MODULE {{ kernel.name }}_module
     character(kind=c_char,len=*), INTENT(IN) :: kernel
     TYPE ( op_set ) , INTENT(IN) :: set
 
-    {% for i in kernel.args %}
+    {% for i in parloop.args %}
     TYPE ( op_arg ) , INTENT(IN) :: opArg{{ i+1 }}
     {% endfor %}
 
     IF (getHybridGPU().EQ.1) THEN
-      CALL {{ kernel.name }}_host_gpu( &
+      CALL {{ parloop.name }}_host_gpu( &
         & kernel, &
         & set, &
-        {% for i in kernel.args %}
+        {% for i in parloop.args %}
         & opArg{{ i+1 }}{{ comma(loop) }} &            
         {% endfor %}
         & )
@@ -332,10 +332,10 @@ MODULE {{ kernel.name }}_module
 
 
   ! Stub for GPU execution
-  attributes (host) SUBROUTINE op_par_loop_{{ kernel.name }}_host_gpu( &
+  attributes (host) SUBROUTINE op_par_loop_{{ parloop.name }}_host_gpu( &
     & kernel, &
     & set, &
-    {% for i in kernel.args %}
+    {% for i in parloop.args %}
     & opArg{{ i+1 }}{{ comma(loop) }} &            
     {% endfor %}
     & )
@@ -344,11 +344,11 @@ MODULE {{ kernel.name }}_module
     character(kind=c_char,len=*), INTENT(IN) :: kernel
     TYPE ( op_set ) , INTENT(IN) :: set
 
-    {% for i in kernel.args %}
+    {% for i in parloop.args %}
     TYPE ( op_arg ) , INTENT(IN) :: opArg{{ i+1 }}
     {% endfor %}
 
-    TYPE ( op_arg ) , DIMENSION({{ kernel.args | length }}) :: opArgArray
+    TYPE ( op_arg ) , DIMENSION({{ parloop.args | length }}) :: opArgArray
     INTEGER(kind=4) :: numberOfOpDats
     INTEGER(kind=4) :: n_upper
     INTEGER(kind=4), DIMENSION(1:8) :: timeArrayStart
@@ -357,23 +357,23 @@ MODULE {{ kernel.name }}_module
     REAL(kind=8) :: endTime
     INTEGER(kind=4) :: returnSetKernelTiming
 
-    {% for i, arg in kernel.indirectVars.items() %}
-    {{ arg.typ }}, DIMENSION(:), DEVICE, POINTER :: opDat{{ i+1 }}Device_{{ kernel.name }}
-    INTEGER(kind=4), DIMENSION(:), DEVICE, POINTER :: opMap{{ i+1 }}Device_{{ kernel.name }}
+    {% for i, arg in parloop.indirectVars.items() %}
+    {{ arg.typ }}, DIMENSION(:), DEVICE, POINTER :: opDat{{ i+1 }}Device_{{ parloop.kernel }}
+    INTEGER(kind=4), DIMENSION(:), DEVICE, POINTER :: opMap{{ i+1 }}Device_{{ parloop.kernel }}
     {% endfor %}
-    {% for i, arg in kernel.directs.items() %}
-    {{ arg.typ }}, DIMENSION(:), DEVICE, POINTER :: opDat{{ i+1 }}Device_{{ kernel.name }}
+    {% for i, arg in parloop.directs.items() %}
+    {{ arg.typ }}, DIMENSION(:), DEVICE, POINTER :: opDat{{ i+1 }}Device_{{ parloop.kernel }}
     {% endfor %}
 
-    {% for i in kernel.indirectVars %}
+    {% for i in parloop.indirectVars %}
     INTEGER(kind=4) :: opDat{{ i+1 }}Cardinality
     INTEGER(kind=4) :: opMap{{ i+1 }}Cardinality
     {% endfor %}
-    {% for i in kernel.directs %}
+    {% for i in parloop.directs %}
     INTEGER(kind=4) :: opDat{{ i+1 }}Cardinality
     INTEGER(kind=4) :: opMap{{ i+1 }}Cardinality
     {% endfor %}
-    {% for i in kernel.globals %}
+    {% for i in parloop.globals %}
     INTEGER(kind=4) :: opDat{{ i+1 }}Cardinality
     INTEGER(kind=4) :: opMap{{ i+1 }}Cardinality
     {% endfor %}
@@ -387,15 +387,15 @@ MODULE {{ kernel.name }}_module
     INTEGER(kind=4) :: i10
 
     {# Indirection #}
-    {% if kernel.indirection %}
+    {% if parloop.indirection %}
     TYPE ( op_plan ) , POINTER :: actualPlan_res_calc
 
-    INTEGER(kind=4), DIMENSION(1:{{ kernel.args | length }}) :: opDatArray
-    INTEGER(kind=4), DIMENSION(1:{{ kernel.args | length }}) :: mappingIndicesArray
-    INTEGER(kind=4), DIMENSION(1:{{ kernel.args | length }}) :: accessDescriptorArray
-    INTEGER(kind=4), DIMENSION(1:{{ kernel.args | length }}) :: indirectionDescriptorArray
+    INTEGER(kind=4), DIMENSION(1:{{ parloop.args | length }}) :: opDatArray
+    INTEGER(kind=4), DIMENSION(1:{{ parloop.args | length }}) :: mappingIndicesArray
+    INTEGER(kind=4), DIMENSION(1:{{ parloop.args | length }}) :: accessDescriptorArray
+    INTEGER(kind=4), DIMENSION(1:{{ parloop.args | length }}) :: indirectionDescriptorArray
 
-    {% for i in kernel.indirectVars %}
+    {% for i in parloop.indirectVars %}
     INTEGER(kind=4) :: mappingArray{{ i+1 }}Size
     {% endfor %}
 
@@ -416,7 +416,7 @@ MODULE {{ kernel.name }}_module
     INTEGER(kind=4), SAVE :: calledTimes=0
     INTEGER(kind=4) :: istat
 
-    {% for i, arg in kernel.globals.items() %}
+    {% for i, arg in parloop.globals.items() %}
     {%   if arg.acc == 'OP_WRITE' or arg is without_dim or arg.dim > 1 %}
     {{ arg.typ }}, DIMENSION(:), POINTER :: opDat{{ i+1 }}Host
     {%   else %}
@@ -436,9 +436,9 @@ MODULE {{ kernel.name }}_module
 
     {# TODO: Optargs #}
 
-    numberOfOpDats = {{ kernel.args | length }}
+    numberOfOpDats = {{ parloop.args | length }}
 
-    {% for i in kernel.args %}
+    {% for i in parloop.args %}
     opArgArray({{ i+1 }}) = opArg{{ i+1 }}
     {% endfor %}
 
@@ -455,12 +455,12 @@ MODULE {{ kernel.name }}_module
     threadsPerBlock = getBlockSize(kernel//C_NULL_CHAR,set%setPtr%size)
 
     {# Indirection #}
-    {% if kernel.indirection %}
-    {%   for i in kernel.args %}
+    {% if parloop.indirection %}
+    {%   for i in parloop.args %}
     indirectionDescriptorArray({{ i+1 }}) = {{ '??????' }}
     {%   endfor %}
 
-    numberOfIndirectOpDats = {{ kernel.indirectVars | length }}
+    numberOfIndirectOpDats = {{ parloop.indirectVars | length }}
 
     partitionSize = getPartitionSize(kernel//C_NULL_CHAR,set%setPtr%size)
 
@@ -473,25 +473,25 @@ MODULE {{ kernel.name }}_module
     dynamicSharedMemorySize = reductionSize(opArgArray,numberOfOpDats) * threadsPerBlock
     {% endif %}
 
-    {% for i in kernel.indirectVars %}
+    {% for i in parloop.indirectVars %}
     opDat{{ i+1 }}Cardinality = opArg{{ i+1 }}%dim * getSetSizeFromOpArg(opArg{{ i+1 }})
     opMap{{ i+1 }}Cardinality = set%setPtr%size * getMapDimFromOpArg(opArg{{ i+1 }})
     {% endfor %}
-    {% for i in kernel.directs %}
+    {% for i in parloop.directs %}
     opDat{{ i+1 }}Cardinality = opArg{{ i+1 }}%dim * getSetSizeFromOpArg(opArg{{ i+1 }})
     {% endfor %}
-    {% for i in kernel.globals %}
+    {% for i in parloop.globals %}
     opDat{{ i+1 }}Cardinality = opArg{{ i+1 }}%dim
     {% endfor %}
 
-    {% for i in kernel.indirectVars %}
-    CALL c_f_pointer(opArg{{ i+1 }}%data_d,opDat{{ i+1 }}Device_{{ kernel.name }},(/opDat{{ i+1 }}Cardinality/))
-    CALL c_f_pointer(opArg{{ i+1 }}%map_data_d,opMap{{ i+1 }}Device_{{ kernel.name }},(/opMap{{ i+1 }}Cardinality/))
+    {% for i in parloop.indirectVars %}
+    CALL c_f_pointer(opArg{{ i+1 }}%data_d,opDat{{ i+1 }}Device_{{ parloop.kernel }},(/opDat{{ i+1 }}Cardinality/))
+    CALL c_f_pointer(opArg{{ i+1 }}%map_data_d,opMap{{ i+1 }}Device_{{ parloop.kernel }},(/opMap{{ i+1 }}Cardinality/))
     {% endfor %}
-    {% for i in kernel.directs %}
-    CALL c_f_pointer(opArg{{ i+1 }}%data_d,opDat{{ i+1 }}Device_{{ kernel.name }},(/opDat{{ i+1 }}Cardinality/))
+    {% for i in parloop.directs %}
+    CALL c_f_pointer(opArg{{ i+1 }}%data_d,opDat{{ i+1 }}Device_{{ parloop.kernel }},(/opDat{{ i+1 }}Cardinality/))
     {% endfor %}
-    {% for i, arg in kernel.globals.items() %}
+    {% for i, arg in parloop.globals.items() %}
     {%   if arg.acc == 'OP_WRITE' or arg is without_dim or arg.dim > 1 %}
     CALL c_f_pointer(opArg{{ i+1 }}%data,opDat{{ i+1 }}Host,(/opDat{{ i+1 }}Cardinality/))
     {%   else %}
@@ -502,25 +502,25 @@ MODULE {{ kernel.name }}_module
     {%   endif %}
     {% endfor %}
 
-    {% if kernel.indirection and not atomics %}
-    CALL c_f_pointer(planRet_{{ kernel.name }},actualPlan_{{ kernel.name }})
-    CALL c_f_pointer(actualPlan_{{ kernel.name }}%color2_offsets,color2_offsets,(/actualPlan_{{ kernel.name }}%ncolors+1/))
-    CALL c_f_pointer(actualPlan_{{ kernel.name }}%col_reord,pcol_reord,(/set%setPtr%size+set%setPtr%exec_size/))
+    {% if parloop.indirection and not atomics %}
+    CALL c_f_pointer(planRet_{{ parloop.kernel }},actualPlan_{{ parloop.kernel }})
+    CALL c_f_pointer(actualPlan_{{ parloop.kernel }}%color2_offsets,color2_offsets,(/actualPlan_{{ parloop.kernel }}%ncolors+1/))
+    CALL c_f_pointer(actualPlan_{{ parloop.kernel }}%col_reord,pcol_reord,(/set%setPtr%size+set%setPtr%exec_size/))
     {% endif %}
 
-    {% for i, arg in kernel.globals.items() %}
+    {% for i, arg in parloop.globals.items() %}
     {# {%   if ((accs[g_m]==OP_READ and ((not dims[g_m].isdigit()) or int(dims[g_m]) > 1)) or arg['acc'] == 'OP_WRITE' %} #}
-    {# IF (.not. allocated(opGblDat{{ i+1 }}Device_{{ kernel.name }})) THEN
-      allocate(opGblDat{{ i+1 }}Device_{{ kernel.name }}(opArg{{ i+1 }}%dim))
+    {# IF (.not. allocated(opGblDat{{ i+1 }}Device_{{ parloop.kernel }})) THEN
+      allocate(opGblDat{{ i+1 }}Device_{{ parloop.kernel }}(opArg{{ i+1 }}%dim))
     END IF
-    opGblDat{{ i+1 }}Device_{{ kernel.name }}(1:opArg{{ i+1 }}%dim) = opDat{{ i+1 }}Host(1:opArg{{ i+1 }}%dim)  #}
+    opGblDat{{ i+1 }}Device_{{ parloop.kernel }}(1:opArg{{ i+1 }}%dim) = opDat{{ i+1 }}Host(1:opArg{{ i+1 }}%dim)  #}
     {# {%   endif %} #}
     {% endfor %}
 
-    {% if kernel.indirection and reduct %}
+    {% if parloop.indirection and reduct %}
     blocksPerGrid=0
     {%   if not atomics %}
-    DO i2 = 0, actualPlan_{{ kernel.name }}%ncolors - 1, 1
+    DO i2 = 0, actualPlan_{{ parloop.kernel }}%ncolors - 1, 1
       blocksPerGrid = blocksPerGrid+(color2_offsets(i2+2)-color2_offsets(i2+1)-1)/threadsPerBlock+1
     END DO
     {%   else %}

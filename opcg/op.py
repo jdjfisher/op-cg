@@ -98,7 +98,7 @@ class Const:
 
 
 class Arg:
-  i: int = 0 # Loop argumnet index
+  i: int = 0 # Loop argument index
   var: str   # Dataset identifier
   dim: int   # Dataset dimension (redundant)
   typ: str   # Dataset type (redundant)
@@ -144,6 +144,7 @@ class Arg:
 
 
 class Loop:
+  i: Optional[int]
   kernel: str
   set: str
   loc: Location
@@ -154,13 +155,14 @@ class Loop:
     self.set = set_
     self.loc = loc
     self.args = args
+    self.i = None
     for i, arg in enumerate(args):
       arg.i = i
 
 
   @property
   def name(self) -> str: 
-    return self.kernel # TODO: Unique name for incompatiable loops on the same kernel
+    return self.kernel if self.i is None else f'{self.kernel}_{self.i}'
 
 
   @property

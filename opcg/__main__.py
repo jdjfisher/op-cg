@@ -108,7 +108,7 @@ def main(argv=None) -> None:
   for i, loop in enumerate(main_store.loops, 1):
 
     # Form output file path 
-    path = os.path.join(args.out, f'{args.prefix}_{opt.name}_{loop.kernel}.{extension}')
+    path = os.path.join(args.out, f'{args.prefix}_{opt.name}_{loop.name}.{extension}')
 
     # Generate loop host source
     source = genLoopHost(lang, opt, loop, i)

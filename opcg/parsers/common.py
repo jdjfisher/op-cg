@@ -48,7 +48,7 @@ class ParseError(Exception):
 
 
 class Store:
-  # init: 
+  init: Location
   exit: bool
   sets: List[OP.Set]
   maps: List[OP.Map]
@@ -103,16 +103,28 @@ class Store:
         raise ParseError(f"size mismatch in repeated decleration of '{const.name}' const") 
       
       else:
-        return
+        return # TODO: We need to keep track of the location still
       
     # Store const
     self.consts.append(const)
 
 
   def addLoop(self, loop: OP.Loop) -> None:
-    # TODO: Check for repeats / compatitbility 
+    # Search for previous decleration on the same kernel
+    prev = safeFind(self.loops, lambda l: l.kernel == loop.kernel)
+
+    if prev:
+      # TODO: Check for compatitbile repeats (and then skip the loop but track its location)
+
+      # Ensure the previous loop has an index
+      if prev.i is None:
+        prev.i = 1
+        
+      # Give the new loop a unqiue index
+      loop.i = prev.i + 1
+
     self.loops.append(loop)
-  
+
 
   def merge(self, store: Store) -> None:
     self.recordInit(store.init)

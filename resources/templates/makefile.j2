@@ -1,11 +1,26 @@
+
+# Makefile generation is a wip
+
+# Generated files
 PROGRAM = {{ translations|join(' ') }}
 {{ opt.name|upper }}_HOSTS = {{ hosts|join(' ') }}
 
+# Paths
+OP2_INC =
+
+# Build
+COMP = gfortran
+COMP_FLAGS = 
    
 
 all:
-	echo "TODO"
+		exit
+
+
+{{ opt.name }}:
+		$(COMP) $(COMP_FLAGS) \
+		$(PROGRAM) $({{ opt.name|upper }}_HOSTS)
 
 
 clean:
-	rm -f $(PROGRAM) $(HOSTS)
+		rm -f $(PROGRAM) $({{ opt.name|upper }}_HOSTS)

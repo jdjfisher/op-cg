@@ -1,0 +1,781 @@
+{
+    "init": {
+        "file": "examples/fortran/airfoil/airfoil.F90",
+        "line": 77,
+        "column": 2
+    },
+    "exit": false,
+    "sets": [
+        {
+            "ptr": "nodes"
+        },
+        {
+            "ptr": "edges"
+        },
+        {
+            "ptr": "bedges"
+        },
+        {
+            "ptr": "cells"
+        }
+    ],
+    "maps": [
+        {
+            "from_set": "edges",
+            "to_set": "nodes",
+            "dim": 2,
+            "ptr": "pedge",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 90,
+                "column": 2
+            }
+        },
+        {
+            "from_set": "edges",
+            "to_set": "cells",
+            "dim": 2,
+            "ptr": "pecell",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 91,
+                "column": 2
+            }
+        },
+        {
+            "from_set": "bedges",
+            "to_set": "nodes",
+            "dim": 2,
+            "ptr": "pbedge",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 92,
+                "column": 2
+            }
+        },
+        {
+            "from_set": "bedges",
+            "to_set": "cells",
+            "dim": 1,
+            "ptr": "pbecell",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 93,
+                "column": 2
+            }
+        },
+        {
+            "from_set": "cells",
+            "to_set": "nodes",
+            "dim": 4,
+            "ptr": "pcell",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 94,
+                "column": 2
+            }
+        }
+    ],
+    "datas": [
+        {
+            "set": "bedges",
+            "dim": 1,
+            "typ": "integer(4)",
+            "ptr": "p_bound",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 97,
+                "column": 2
+            }
+        },
+        {
+            "set": "nodes",
+            "dim": 2,
+            "typ": "real(8)",
+            "ptr": "p_x",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 98,
+                "column": 2
+            }
+        },
+        {
+            "set": "cells",
+            "dim": 4,
+            "typ": "real(8)",
+            "ptr": "p_q",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 99,
+                "column": 2
+            }
+        },
+        {
+            "set": "cells",
+            "dim": 4,
+            "typ": "real(8)",
+            "ptr": "p_qold",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 100,
+                "column": 2
+            }
+        },
+        {
+            "set": "cells",
+            "dim": 1,
+            "typ": "real(8)",
+            "ptr": "p_adt",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 101,
+                "column": 2
+            }
+        },
+        {
+            "set": "cells",
+            "dim": 4,
+            "typ": "real(8)",
+            "ptr": "p_res",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 102,
+                "column": 2
+            }
+        }
+    ],
+    "loops": [
+        {
+            "kernel": "save_soln",
+            "set": "cells",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 129,
+                "column": 5
+            },
+            "args": [
+                {
+                    "var": "p_q",
+                    "dim": 4,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 129,
+                        "column": 45
+                    },
+                    "map": "OP_ID",
+                    "idx": -1,
+                    "opt": null,
+                    "i": 0
+                },
+                {
+                    "var": "p_qold",
+                    "dim": 4,
+                    "typ": "real(8)",
+                    "acc": "OP_WRITE",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 129,
+                        "column": 100
+                    },
+                    "map": "OP_ID",
+                    "idx": -1,
+                    "opt": null,
+                    "i": 1
+                }
+            ],
+            "i": null
+        },
+        {
+            "kernel": "adt_calc",
+            "set": "cells",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 138,
+                "column": 6
+            },
+            "args": [
+                {
+                    "var": "p_x",
+                    "dim": 2,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 138,
+                        "column": 45
+                    },
+                    "map": "pcell",
+                    "idx": 1,
+                    "opt": null,
+                    "i": 0
+                },
+                {
+                    "var": "p_x",
+                    "dim": 2,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 138,
+                        "column": 99
+                    },
+                    "map": "pcell",
+                    "idx": 2,
+                    "opt": null,
+                    "i": 1
+                },
+                {
+                    "var": "p_x",
+                    "dim": 2,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 138,
+                        "column": 153
+                    },
+                    "map": "pcell",
+                    "idx": 3,
+                    "opt": null,
+                    "i": 2
+                },
+                {
+                    "var": "p_x",
+                    "dim": 2,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 138,
+                        "column": 207
+                    },
+                    "map": "pcell",
+                    "idx": 4,
+                    "opt": null,
+                    "i": 3
+                },
+                {
+                    "var": "p_q",
+                    "dim": 4,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 138,
+                        "column": 261
+                    },
+                    "map": "OP_ID",
+                    "idx": -1,
+                    "opt": null,
+                    "i": 4
+                },
+                {
+                    "var": "p_adt",
+                    "dim": 1,
+                    "typ": "real(8)",
+                    "acc": "OP_WRITE",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 138,
+                        "column": 315
+                    },
+                    "map": "OP_ID",
+                    "idx": -1,
+                    "opt": null,
+                    "i": 5
+                }
+            ],
+            "i": 1
+        },
+        {
+            "kernel": "adt_calc",
+            "set": "cells",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 146,
+                "column": 6
+            },
+            "args": [
+                {
+                    "var": "p_x",
+                    "dim": 2,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 146,
+                        "column": 45
+                    },
+                    "map": "pcell",
+                    "idx": 1,
+                    "opt": null,
+                    "i": 0
+                },
+                {
+                    "var": "p_x",
+                    "dim": 2,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 146,
+                        "column": 99
+                    },
+                    "map": "pcell",
+                    "idx": 2,
+                    "opt": null,
+                    "i": 1
+                },
+                {
+                    "var": "p_x",
+                    "dim": 2,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 146,
+                        "column": 153
+                    },
+                    "map": "pcell",
+                    "idx": 3,
+                    "opt": null,
+                    "i": 2
+                },
+                {
+                    "var": "p_x",
+                    "dim": 2,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 146,
+                        "column": 207
+                    },
+                    "map": "pcell",
+                    "idx": 4,
+                    "opt": null,
+                    "i": 3
+                },
+                {
+                    "var": "p_q",
+                    "dim": 4,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 146,
+                        "column": 261
+                    },
+                    "map": "OP_ID",
+                    "idx": -1,
+                    "opt": null,
+                    "i": 4
+                },
+                {
+                    "var": "p_adt",
+                    "dim": 1,
+                    "typ": "real(8)",
+                    "acc": "OP_WRITE",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 146,
+                        "column": 315
+                    },
+                    "map": "OP_ID",
+                    "idx": -1,
+                    "opt": null,
+                    "i": 5
+                }
+            ],
+            "i": 2
+        },
+        {
+            "kernel": "res_calc",
+            "set": "edges",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 155,
+                "column": 6
+            },
+            "args": [
+                {
+                    "var": "p_x",
+                    "dim": 2,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 155,
+                        "column": 45
+                    },
+                    "map": "pedge",
+                    "idx": 1,
+                    "opt": null,
+                    "i": 0
+                },
+                {
+                    "var": "p_x",
+                    "dim": 2,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 155,
+                        "column": 100
+                    },
+                    "map": "pedge",
+                    "idx": 2,
+                    "opt": null,
+                    "i": 1
+                },
+                {
+                    "var": "p_q",
+                    "dim": 4,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 155,
+                        "column": 155
+                    },
+                    "map": "pecell",
+                    "idx": 1,
+                    "opt": null,
+                    "i": 2
+                },
+                {
+                    "var": "p_q",
+                    "dim": 4,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 155,
+                        "column": 210
+                    },
+                    "map": "pecell",
+                    "idx": 2,
+                    "opt": null,
+                    "i": 3
+                },
+                {
+                    "var": "p_adt",
+                    "dim": 1,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 155,
+                        "column": 265
+                    },
+                    "map": "pecell",
+                    "idx": 1,
+                    "opt": null,
+                    "i": 4
+                },
+                {
+                    "var": "p_adt",
+                    "dim": 1,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 155,
+                        "column": 320
+                    },
+                    "map": "pecell",
+                    "idx": 2,
+                    "opt": null,
+                    "i": 5
+                },
+                {
+                    "var": "p_res",
+                    "dim": 4,
+                    "typ": "real(8)",
+                    "acc": "OP_INC",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 155,
+                        "column": 375
+                    },
+                    "map": "pecell",
+                    "idx": 1,
+                    "opt": null,
+                    "i": 6
+                },
+                {
+                    "var": "p_res",
+                    "dim": 4,
+                    "typ": "real(8)",
+                    "acc": "OP_INC",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 155,
+                        "column": 430
+                    },
+                    "map": "pecell",
+                    "idx": 2,
+                    "opt": null,
+                    "i": 7
+                }
+            ],
+            "i": null
+        },
+        {
+            "kernel": "bres_calc",
+            "set": "bedges",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 165,
+                "column": 6
+            },
+            "args": [
+                {
+                    "var": "p_x",
+                    "dim": 2,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 165,
+                        "column": 47
+                    },
+                    "map": "pbedge",
+                    "idx": 1,
+                    "opt": null,
+                    "i": 0
+                },
+                {
+                    "var": "p_x",
+                    "dim": 2,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 165,
+                        "column": 105
+                    },
+                    "map": "pbedge",
+                    "idx": 2,
+                    "opt": null,
+                    "i": 1
+                },
+                {
+                    "var": "p_q",
+                    "dim": 4,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 165,
+                        "column": 163
+                    },
+                    "map": "pbecell",
+                    "idx": 1,
+                    "opt": null,
+                    "i": 2
+                },
+                {
+                    "var": "p_adt",
+                    "dim": 1,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 165,
+                        "column": 221
+                    },
+                    "map": "pbecell",
+                    "idx": 1,
+                    "opt": null,
+                    "i": 3
+                },
+                {
+                    "var": "p_res",
+                    "dim": 4,
+                    "typ": "real(8)",
+                    "acc": "OP_INC",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 165,
+                        "column": 279
+                    },
+                    "map": "pbecell",
+                    "idx": 1,
+                    "opt": null,
+                    "i": 4
+                },
+                {
+                    "var": "p_bound",
+                    "dim": 1,
+                    "typ": "integer(4)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 165,
+                        "column": 337
+                    },
+                    "map": "OP_ID",
+                    "idx": -1,
+                    "opt": null,
+                    "i": 5
+                }
+            ],
+            "i": null
+        },
+        {
+            "kernel": "update",
+            "set": "cells",
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 177,
+                "column": 6
+            },
+            "args": [
+                {
+                    "var": "p_qold",
+                    "dim": 4,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 177,
+                        "column": 43
+                    },
+                    "map": "OP_ID",
+                    "idx": -1,
+                    "opt": null,
+                    "i": 0
+                },
+                {
+                    "var": "p_q",
+                    "dim": 4,
+                    "typ": "real(8)",
+                    "acc": "OP_WRITE",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 177,
+                        "column": 100
+                    },
+                    "map": "OP_ID",
+                    "idx": -1,
+                    "opt": null,
+                    "i": 1
+                },
+                {
+                    "var": "p_res",
+                    "dim": 4,
+                    "typ": "real(8)",
+                    "acc": "OP_RW",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 177,
+                        "column": 157
+                    },
+                    "map": "OP_ID",
+                    "idx": -1,
+                    "opt": null,
+                    "i": 2
+                },
+                {
+                    "var": "p_adt",
+                    "dim": 1,
+                    "typ": "real(8)",
+                    "acc": "OP_READ",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 177,
+                        "column": 214
+                    },
+                    "map": "OP_ID",
+                    "idx": -1,
+                    "opt": null,
+                    "i": 3
+                },
+                {
+                    "var": "rms",
+                    "dim": 2,
+                    "typ": "real(8)",
+                    "acc": "OP_INC",
+                    "loc": {
+                        "file": "examples/fortran/airfoil/airfoil.F90",
+                        "line": 177,
+                        "column": 271
+                    },
+                    "map": null,
+                    "idx": null,
+                    "opt": null,
+                    "i": 4
+                }
+            ],
+            "i": null
+        }
+    ],
+    "consts": [
+        {
+            "name": "gam",
+            "dim": 1,
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 106,
+                "column": 2
+            }
+        },
+        {
+            "name": "gm1",
+            "dim": 1,
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 107,
+                "column": 2
+            }
+        },
+        {
+            "name": "cfl",
+            "dim": 1,
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 108,
+                "column": 2
+            }
+        },
+        {
+            "name": "eps",
+            "dim": 1,
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 109,
+                "column": 2
+            }
+        },
+        {
+            "name": "mach",
+            "dim": 1,
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 110,
+                "column": 2
+            }
+        },
+        {
+            "name": "alpha",
+            "dim": 1,
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 111,
+                "column": 2
+            }
+        },
+        {
+            "name": "qinf",
+            "dim": 4,
+            "loc": {
+                "file": "examples/fortran/airfoil/airfoil.F90",
+                "line": 112,
+                "column": 2
+            }
+        }
+    ]
+}

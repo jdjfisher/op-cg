@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 14:05:55.578877 by opcg
+! Auto-generated at 2021-01-19 14:42:53.843316 by opcg
 
 
 MODULE SAVE_SOLN_MODULE
@@ -53,7 +53,7 @@ MODULE SAVE_SOLN_MODULE
     & )
 
     IMPLICIT NONE
-    character(kind=c_char,len=*), INTENT(IN) :: userSubroutine
+    character(kind=c_char,len=*), INTENT(IN) :: kernel
     type ( op_set ) , INTENT(IN) :: set
 
     type ( op_arg ) , INTENT(IN) :: opArg1
@@ -84,7 +84,7 @@ MODULE SAVE_SOLN_MODULE
     opArgArray(2) = opArg2      
 
     returnSetKernelTiming = setKernelTime( &
-      & 1, userSubroutine//C_NULL_CHAR, &
+      & 1, kernel//C_NULL_CHAR, &
       & 0.0_8, 0.00000_4,0.00000_4, 0 &
     & )
     CALL op_timers_core(startTime)

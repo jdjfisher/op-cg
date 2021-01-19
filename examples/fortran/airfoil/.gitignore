@@ -1,0 +1,14 @@
+# Ignore everything
+# *
+
+# But not these files...
+# !airfoil.F90
+# !airfoil_seqfun.F90
+# !constants.F90
+# !input.F90
+
+# !adt_calc.inc
+# !res_calc.inc
+# !bres_calc.inc
+# !save_soln.inc
+# !update.inc

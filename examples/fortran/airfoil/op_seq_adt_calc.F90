@@ -1,8 +1,8 @@
 
-! Auto-generated at 2021-01-19 14:05:55.579531 by opcg
+! Auto-generated at 2021-01-19 14:42:53.843660 by opcg
 
 
-MODULE ADT_CALC_2_MODULE
+MODULE ADT_CALC_MODULE
 
   USE OP2_FORTRAN_DECLARATIONS
   USE OP2_FORTRAN_RT_SUPPORT
@@ -16,7 +16,7 @@ MODULE ADT_CALC_2_MODULE
 
 
   ! Wrapper for kernel function
-  SUBROUTINE adt_calc_2_wrap ( & 
+  SUBROUTINE adt_calc_wrap ( & 
     & indDat_pcell_p_x, &
     & dirDat_p_q, &
     & dirDat_p_adt, &
@@ -63,7 +63,7 @@ MODULE ADT_CALC_2_MODULE
 
 
   ! Host function for kernel
-  SUBROUTINE op_par_loop_adt_calc_2_host ( &
+  SUBROUTINE op_par_loop_adt_calc_host ( &
     & kernel, &
     & set, &
     & opArg1, &            
@@ -75,7 +75,7 @@ MODULE ADT_CALC_2_MODULE
     & )
 
     IMPLICIT NONE
-    character(kind=c_char,len=*), INTENT(IN) :: userSubroutine
+    character(kind=c_char,len=*), INTENT(IN) :: kernel
     type ( op_set ) , INTENT(IN) :: set
 
     type ( op_arg ) , INTENT(IN) :: opArg1
@@ -118,7 +118,7 @@ MODULE ADT_CALC_2_MODULE
     opArgArray(6) = opArg6      
 
     returnSetKernelTiming = setKernelTime( &
-      & 3, userSubroutine//C_NULL_CHAR, &
+      & 2, kernel//C_NULL_CHAR, &
       & 0.0_8, 0.00000_4,0.00000_4, 0 &
     & )
     CALL op_timers_core(startTime)
@@ -138,7 +138,7 @@ MODULE ADT_CALC_2_MODULE
     CALL c_f_pointer(opArg6%data, dirDat_p_adt, (/dirDatCard_p_adt/))
 
 
-    CALL adt_calc_2_wrap( &
+    CALL adt_calc_wrap( &
       & indDat_pcell_p_x, &
       & dirDat_p_q, &
       & dirDat_p_adt, &
@@ -150,7 +150,7 @@ MODULE ADT_CALC_2_MODULE
 
     CALL op_mpi_wait_all(numberOfOpDats, opArgArray)
 
-    CALL adt_calc_2_wrap( &
+    CALL adt_calc_wrap( &
       & indDat_pcell_p_x, &
       & dirDat_p_q, &
       & dirDat_p_adt, &
@@ -180,7 +180,7 @@ MODULE ADT_CALC_2_MODULE
     dataTransfer = dataTransfer + n_upper * mapDim_pcell * 4.d0
 
     returnSetKernelTiming = setKernelTime( &
-      & 3, kernel//C_NULL_CHAR, &
+      & 2, kernel//C_NULL_CHAR, &
       & endTime-startTime, dataTransfer, 0.00000_4, 1 &
     & )
   END SUBROUTINE

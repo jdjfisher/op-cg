@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 14:05:55.580640 by opcg
+! Auto-generated at 2021-01-19 14:42:53.844627 by opcg
 
 
 MODULE UPDATE_MODULE
@@ -65,7 +65,7 @@ MODULE UPDATE_MODULE
     & )
 
     IMPLICIT NONE
-    character(kind=c_char,len=*), INTENT(IN) :: userSubroutine
+    character(kind=c_char,len=*), INTENT(IN) :: kernel
     type ( op_set ) , INTENT(IN) :: set
 
     type ( op_arg ) , INTENT(IN) :: opArg1
@@ -107,7 +107,7 @@ MODULE UPDATE_MODULE
     opArgArray(5) = opArg5      
 
     returnSetKernelTiming = setKernelTime( &
-      & 6, userSubroutine//C_NULL_CHAR, &
+      & 5, kernel//C_NULL_CHAR, &
       & 0.0_8, 0.00000_4,0.00000_4, 0 &
     & )
     CALL op_timers_core(startTime)
@@ -177,7 +177,7 @@ MODULE UPDATE_MODULE
     dataTransfer = dataTransfer + opArg5%size * 2.d0
 
     returnSetKernelTiming = setKernelTime( &
-      & 6, kernel//C_NULL_CHAR, &
+      & 5, kernel//C_NULL_CHAR, &
       & endTime-startTime, dataTransfer, 0.00000_4, 1 &
     & )
   END SUBROUTINE

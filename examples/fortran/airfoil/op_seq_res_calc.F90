@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 14:05:55.579963 by opcg
+! Auto-generated at 2021-01-19 14:42:53.844024 by opcg
 
 
 MODULE RES_CALC_MODULE
@@ -93,7 +93,7 @@ MODULE RES_CALC_MODULE
     & )
 
     IMPLICIT NONE
-    character(kind=c_char,len=*), INTENT(IN) :: userSubroutine
+    character(kind=c_char,len=*), INTENT(IN) :: kernel
     type ( op_set ) , INTENT(IN) :: set
 
     type ( op_arg ) , INTENT(IN) :: opArg1
@@ -144,7 +144,7 @@ MODULE RES_CALC_MODULE
     opArgArray(8) = opArg8      
 
     returnSetKernelTiming = setKernelTime( &
-      & 4, userSubroutine//C_NULL_CHAR, &
+      & 3, kernel//C_NULL_CHAR, &
       & 0.0_8, 0.00000_4,0.00000_4, 0 &
     & )
     CALL op_timers_core(startTime)
@@ -221,7 +221,7 @@ MODULE RES_CALC_MODULE
     dataTransfer = dataTransfer + n_upper * mapDim_pecell * 4.d0
 
     returnSetKernelTiming = setKernelTime( &
-      & 4, kernel//C_NULL_CHAR, &
+      & 3, kernel//C_NULL_CHAR, &
       & endTime-startTime, dataTransfer, 0.00000_4, 1 &
     & )
   END SUBROUTINE

@@ -1,12 +1,11 @@
 
-! Auto-generated at 2021-01-19 14:05:55.581452 by opcg
+! Auto-generated at 2021-01-19 14:42:53.845509 by opcg
 
 program AIRFOIL
   use OP2_FORTRAN_DECLARATIONS
 !  use OP2_FORTRAN_HDF5_DECLARATIONS
   use SAVE_SOLN_MODULE
-  use ADT_CALC_1_MODULE
-  use ADT_CALC_2_MODULE
+  use ADT_CALC_MODULE
   use RES_CALC_MODULE
   use BRES_CALC_MODULE
   use UPDATE_MODULE
@@ -143,21 +142,13 @@ program AIRFOIL
     do k = 1, 2
 
       ! calculate area/timstep
-      call op_par_loop_adt_calc_1_host ( "adt_calc", cells, &
+      call op_par_loop_adt_calc_host ( "adt_calc", cells, &
                          & op_arg_dat (p_x,    1, pcell, 2,"real(8)", OP_READ), &
                          & op_arg_dat (p_x,    2, pcell, 2,"real(8)", OP_READ), &
                          & op_arg_dat (p_x,    3, pcell, 2,"real(8)", OP_READ), &
                          & op_arg_dat (p_x,    4, pcell, 2,"real(8)", OP_READ), &
                          & op_arg_dat (p_q,   -1, OP_ID, 4,"real(8)", OP_READ), &
                          & op_arg_dat (p_adt, -1, OP_ID, 1,"real(8)", OP_WRITE))
-
-      call op_par_loop_adt_calc_2_host ( "adt_calc", cells, &
-                          & op_arg_dat (p_x,    1, pcell, 2,"real(8)", OP_READ), &
-                          & op_arg_dat (p_x,    2, pcell, 2,"real(8)", OP_READ), & 
-                          & op_arg_dat (p_x,    3, pcell, 2,"real(8)", OP_READ), & 
-                          & op_arg_dat (p_x,    4, pcell, 2,"real(8)", OP_READ), &
-                          & op_arg_dat (p_q,   -1, OP_ID, 4,"real(8)", OP_READ), &
-                          & op_arg_dat (p_adt, -1, OP_ID, 1,"real(8)", OP_WRITE))     
 
       ! calculate flux residual
       call op_par_loop_res_calc_host ( "res_calc", edges, &

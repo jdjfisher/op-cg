@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 14:05:55.580344 by opcg
+! Auto-generated at 2021-01-19 14:42:53.844352 by opcg
 
 
 MODULE BRES_CALC_MODULE
@@ -85,7 +85,7 @@ MODULE BRES_CALC_MODULE
     & )
 
     IMPLICIT NONE
-    character(kind=c_char,len=*), INTENT(IN) :: userSubroutine
+    character(kind=c_char,len=*), INTENT(IN) :: kernel
     type ( op_set ) , INTENT(IN) :: set
 
     type ( op_arg ) , INTENT(IN) :: opArg1
@@ -134,7 +134,7 @@ MODULE BRES_CALC_MODULE
     opArgArray(6) = opArg6      
 
     returnSetKernelTiming = setKernelTime( &
-      & 5, userSubroutine//C_NULL_CHAR, &
+      & 4, kernel//C_NULL_CHAR, &
       & 0.0_8, 0.00000_4,0.00000_4, 0 &
     & )
     CALL op_timers_core(startTime)
@@ -217,7 +217,7 @@ MODULE BRES_CALC_MODULE
     dataTransfer = dataTransfer + n_upper * mapDim_pbecell * 4.d0
 
     returnSetKernelTiming = setKernelTime( &
-      & 5, kernel//C_NULL_CHAR, &
+      & 4, kernel//C_NULL_CHAR, &
       & endTime-startTime, dataTransfer, 0.00000_4, 1 &
     & )
   END SUBROUTINE

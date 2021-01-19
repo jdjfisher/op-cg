@@ -287,116 +287,14 @@
                     "i": 5
                 }
             ],
-            "i": 1
-        },
-        {
-            "kernel": "adt_calc",
-            "set": "cells",
-            "loc": {
-                "file": "examples/fortran/airfoil/airfoil.F90",
-                "line": 146,
-                "column": 6
-            },
-            "args": [
-                {
-                    "var": "p_x",
-                    "dim": 2,
-                    "typ": "real(8)",
-                    "acc": "OP_READ",
-                    "loc": {
-                        "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 146,
-                        "column": 45
-                    },
-                    "map": "pcell",
-                    "idx": 1,
-                    "opt": null,
-                    "i": 0
-                },
-                {
-                    "var": "p_x",
-                    "dim": 2,
-                    "typ": "real(8)",
-                    "acc": "OP_READ",
-                    "loc": {
-                        "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 146,
-                        "column": 99
-                    },
-                    "map": "pcell",
-                    "idx": 2,
-                    "opt": null,
-                    "i": 1
-                },
-                {
-                    "var": "p_x",
-                    "dim": 2,
-                    "typ": "real(8)",
-                    "acc": "OP_READ",
-                    "loc": {
-                        "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 146,
-                        "column": 153
-                    },
-                    "map": "pcell",
-                    "idx": 3,
-                    "opt": null,
-                    "i": 2
-                },
-                {
-                    "var": "p_x",
-                    "dim": 2,
-                    "typ": "real(8)",
-                    "acc": "OP_READ",
-                    "loc": {
-                        "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 146,
-                        "column": 207
-                    },
-                    "map": "pcell",
-                    "idx": 4,
-                    "opt": null,
-                    "i": 3
-                },
-                {
-                    "var": "p_q",
-                    "dim": 4,
-                    "typ": "real(8)",
-                    "acc": "OP_READ",
-                    "loc": {
-                        "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 146,
-                        "column": 261
-                    },
-                    "map": "OP_ID",
-                    "idx": -1,
-                    "opt": null,
-                    "i": 4
-                },
-                {
-                    "var": "p_adt",
-                    "dim": 1,
-                    "typ": "real(8)",
-                    "acc": "OP_WRITE",
-                    "loc": {
-                        "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 146,
-                        "column": 315
-                    },
-                    "map": "OP_ID",
-                    "idx": -1,
-                    "opt": null,
-                    "i": 5
-                }
-            ],
-            "i": 2
+            "i": null
         },
         {
             "kernel": "res_calc",
             "set": "edges",
             "loc": {
                 "file": "examples/fortran/airfoil/airfoil.F90",
-                "line": 155,
+                "line": 147,
                 "column": 6
             },
             "args": [
@@ -407,7 +305,7 @@
                     "acc": "OP_READ",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 155,
+                        "line": 147,
                         "column": 45
                     },
                     "map": "pedge",
@@ -422,7 +320,7 @@
                     "acc": "OP_READ",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 155,
+                        "line": 147,
                         "column": 100
                     },
                     "map": "pedge",
@@ -437,7 +335,7 @@
                     "acc": "OP_READ",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 155,
+                        "line": 147,
                         "column": 155
                     },
                     "map": "pecell",
@@ -452,7 +350,7 @@
                     "acc": "OP_READ",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 155,
+                        "line": 147,
                         "column": 210
                     },
                     "map": "pecell",
@@ -467,7 +365,7 @@
                     "acc": "OP_READ",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 155,
+                        "line": 147,
                         "column": 265
                     },
                     "map": "pecell",
@@ -482,7 +380,7 @@
                     "acc": "OP_READ",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 155,
+                        "line": 147,
                         "column": 320
                     },
                     "map": "pecell",
@@ -497,7 +395,7 @@
                     "acc": "OP_INC",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 155,
+                        "line": 147,
                         "column": 375
                     },
                     "map": "pecell",
@@ -512,7 +410,7 @@
                     "acc": "OP_INC",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 155,
+                        "line": 147,
                         "column": 430
                     },
                     "map": "pecell",
@@ -528,7 +426,7 @@
             "set": "bedges",
             "loc": {
                 "file": "examples/fortran/airfoil/airfoil.F90",
-                "line": 165,
+                "line": 157,
                 "column": 6
             },
             "args": [
@@ -539,7 +437,7 @@
                     "acc": "OP_READ",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 165,
+                        "line": 157,
                         "column": 47
                     },
                     "map": "pbedge",
@@ -554,7 +452,7 @@
                     "acc": "OP_READ",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 165,
+                        "line": 157,
                         "column": 105
                     },
                     "map": "pbedge",
@@ -569,7 +467,7 @@
                     "acc": "OP_READ",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 165,
+                        "line": 157,
                         "column": 163
                     },
                     "map": "pbecell",
@@ -584,7 +482,7 @@
                     "acc": "OP_READ",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 165,
+                        "line": 157,
                         "column": 221
                     },
                     "map": "pbecell",
@@ -599,7 +497,7 @@
                     "acc": "OP_INC",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 165,
+                        "line": 157,
                         "column": 279
                     },
                     "map": "pbecell",
@@ -614,7 +512,7 @@
                     "acc": "OP_READ",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 165,
+                        "line": 157,
                         "column": 337
                     },
                     "map": "OP_ID",
@@ -630,7 +528,7 @@
             "set": "cells",
             "loc": {
                 "file": "examples/fortran/airfoil/airfoil.F90",
-                "line": 177,
+                "line": 169,
                 "column": 6
             },
             "args": [
@@ -641,7 +539,7 @@
                     "acc": "OP_READ",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 177,
+                        "line": 169,
                         "column": 43
                     },
                     "map": "OP_ID",
@@ -656,7 +554,7 @@
                     "acc": "OP_WRITE",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 177,
+                        "line": 169,
                         "column": 100
                     },
                     "map": "OP_ID",
@@ -671,7 +569,7 @@
                     "acc": "OP_RW",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 177,
+                        "line": 169,
                         "column": 157
                     },
                     "map": "OP_ID",
@@ -686,7 +584,7 @@
                     "acc": "OP_READ",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 177,
+                        "line": 169,
                         "column": 214
                     },
                     "map": "OP_ID",
@@ -701,7 +599,7 @@
                     "acc": "OP_INC",
                     "loc": {
                         "file": "examples/fortran/airfoil/airfoil.F90",
-                        "line": 177,
+                        "line": 169,
                         "column": 271
                     },
                     "map": null,

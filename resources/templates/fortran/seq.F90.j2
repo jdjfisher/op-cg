@@ -114,7 +114,7 @@ MODULE {{ parloop.name|upper }}_MODULE
     & )
 
     IMPLICIT NONE
-    character(kind=c_char,len=*), INTENT(IN) :: userSubroutine
+    character(kind=c_char,len=*), INTENT(IN) :: kernel
     type ( op_set ) , INTENT(IN) :: set
 
     {% for arg in parloop.args %}
@@ -163,7 +163,7 @@ MODULE {{ parloop.name|upper }}_MODULE
     {% endfor %}
 
     returnSetKernelTiming = setKernelTime( &
-      & {{ id }}, userSubroutine//C_NULL_CHAR, &
+      & {{ id }}, kernel//C_NULL_CHAR, &
       & 0.0_8, 0.00000_4,0.00000_4, 0 &
     & )
     CALL op_timers_core(startTime)

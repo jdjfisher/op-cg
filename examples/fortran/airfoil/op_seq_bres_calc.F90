@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 14:51:29.698157 by opcg
+! Auto-generated at 2021-01-19 15:09:18.002065 by opcg
 
 
 MODULE BRES_CALC_MODULE
@@ -17,10 +17,10 @@ MODULE BRES_CALC_MODULE
 
   ! Wrapper for kernel function
   SUBROUTINE bres_calc_wrap ( & 
-    & indDat_pbedge_p_x, &
-    & indDat_pbecell_p_q, &
-    & indDat_pbecell_p_adt, &
-    & indDat_pbecell_p_res, &
+    & indDat_p_x, &
+    & indDat_p_q, &
+    & indDat_p_adt, &
+    & indDat_p_res, &
     & dirDat_p_bound, &
     & map_pbedge, &
     & mapDim_pbedge, & 
@@ -32,10 +32,10 @@ MODULE BRES_CALC_MODULE
 
     IMPLICIT NONE
 
-    real(8) indDat_pbedge_p_x(2,*)
-    real(8) indDat_pbecell_p_q(4,*)
-    real(8) indDat_pbecell_p_adt(1,*)
-    real(8) indDat_pbecell_p_res(4,*)
+    real(8) indDat_p_x(2,*)
+    real(8) indDat_p_q(4,*)
+    real(8) indDat_p_adt(1,*)
+    real(8) indDat_p_res(4,*)
     integer(4) dirDat_p_bound(1,*)
 
     INTEGER(kind=4) map_pbedge(*)
@@ -107,13 +107,13 @@ MODULE BRES_CALC_MODULE
 
 
     real(8), POINTER, DIMENSION(:) :: indDat_p_x
-    INTEGER(kind=4) :: indDatCard_pbedge_p_x
+    INTEGER(kind=4) :: indDatCard_p_x
     real(8), POINTER, DIMENSION(:) :: indDat_p_q
-    INTEGER(kind=4) :: indDatCard_pbecell_p_q
+    INTEGER(kind=4) :: indDatCard_p_q
     real(8), POINTER, DIMENSION(:) :: indDat_p_adt
-    INTEGER(kind=4) :: indDatCard_pbecell_p_adt
+    INTEGER(kind=4) :: indDatCard_p_adt
     real(8), POINTER, DIMENSION(:) :: indDat_p_res
-    INTEGER(kind=4) :: indDatCard_pbecell_p_res
+    INTEGER(kind=4) :: indDatCard_p_res
     integer(4), POINTER, DIMENSION(:) :: dirDat_p_bound
     INTEGER(kind=4) :: dirDatCard_p_bound
     INTEGER(kind=4), POINTER, DIMENSION(:) :: map_pbedge
@@ -143,30 +143,30 @@ MODULE BRES_CALC_MODULE
 
     opSetCore => set%setPtr
 
-    indDatCard_pbedge_p_x = opArg1%dim * getSetSizeFromOpArg(opArg1)
-    indDatCard_pbecell_p_q = opArg3%dim * getSetSizeFromOpArg(opArg3)
-    indDatCard_pbecell_p_adt = opArg4%dim * getSetSizeFromOpArg(opArg4)
-    indDatCard_pbecell_p_res = opArg5%dim * getSetSizeFromOpArg(opArg5)
+    indDatCard_p_x = opArg1%dim * getSetSizeFromOpArg(opArg1)
+    indDatCard_p_q = opArg3%dim * getSetSizeFromOpArg(opArg3)
+    indDatCard_p_adt = opArg4%dim * getSetSizeFromOpArg(opArg4)
+    indDatCard_p_res = opArg5%dim * getSetSizeFromOpArg(opArg5)
     dirDatCard_p_bound = opArg6%dim * getSetSizeFromOpArg(opArg6)
     mapDim_pbedge = getMapDimFromOpArg(opArg1)
     mapDim_pbecell = getMapDimFromOpArg(opArg3)
 
-    CALL c_f_pointer(opArg1%data, indDat_pbedge_p_x, (/indDatCard_pbedge_p_x/))
+    CALL c_f_pointer(opArg1%data, indDat_p_x, (/indDatCard_p_x/))
     CALL c_f_pointer(opArg1%map_data, map_pbedge, (/opSetCore%size*mapDim_pbedge/))
-    CALL c_f_pointer(opArg3%data, indDat_pbecell_p_q, (/indDatCard_pbecell_p_q/))
+    CALL c_f_pointer(opArg3%data, indDat_p_q, (/indDatCard_p_q/))
     CALL c_f_pointer(opArg3%map_data, map_pbecell, (/opSetCore%size*mapDim_pbecell/))
-    CALL c_f_pointer(opArg4%data, indDat_pbecell_p_adt, (/indDatCard_pbecell_p_adt/))
+    CALL c_f_pointer(opArg4%data, indDat_p_adt, (/indDatCard_p_adt/))
     CALL c_f_pointer(opArg4%map_data, map_pbecell, (/opSetCore%size*mapDim_pbecell/))
-    CALL c_f_pointer(opArg5%data, indDat_pbecell_p_res, (/indDatCard_pbecell_p_res/))
+    CALL c_f_pointer(opArg5%data, indDat_p_res, (/indDatCard_p_res/))
     CALL c_f_pointer(opArg5%map_data, map_pbecell, (/opSetCore%size*mapDim_pbecell/))
     CALL c_f_pointer(opArg6%data, dirDat_p_bound, (/dirDatCard_p_bound/))
 
 
     CALL bres_calc_wrap( &
-      & indDat_pbedge_p_x, &
-      & indDat_pbecell_p_q, &
-      & indDat_pbecell_p_adt, &
-      & indDat_pbecell_p_res, &
+      & indDat_p_x, &
+      & indDat_p_q, &
+      & indDat_p_adt, &
+      & indDat_p_res, &
       & dirDat_p_bound, &
       & map_pbedge, &
       & mapDim_pbedge, & 
@@ -179,10 +179,10 @@ MODULE BRES_CALC_MODULE
     CALL op_mpi_wait_all(numberOfOpDats, opArgArray)
 
     CALL bres_calc_wrap( &
-      & indDat_pbedge_p_x, &
-      & indDat_pbecell_p_q, &
-      & indDat_pbecell_p_adt, &
-      & indDat_pbecell_p_res, &
+      & indDat_p_x, &
+      & indDat_p_q, &
+      & indDat_p_adt, &
+      & indDat_p_res, &
       & dirDat_p_bound, &
       & map_pbedge, &
       & mapDim_pbedge, & 

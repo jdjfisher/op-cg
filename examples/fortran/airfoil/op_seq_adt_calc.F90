@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 14:51:29.697373 by opcg
+! Auto-generated at 2021-01-19 15:09:18.001318 by opcg
 
 
 MODULE ADT_CALC_MODULE
@@ -17,7 +17,7 @@ MODULE ADT_CALC_MODULE
 
   ! Wrapper for kernel function
   SUBROUTINE adt_calc_wrap ( & 
-    & indDat_pcell_p_x, &
+    & indDat_p_x, &
     & dirDat_p_q, &
     & dirDat_p_adt, &
     & map_pcell, &
@@ -28,7 +28,7 @@ MODULE ADT_CALC_MODULE
 
     IMPLICIT NONE
 
-    real(8) indDat_pcell_p_x(2,*)
+    real(8) indDat_p_x(2,*)
     real(8) dirDat_p_q(4,*)
     real(8) dirDat_p_adt(1,*)
 
@@ -97,7 +97,7 @@ MODULE ADT_CALC_MODULE
 
 
     real(8), POINTER, DIMENSION(:) :: indDat_p_x
-    INTEGER(kind=4) :: indDatCard_pcell_p_x
+    INTEGER(kind=4) :: indDatCard_p_x
     real(8), POINTER, DIMENSION(:) :: dirDat_p_q
     INTEGER(kind=4) :: dirDatCard_p_q
     real(8), POINTER, DIMENSION(:) :: dirDat_p_adt
@@ -127,19 +127,19 @@ MODULE ADT_CALC_MODULE
 
     opSetCore => set%setPtr
 
-    indDatCard_pcell_p_x = opArg1%dim * getSetSizeFromOpArg(opArg1)
+    indDatCard_p_x = opArg1%dim * getSetSizeFromOpArg(opArg1)
     dirDatCard_p_q = opArg5%dim * getSetSizeFromOpArg(opArg5)
     dirDatCard_p_adt = opArg6%dim * getSetSizeFromOpArg(opArg6)
     mapDim_pcell = getMapDimFromOpArg(opArg1)
 
-    CALL c_f_pointer(opArg1%data, indDat_pcell_p_x, (/indDatCard_pcell_p_x/))
+    CALL c_f_pointer(opArg1%data, indDat_p_x, (/indDatCard_p_x/))
     CALL c_f_pointer(opArg1%map_data, map_pcell, (/opSetCore%size*mapDim_pcell/))
     CALL c_f_pointer(opArg5%data, dirDat_p_q, (/dirDatCard_p_q/))
     CALL c_f_pointer(opArg6%data, dirDat_p_adt, (/dirDatCard_p_adt/))
 
 
     CALL adt_calc_wrap( &
-      & indDat_pcell_p_x, &
+      & indDat_p_x, &
       & dirDat_p_q, &
       & dirDat_p_adt, &
       & map_pcell, &
@@ -151,7 +151,7 @@ MODULE ADT_CALC_MODULE
     CALL op_mpi_wait_all(numberOfOpDats, opArgArray)
 
     CALL adt_calc_wrap( &
-      & indDat_pcell_p_x, &
+      & indDat_p_x, &
       & dirDat_p_q, &
       & dirDat_p_adt, &
       & map_pcell, &

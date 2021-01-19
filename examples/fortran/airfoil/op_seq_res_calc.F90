@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 14:51:29.697764 by opcg
+! Auto-generated at 2021-01-19 15:09:18.001697 by opcg
 
 
 MODULE RES_CALC_MODULE
@@ -17,10 +17,10 @@ MODULE RES_CALC_MODULE
 
   ! Wrapper for kernel function
   SUBROUTINE res_calc_wrap ( & 
-    & indDat_pedge_p_x, &
-    & indDat_pecell_p_q, &
-    & indDat_pecell_p_adt, &
-    & indDat_pecell_p_res, &
+    & indDat_p_x, &
+    & indDat_p_q, &
+    & indDat_p_adt, &
+    & indDat_p_res, &
     & map_pedge, &
     & mapDim_pedge, & 
     & map_pecell, &
@@ -31,10 +31,10 @@ MODULE RES_CALC_MODULE
 
     IMPLICIT NONE
 
-    real(8) indDat_pedge_p_x(2,*)
-    real(8) indDat_pecell_p_q(4,*)
-    real(8) indDat_pecell_p_adt(1,*)
-    real(8) indDat_pecell_p_res(4,*)
+    real(8) indDat_p_x(2,*)
+    real(8) indDat_p_q(4,*)
+    real(8) indDat_p_adt(1,*)
+    real(8) indDat_p_res(4,*)
 
     INTEGER(kind=4) map_pedge(*)
     INTEGER(kind=4) mapDim_pedge
@@ -117,13 +117,13 @@ MODULE RES_CALC_MODULE
 
 
     real(8), POINTER, DIMENSION(:) :: indDat_p_x
-    INTEGER(kind=4) :: indDatCard_pedge_p_x
+    INTEGER(kind=4) :: indDatCard_p_x
     real(8), POINTER, DIMENSION(:) :: indDat_p_q
-    INTEGER(kind=4) :: indDatCard_pecell_p_q
+    INTEGER(kind=4) :: indDatCard_p_q
     real(8), POINTER, DIMENSION(:) :: indDat_p_adt
-    INTEGER(kind=4) :: indDatCard_pecell_p_adt
+    INTEGER(kind=4) :: indDatCard_p_adt
     real(8), POINTER, DIMENSION(:) :: indDat_p_res
-    INTEGER(kind=4) :: indDatCard_pecell_p_res
+    INTEGER(kind=4) :: indDatCard_p_res
     INTEGER(kind=4), POINTER, DIMENSION(:) :: map_pedge
     INTEGER(kind=4) :: mapDim_pedge
     INTEGER(kind=4), POINTER, DIMENSION(:) :: map_pecell
@@ -153,28 +153,28 @@ MODULE RES_CALC_MODULE
 
     opSetCore => set%setPtr
 
-    indDatCard_pedge_p_x = opArg1%dim * getSetSizeFromOpArg(opArg1)
-    indDatCard_pecell_p_q = opArg3%dim * getSetSizeFromOpArg(opArg3)
-    indDatCard_pecell_p_adt = opArg5%dim * getSetSizeFromOpArg(opArg5)
-    indDatCard_pecell_p_res = opArg7%dim * getSetSizeFromOpArg(opArg7)
+    indDatCard_p_x = opArg1%dim * getSetSizeFromOpArg(opArg1)
+    indDatCard_p_q = opArg3%dim * getSetSizeFromOpArg(opArg3)
+    indDatCard_p_adt = opArg5%dim * getSetSizeFromOpArg(opArg5)
+    indDatCard_p_res = opArg7%dim * getSetSizeFromOpArg(opArg7)
     mapDim_pedge = getMapDimFromOpArg(opArg1)
     mapDim_pecell = getMapDimFromOpArg(opArg3)
 
-    CALL c_f_pointer(opArg1%data, indDat_pedge_p_x, (/indDatCard_pedge_p_x/))
+    CALL c_f_pointer(opArg1%data, indDat_p_x, (/indDatCard_p_x/))
     CALL c_f_pointer(opArg1%map_data, map_pedge, (/opSetCore%size*mapDim_pedge/))
-    CALL c_f_pointer(opArg3%data, indDat_pecell_p_q, (/indDatCard_pecell_p_q/))
+    CALL c_f_pointer(opArg3%data, indDat_p_q, (/indDatCard_p_q/))
     CALL c_f_pointer(opArg3%map_data, map_pecell, (/opSetCore%size*mapDim_pecell/))
-    CALL c_f_pointer(opArg5%data, indDat_pecell_p_adt, (/indDatCard_pecell_p_adt/))
+    CALL c_f_pointer(opArg5%data, indDat_p_adt, (/indDatCard_p_adt/))
     CALL c_f_pointer(opArg5%map_data, map_pecell, (/opSetCore%size*mapDim_pecell/))
-    CALL c_f_pointer(opArg7%data, indDat_pecell_p_res, (/indDatCard_pecell_p_res/))
+    CALL c_f_pointer(opArg7%data, indDat_p_res, (/indDatCard_p_res/))
     CALL c_f_pointer(opArg7%map_data, map_pecell, (/opSetCore%size*mapDim_pecell/))
 
 
     CALL res_calc_wrap( &
-      & indDat_pedge_p_x, &
-      & indDat_pecell_p_q, &
-      & indDat_pecell_p_adt, &
-      & indDat_pecell_p_res, &
+      & indDat_p_x, &
+      & indDat_p_q, &
+      & indDat_p_adt, &
+      & indDat_p_res, &
       & map_pedge, &
       & mapDim_pedge, & 
       & map_pecell, &
@@ -186,10 +186,10 @@ MODULE RES_CALC_MODULE
     CALL op_mpi_wait_all(numberOfOpDats, opArgArray)
 
     CALL res_calc_wrap( &
-      & indDat_pedge_p_x, &
-      & indDat_pecell_p_q, &
-      & indDat_pecell_p_adt, &
-      & indDat_pecell_p_res, &
+      & indDat_p_x, &
+      & indDat_p_q, &
+      & indDat_p_adt, &
+      & indDat_p_res, &
       & map_pedge, &
       & mapDim_pedge, & 
       & map_pecell, &

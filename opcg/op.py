@@ -187,24 +187,22 @@ class Loop:
 
   @property
   def indirectVars(self) -> List[Arg]:
-    # TODO: Tidy
-    x, r = [], []
+    vs, args = [], []
     for arg in self.indirects:
-      if arg.var not in x:
-        x.append(arg.var)
-        r.append(arg)
+      if arg.var not in vs:
+        vs.append(arg.var)
+        args.append(arg)
 
-    return r
+    return args
 
 
   @property
   def indirectMaps(self) -> List[Arg]:
-    # TODO: Tidy
-    x, r = [], []
+    ms, args = [], []
     for arg in self.indirects:
-      if arg.map not in x:
-        x.append(arg.map)
-        r.append(arg)
+      if arg.map not in ms:
+        ms.append(arg.map)
+        args.append(arg)
 
-    return r
+    return args
 

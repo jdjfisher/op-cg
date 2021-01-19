@@ -149,6 +149,8 @@ class Store:
 
 
   def validate(self, lang: Lang) -> None:
+    # TODO: Enforce single dat access
+
     if not self.init:
       print('WARNING: No call to op_init found')
 

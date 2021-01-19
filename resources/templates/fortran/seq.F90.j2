@@ -18,7 +18,7 @@ MODULE {{ parloop.name|upper }}_MODULE
   SUBROUTINE {{ parloop.name }}_wrap ( & 
     {# Indirects #}
     {% for arg in parloop.indirectVars %}
-    & indDat_{{ arg.map }}_{{ arg.var }}, &
+    & indDat_{{ arg.var }}, &
     {% endfor %}
     {# Directs #}
     {% for arg in parloop.directs %}
@@ -42,12 +42,12 @@ MODULE {{ parloop.name|upper }}_MODULE
 
     {% for arg in parloop.indirectVars %}
     {% if arg is without_dim %}
-    {% set dim %}indDatDim_{{ arg.map }}_{{ arg.var }}{% endset %}
+    {% set dim %}indDatDim_{{ arg.var }}{% endset %}
     INTEGER(kind=4) {{ dim }}
     {% else %}
     {% set dim = arg.dim %}
     {% endif %}
-    {{ arg.typ }} indDat_{{ arg.map }}_{{ arg.var }}({{ dim }},*)
+    {{ arg.typ }} indDat_{{ arg.var }}({{ dim }},*)
     {% endfor %}
     {#- -#}
     {% for arg in parloop.directs %}
@@ -136,7 +136,7 @@ MODULE {{ parloop.name|upper }}_MODULE
     {# Indirect dats #}
     {% for arg in parloop.indirectVars %}
     {{ arg.typ }}, POINTER, DIMENSION(:) :: indDat_{{ arg.var }}
-    INTEGER(kind=4) :: indDatCard_{{ arg.map }}_{{ arg.var }}
+    INTEGER(kind=4) :: indDatCard_{{ arg.var }}
     {% endfor %}
     {# Direct dats #}
     {% for arg in parloop.directs %}
@@ -174,7 +174,7 @@ MODULE {{ parloop.name|upper }}_MODULE
 
     {# Indirect #}
     {% for arg in parloop.indirectVars %}
-    indDatCard_{{ arg.map }}_{{ arg.var }} = opArg{{ arg.i+1 }}%dim * getSetSizeFromOpArg(opArg{{ arg.i+1 }})
+    indDatCard_{{ arg.var }} = opArg{{ arg.i+1 }}%dim * getSetSizeFromOpArg(opArg{{ arg.i+1 }})
     {% endfor %}
     {# Direct #}
     {% for arg in parloop.directs %}
@@ -187,7 +187,7 @@ MODULE {{ parloop.name|upper }}_MODULE
 
     {# Indirect #}
     {% for arg in parloop.indirectVars %}
-    CALL c_f_pointer(opArg{{ arg.i+1 }}%data, indDat_{{ arg.map }}_{{ arg.var }}, (/indDatCard_{{ arg.map }}_{{ arg.var }}/))
+    CALL c_f_pointer(opArg{{ arg.i+1 }}%data, indDat_{{ arg.var }}, (/indDatCard_{{ arg.var }}/))
     CALL c_f_pointer(opArg{{ arg.i+1 }}%map_data, map_{{ arg.map }}, (/opSetCore%size*mapDim_{{ arg.map }}/))
     {% endfor %}
     {# Direct #}
@@ -203,7 +203,7 @@ MODULE {{ parloop.name|upper }}_MODULE
     CALL {{ parloop.name }}_wrap( &
       {# Indirects #}
       {% for arg in parloop.indirectVars %}
-      & indDat_{{ arg.map }}_{{ arg.var }}, &
+      & indDat_{{ arg.var }}, &
       {% endfor %}
       {# Directs #}
       {% for arg in parloop.directs %}
@@ -228,7 +228,7 @@ MODULE {{ parloop.name|upper }}_MODULE
     CALL {{ parloop.name }}_wrap( &
       {# Indirects #}
       {% for arg in parloop.indirectVars %}
-      & indDat_{{ arg.map }}_{{ arg.var }}, &
+      & indDat_{{ arg.var }}, &
       {% endfor %}
       {# Directs #}
       {% for arg in parloop.directs %}

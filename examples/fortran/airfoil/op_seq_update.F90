@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 14:42:53.844627 by opcg
+! Auto-generated at 2021-01-19 14:51:29.698466 by opcg
 
 
 MODULE UPDATE_MODULE
@@ -12,7 +12,7 @@ MODULE UPDATE_MODULE
   CONTAINS
 
   ! Include kernel function
-  #include "update.inc"
+#include "update.inc"
 
 
   ! Wrapper for kernel function
@@ -34,7 +34,7 @@ MODULE UPDATE_MODULE
     real(8) dirDat_p_adt(1,*)
     real(8) gblDat_rms(2,*)
 
-    INTEGER(kind=4) bottom,top,i1
+    INTEGER(kind=4) bottom,top,i
 
     DO i = bottom, top - 1, 1
 
@@ -95,7 +95,7 @@ MODULE UPDATE_MODULE
     INTEGER(kind=4) :: dirDatCard_p_adt
     real(8), POINTER, DIMENSION(:) :: gblDat_rms
 
-    INTEGER(kind=4) :: i1
+    INTEGER(kind=4) :: i
     REAL(kind=4) :: dataTransfer
 
     numberOfOpDats = 5

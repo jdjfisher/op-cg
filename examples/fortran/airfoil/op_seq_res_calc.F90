@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 14:42:53.844024 by opcg
+! Auto-generated at 2021-01-19 14:51:29.697764 by opcg
 
 
 MODULE RES_CALC_MODULE
@@ -12,7 +12,7 @@ MODULE RES_CALC_MODULE
   CONTAINS
 
   ! Include kernel function
-  #include "res_calc.inc"
+#include "res_calc.inc"
 
 
   ! Wrapper for kernel function
@@ -48,7 +48,7 @@ MODULE RES_CALC_MODULE
     INTEGER(kind=4) mapIdx_pecell_1
     INTEGER(kind=4) mapIdx_pecell_0
     INTEGER(kind=4) mapIdx_pecell_1
-    INTEGER(kind=4) bottom,top,i1
+    INTEGER(kind=4) bottom,top,i
 
     DO i = bottom, top - 1, 1 
       mapIdx_pedge_0 = map_pedge(1 + i * mapDim_pedge + 0)+1 
@@ -129,7 +129,7 @@ MODULE RES_CALC_MODULE
     INTEGER(kind=4), POINTER, DIMENSION(:) :: map_pecell
     INTEGER(kind=4) :: mapDim_pecell
 
-    INTEGER(kind=4) :: i1
+    INTEGER(kind=4) :: i
     REAL(kind=4) :: dataTransfer
 
     numberOfOpDats = 8

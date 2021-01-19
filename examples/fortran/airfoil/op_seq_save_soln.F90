@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 14:42:53.843316 by opcg
+! Auto-generated at 2021-01-19 14:51:29.696988 by opcg
 
 
 MODULE SAVE_SOLN_MODULE
@@ -12,7 +12,7 @@ MODULE SAVE_SOLN_MODULE
   CONTAINS
 
   ! Include kernel function
-  #include "save_soln.inc"
+#include "save_soln.inc"
 
 
   ! Wrapper for kernel function
@@ -28,7 +28,7 @@ MODULE SAVE_SOLN_MODULE
     real(8) dirDat_p_q(4,*)
     real(8) dirDat_p_qold(4,*)
 
-    INTEGER(kind=4) bottom,top,i1
+    INTEGER(kind=4) bottom,top,i
 
     DO i = bottom, top - 1, 1
 
@@ -75,7 +75,7 @@ MODULE SAVE_SOLN_MODULE
     real(8), POINTER, DIMENSION(:) :: dirDat_p_qold
     INTEGER(kind=4) :: dirDatCard_p_qold
 
-    INTEGER(kind=4) :: i1
+    INTEGER(kind=4) :: i
     REAL(kind=4) :: dataTransfer
 
     numberOfOpDats = 2

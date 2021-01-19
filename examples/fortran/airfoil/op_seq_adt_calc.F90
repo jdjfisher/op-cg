@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 14:42:53.843660 by opcg
+! Auto-generated at 2021-01-19 14:51:29.697373 by opcg
 
 
 MODULE ADT_CALC_MODULE
@@ -12,7 +12,7 @@ MODULE ADT_CALC_MODULE
   CONTAINS
 
   ! Include kernel function
-  #include "adt_calc.inc"
+#include "adt_calc.inc"
 
 
   ! Wrapper for kernel function
@@ -38,7 +38,7 @@ MODULE ADT_CALC_MODULE
     INTEGER(kind=4) mapIdx_pcell_1
     INTEGER(kind=4) mapIdx_pcell_2
     INTEGER(kind=4) mapIdx_pcell_3
-    INTEGER(kind=4) bottom,top,i1
+    INTEGER(kind=4) bottom,top,i
 
     DO i = bottom, top - 1, 1 
       mapIdx_pcell_0 = map_pcell(1 + i * mapDim_pcell + 0)+1 
@@ -105,7 +105,7 @@ MODULE ADT_CALC_MODULE
     INTEGER(kind=4), POINTER, DIMENSION(:) :: map_pcell
     INTEGER(kind=4) :: mapDim_pcell
 
-    INTEGER(kind=4) :: i1
+    INTEGER(kind=4) :: i
     REAL(kind=4) :: dataTransfer
 
     numberOfOpDats = 6

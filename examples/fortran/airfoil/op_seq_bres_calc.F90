@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 14:42:53.844352 by opcg
+! Auto-generated at 2021-01-19 14:51:29.698157 by opcg
 
 
 MODULE BRES_CALC_MODULE
@@ -12,7 +12,7 @@ MODULE BRES_CALC_MODULE
   CONTAINS
 
   ! Include kernel function
-  #include "bres_calc.inc"
+#include "bres_calc.inc"
 
 
   ! Wrapper for kernel function
@@ -47,7 +47,7 @@ MODULE BRES_CALC_MODULE
     INTEGER(kind=4) mapIdx_pbecell_0
     INTEGER(kind=4) mapIdx_pbecell_0
     INTEGER(kind=4) mapIdx_pbecell_0
-    INTEGER(kind=4) bottom,top,i1
+    INTEGER(kind=4) bottom,top,i
 
     DO i = bottom, top - 1, 1 
       mapIdx_pbedge_0 = map_pbedge(1 + i * mapDim_pbedge + 0)+1 
@@ -121,7 +121,7 @@ MODULE BRES_CALC_MODULE
     INTEGER(kind=4), POINTER, DIMENSION(:) :: map_pbecell
     INTEGER(kind=4) :: mapDim_pbecell
 
-    INTEGER(kind=4) :: i1
+    INTEGER(kind=4) :: i
     REAL(kind=4) :: dataTransfer
 
     numberOfOpDats = 6

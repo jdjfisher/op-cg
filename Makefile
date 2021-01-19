@@ -4,7 +4,7 @@ all:
 	exit
 
 fseq: # temp for development 
-	python3 opcg seq -vdm examples/fortran/airfoil/airfoil.F90 -o temp/
+	python3 opcg seq -vdm -soa examples/fortran/airfoil/airfoil.F90 -o temp/
 
 fcuda: # temp for development 
 	python3 opcg cuda -vdm examples/fortran/airfoil/airfoil.F90 -o temp/

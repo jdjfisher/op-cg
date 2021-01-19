@@ -47,11 +47,11 @@ templates: Dict[Tuple[Lang, Opt], Template] = {
 
 # Augment source program to use generated kernel hosts
 def genOpProgram(lang: Lang, source: str, store: Store, soa: bool = False) -> str:
-  
-  # TODO: Abstract to callable
-  if lang.name == 'fortran':
-    lines = source.splitlines(True)
+  lines = source.splitlines(True)
 
+
+  # TODO: Abstract
+  if lang.name == 'fortran':
     # 1. Comment-out const calls
     for const in store.consts:
       lines[const.loc.line - 1] = lang.com_delim + ' ' + lines[const.loc.line - 1]
@@ -66,7 +66,8 @@ def genOpProgram(lang: Lang, source: str, store: Store, soa: bool = False) -> st
 
     # 3. Update init call
     if soa:
-      _ = re.search(r'op_(mpi_)?init(_base)?', source) # TODO: Finish
+      source = re.sub(r'\bop_init(\w*)\b\s*\((.*)\)','op_init\\1_soa(\\2,1)', source)
+      source = re.sub(r'\bop_mpi_init(\w*)\b\s*\((.*)\)','op_mpi_init\\1_soa(\\2,1)', source)
 
     # 4. Update headers
     before, after = source.split('  use OP2_Fortran_Reference\n', 1) # TODO: Make more robust
@@ -77,10 +78,20 @@ def genOpProgram(lang: Lang, source: str, store: Store, soa: bool = False) -> st
 
   elif lang.name == 'c++':
     # 1. Update const calls
+    # ...
+
     # 2. Update loop calls
+    # ...
+
+    source = ''.join(lines)
+
     # 3. Update init call
+    if soa:
+      source = re.sub(r'\bop_init\b\s*\((.*)\)','op_init_soa(\\1,1)', source)
+      source = re.sub(r'\bop_mpi_init\b\s*\((.*)\)','op_mpi_init_soa(\\1,1)', source)
+
     # 4. Update headers
-    pass
+    # ...
 
   return source
 

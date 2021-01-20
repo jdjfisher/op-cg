@@ -206,3 +206,14 @@ class Loop:
 
     return args
 
+
+  @property
+  def indirectIdxs(self) -> List[Arg]:
+    ids, args = [], []
+    for arg in self.indirects:
+      if (arg.map, arg.idx) not in ids:
+        ids.append((arg.map, arg.idx))
+        args.append(arg)
+
+    return args
+

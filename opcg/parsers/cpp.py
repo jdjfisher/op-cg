@@ -3,6 +3,7 @@
 from typing import Optional, List
 from pathlib import Path
 import re
+import os
 
 # Third party imports
 from clang.cindex import Index, Config, TranslationUnit, Cursor, CursorKind
@@ -20,8 +21,11 @@ def parse(path: Path) -> Store:
   # Init libclang
   index = Index.create()
 
+  op2_include = os.path.join(os.getenv('OP2_INSTALL_PATH'), 'c/include')
+  args = [ '-I' + op2_include ]
+
   # Invoke Clang parser on the source
-  translation_unit = index.parse(path, options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
+  translation_unit = index.parse(path, args=args, options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
 
   # Throw the parse error first parse error caught in the diagnostics 
   error = next(iter(translation_unit.diagnostics), None)

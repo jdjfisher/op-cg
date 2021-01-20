@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 15:09:18.003273 by opcg
+! Auto-generated at 2021-01-20 19:24:35.208231 by opcg
 
 program AIRFOIL
   use OP2_FORTRAN_DECLARATIONS
@@ -81,7 +81,7 @@ program AIRFOIL
   call getSetInfo ( nnode, ncell, nedge, nbedge, cell, edge, ecell, bedge, becell, bound, x, q, qold, res, adt )
 
   ! OP initialisation
-  call op_init_base_soa(0,0,1)
+  call op_init_base (0,0)
 
   print *, "Initialising constants"
   call initialise_flow_field ( ncell, q, res )

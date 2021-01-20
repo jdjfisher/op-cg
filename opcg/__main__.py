@@ -3,6 +3,7 @@
 # Standard library imports
 from datetime import datetime
 from pathlib import Path
+from typing import List
 import argparse
 import json
 import os
@@ -101,14 +102,14 @@ def main(argv=None) -> None:
 
 
 
-  # Collect the paths of generated loop hosts
-  hosts = []
+  # Collect the paths of the generated files
+  generated_paths: List[Path] = []
 
   # Generate loop optimisations
   for i, loop in enumerate(main_store.loops, 1):
 
     # Form output file path 
-    path = os.path.join(args.out, f'{args.prefix}_{opt.name}_{loop.name}.{extension}')
+    path = Path(os.path.join(args.out, f'{args.prefix}_{opt.name}_{loop.name}.{extension}'))
 
     # Generate loop host source
     source = genLoopHost(lang, opt, loop, i)
@@ -117,14 +118,12 @@ def main(argv=None) -> None:
     with open(path, 'w') as file:
       file.write(f'\n{lang.com_delim} Auto-generated at {datetime.now()} by {parser.prog}\n\n')
       file.write(source)
-      hosts.append(path)
+      generated_paths.append(path)
 
       if args.verbose:
         print(f'Generated loop host {i} of {len(main_store.loops)}: {path}')
 
 
-  # Collect the paths of generated program translations
-  translations = []
 
   # Generate program translations
   for i, (raw_path, store) in enumerate(zip(args.file_paths, stores), 1):
@@ -136,13 +135,13 @@ def main(argv=None) -> None:
       source = genOpProgram(lang, raw_file.read(), store, args.soa)
 
       # Form output file path 
-      new_path = os.path.join(args.out, f'{args.prefix}_{os.path.basename(raw_path)}')
+      new_path = Path(os.path.join(args.out, f'{args.prefix}_{os.path.basename(raw_path)}'))
 
       # Write the translated source file
       with open(new_path, 'w') as new_file:
         new_file.write(f'\n{lang.com_delim} Auto-generated at {datetime.now()} by {parser.prog}\n\n')
         new_file.write(source)
-        translations.append(new_path)
+        generated_paths.append(new_path)
 
         if args.verbose:
           print(f'Translated program  {i} of {len(args.file_paths)}: {new_path}') 
@@ -155,7 +154,7 @@ def main(argv=None) -> None:
     # TODO: Append directive if file exists
     with open(os.path.join(args.out, 'Makefile'), 'w') as file:
 
-      source = genMakefile(opt, translations, hosts)
+      source = genMakefile(opt, generated_paths)
       
       file.write(f'\n# Auto-generated at {datetime.now()} by {parser.prog}\n\n')
       file.write(source)

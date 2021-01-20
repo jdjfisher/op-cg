@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 15:09:18.002065 by opcg
+! Auto-generated at 2021-01-20 19:24:35.207825 by opcg
 
 
 MODULE BRES_CALC_MODULE
@@ -45,15 +45,11 @@ MODULE BRES_CALC_MODULE
     INTEGER(kind=4) mapIdx_pbedge_0
     INTEGER(kind=4) mapIdx_pbedge_1
     INTEGER(kind=4) mapIdx_pbecell_0
-    INTEGER(kind=4) mapIdx_pbecell_0
-    INTEGER(kind=4) mapIdx_pbecell_0
     INTEGER(kind=4) bottom,top,i
 
     DO i = bottom, top - 1, 1 
       mapIdx_pbedge_0 = map_pbedge(1 + i * mapDim_pbedge + 0)+1 
       mapIdx_pbedge_1 = map_pbedge(1 + i * mapDim_pbedge + 1)+1 
-      mapIdx_pbecell_0 = map_pbecell(1 + i * mapDim_pbecell + 0)+1 
-      mapIdx_pbecell_0 = map_pbecell(1 + i * mapDim_pbecell + 0)+1 
       mapIdx_pbecell_0 = map_pbecell(1 + i * mapDim_pbecell + 0)+1
 
       ! Kernel call
@@ -173,7 +169,7 @@ MODULE BRES_CALC_MODULE
       & map_pbecell, &
       & mapDim_pbecell, & 
       & 0, & 
-      & opSetCore%core_size, & 
+      & opSetCore%core_size & 
     & )
 
     CALL op_mpi_wait_all(numberOfOpDats, opArgArray)
@@ -223,6 +219,3 @@ MODULE BRES_CALC_MODULE
   END SUBROUTINE
 
 END MODULE
-
-
-

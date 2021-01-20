@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 15:09:18.001318 by opcg
+! Auto-generated at 2021-01-20 19:24:35.207211 by opcg
 
 
 MODULE ADT_CALC_MODULE
@@ -145,7 +145,7 @@ MODULE ADT_CALC_MODULE
       & map_pcell, &
       & mapDim_pcell, & 
       & 0, & 
-      & opSetCore%core_size, & 
+      & opSetCore%core_size & 
     & )
 
     CALL op_mpi_wait_all(numberOfOpDats, opArgArray)
@@ -186,6 +186,3 @@ MODULE ADT_CALC_MODULE
   END SUBROUTINE
 
 END MODULE
-
-
-

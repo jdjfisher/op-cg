@@ -1,6 +1,7 @@
 
 # Standard library imports
 from typing import Tuple, Dict, List
+from pathlib import Path
 import json
 import re
 import os
@@ -109,15 +110,15 @@ def genLoopHost(lang: Lang, opt: Opt, loop: OP.Loop, i: int) -> str:
 
 
 # 
-def genMakefile(opt: Opt, translations: List[str], hosts: List[str]) -> str:
+def genMakefile(opt: Opt, paths: List[Path]) -> str:
   # Lookup generation template
   template = env.get_template('makefile.j2')
 
-  translations = [ os.path.basename(path) for path in translations ]
-  hosts = [ os.path.basename(path) for path in hosts ]
+  source_files = [ path.name for path in paths ]
+  object_files = [ path.with_suffix('.o') for path in paths ]
 
   return template.render(
-    translations=translations,
-    hosts=hosts,
+    source_files=source_files,
+    object_files=object_files,
     opt=opt,
   )

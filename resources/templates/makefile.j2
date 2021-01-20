@@ -1,26 +1,16 @@
 
 # Makefile generation is a wip
 
-# Generated files
-PROGRAM = {{ translations|join(' ') }}
-{{ opt.name|upper }}_HOSTS = {{ hosts|join(' ') }}
 
-# Paths
-OP2_INC =
-
-# Build
-COMP = gfortran
-COMP_FLAGS = 
-   
-
-all:
-		exit
 
 
 {{ opt.name }}:
-		$(COMP) $(COMP_FLAGS) \
-		$(PROGRAM) $({{ opt.name|upper }}_HOSTS)
-
+	$(FC) $(OPT) $(FMODS) -c \
+		{{ source_files|join(' ') }} 
+	$(MPIF90) $(OPT) $(OPENMP) $(FLINK) -o exe_{{ opt.name }} -lop2_for_seq \
+		{{ object_files|join(' ') }} 
 
 clean:
-		rm -f $(PROGRAM) $({{ opt.name|upper }}_HOSTS)
+	rm -f exe_{{ opt.name }} \
+		{{ source_files|join(' ') }} \
+		{{ object_files|join(' ') }}

@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 15:09:18.000898 by opcg
+! Auto-generated at 2021-01-20 19:24:35.206890 by opcg
 
 
 MODULE SAVE_SOLN_MODULE
@@ -104,7 +104,7 @@ MODULE SAVE_SOLN_MODULE
       & dirDat_p_q, &
       & dirDat_p_qold, &
       & 0, & 
-      & opSetCore%core_size, & 
+      & opSetCore%core_size & 
     & )
 
     CALL op_mpi_wait_all(numberOfOpDats, opArgArray)
@@ -139,6 +139,3 @@ MODULE SAVE_SOLN_MODULE
   END SUBROUTINE
 
 END MODULE
-
-
-

@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 15:09:18.002448 by opcg
+! Auto-generated at 2021-01-20 19:24:35.208079 by opcg
 
 
 MODULE UPDATE_MODULE
@@ -32,7 +32,7 @@ MODULE UPDATE_MODULE
     real(8) dirDat_p_q(4,*)
     real(8) dirDat_p_res(4,*)
     real(8) dirDat_p_adt(1,*)
-    real(8) gblDat_rms(2,*)
+    real(8) gblDat_rms(2)
 
     INTEGER(kind=4) bottom,top,i
 
@@ -135,7 +135,7 @@ MODULE UPDATE_MODULE
       & dirDat_p_adt, &
       & gblDat_rms, &
       & 0, & 
-      & opSetCore%core_size, & 
+      & opSetCore%core_size & 
     & )
 
     CALL op_mpi_wait_all(numberOfOpDats, opArgArray)
@@ -183,6 +183,3 @@ MODULE UPDATE_MODULE
   END SUBROUTINE
 
 END MODULE
-
-
-

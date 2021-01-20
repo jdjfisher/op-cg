@@ -1,5 +1,5 @@
 
-! Auto-generated at 2021-01-19 15:09:18.001697 by opcg
+! Auto-generated at 2021-01-20 19:24:35.207533 by opcg
 
 
 MODULE RES_CALC_MODULE
@@ -44,19 +44,11 @@ MODULE RES_CALC_MODULE
     INTEGER(kind=4) mapIdx_pedge_1
     INTEGER(kind=4) mapIdx_pecell_0
     INTEGER(kind=4) mapIdx_pecell_1
-    INTEGER(kind=4) mapIdx_pecell_0
-    INTEGER(kind=4) mapIdx_pecell_1
-    INTEGER(kind=4) mapIdx_pecell_0
-    INTEGER(kind=4) mapIdx_pecell_1
     INTEGER(kind=4) bottom,top,i
 
     DO i = bottom, top - 1, 1 
       mapIdx_pedge_0 = map_pedge(1 + i * mapDim_pedge + 0)+1 
       mapIdx_pedge_1 = map_pedge(1 + i * mapDim_pedge + 1)+1 
-      mapIdx_pecell_0 = map_pecell(1 + i * mapDim_pecell + 0)+1 
-      mapIdx_pecell_1 = map_pecell(1 + i * mapDim_pecell + 1)+1 
-      mapIdx_pecell_0 = map_pecell(1 + i * mapDim_pecell + 0)+1 
-      mapIdx_pecell_1 = map_pecell(1 + i * mapDim_pecell + 1)+1 
       mapIdx_pecell_0 = map_pecell(1 + i * mapDim_pecell + 0)+1 
       mapIdx_pecell_1 = map_pecell(1 + i * mapDim_pecell + 1)+1
 
@@ -180,7 +172,7 @@ MODULE RES_CALC_MODULE
       & map_pecell, &
       & mapDim_pecell, & 
       & 0, & 
-      & opSetCore%core_size, & 
+      & opSetCore%core_size & 
     & )
 
     CALL op_mpi_wait_all(numberOfOpDats, opArgArray)
@@ -227,6 +219,3 @@ MODULE RES_CALC_MODULE
   END SUBROUTINE
 
 END MODULE
-
-
-

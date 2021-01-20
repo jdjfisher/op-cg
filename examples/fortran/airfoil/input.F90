@@ -1,7 +1,7 @@
 module IO
-  #ifdef OP2_WITH_CUDAFOR
+#ifdef OP2_WITH_CUDAFOR
     USE CUDAFOR
-  #endif
+#endif
     USE OP2_CONSTANTS
     USE OP2_FORTRAN_RT_SUPPORT
     IMPLICIT  NONE
@@ -130,11 +130,11 @@ module IO
     qinf(3) = 0.0
     qinf(4) = r * e
   
-  #ifdef OP2_WITH_OMP4
+#ifdef OP2_WITH_OMP4
   !$omp target update to(gam, gm1, cfl, eps, mach, alpha, qinf)
-  #endif
+#endif
   !$acc update device(gam, gm1, cfl, eps, mach, alpha, qinf(4))
-  #ifdef OP2_WITH_CUDAFOR
+#ifdef OP2_WITH_CUDAFOR
     if (getHybridGPU().EQ.1) then
     gam_OP2 = gam
     gm1_OP2 = gm1
@@ -143,7 +143,7 @@ module IO
     mach_OP2 = mach
     qinf_OP2 = qinf
     end if
-  #endif
+#endif
   
     ! -4 in the subscript is done to adapt C++ code to fortran one
     do n = 1, ncell
@@ -176,11 +176,11 @@ module IO
     qinf(2) = r * u
     qinf(3) = 0.0
     qinf(4) = r * e
-  #ifdef OP2_WITH_OMP4
+#ifdef OP2_WITH_OMP4
   !$omp target update to(gam, gm1, cfl, eps, mach, alpha, qinf)
-  #endif
+#endif
   !$acc update device(gam, gm1, cfl, eps, mach, alpha, qinf(4))
-  #ifdef OP2_WITH_CUDAFOR
+#ifdef OP2_WITH_CUDAFOR
     if (getHybridGPU().EQ.1) then
     gam_OP2 = gam
     gm1_OP2 = gm1
@@ -189,7 +189,7 @@ module IO
     mach_OP2 = mach
     qinf_OP2 = qinf
     end if
-  #endif
+#endif
   end subroutine initialise_constants
   
   end module

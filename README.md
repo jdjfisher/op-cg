@@ -8,6 +8,6 @@
 
 ## Requirements
 
-- Python3
+- Python>=3.8
 - Clang
 - Java

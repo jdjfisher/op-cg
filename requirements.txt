@@ -4,3 +4,4 @@ clang
 jinja2
 pytest
 pylint
+mypy

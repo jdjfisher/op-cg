@@ -1,7 +1,7 @@
 
 # Standard library imports
 from typing import Tuple, Dict, List
-from os.path import basename
+from os import path
 import json
 import re
 
@@ -19,7 +19,7 @@ import op as OP
 
 # Jinja configuration
 env = Environment(
-  loader=FileSystemLoader('resources/templates'),
+  loader=FileSystemLoader(path.join(path.dirname(__file__), '../resources/templates')),
   lstrip_blocks=True,
   trim_blocks=True,
 )
@@ -113,8 +113,8 @@ def genMakefile(opt: Opt, translations: List[str], hosts: List[str]) -> str:
   # Lookup generation template
   template = env.get_template('makefile.j2')
 
-  translations = [ basename(path) for path in translations ]
-  hosts = [ basename(path) for path in hosts ]
+  translations = [ path.basename(path) for path in translations ]
+  hosts = [ path.basename(path) for path in hosts ]
 
   return template.render(
     translations=translations,

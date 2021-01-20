@@ -48,7 +48,7 @@ class ParseError(Exception):
 
 
 class Store:
-  init: Location
+  init: Optional[Location]
   exit: bool
   sets: List[OP.Set]
   maps: List[OP.Map]
@@ -171,11 +171,11 @@ class Store:
         raise OpError(f'unsupported datatype "{data.typ}" for the {lang.name} language', data.loc)
 
     # Validate map declerations
-    for map_ in self.maps:
+    for map in self.maps:
       # Validate both sets
-      for set_ in (map_.from_set, map_.to_set):
+      for set_ in (map.from_set, map.to_set):
         if set_ not in set_ptrs:
-          raise OpError(f'undefined set "{set_}" referenced in map decleration', map_.loc)
+          raise OpError(f'undefined set "{set_}" referenced in map decleration', map.loc)
 
     # Validate loop calls
     for loop in self.loops:

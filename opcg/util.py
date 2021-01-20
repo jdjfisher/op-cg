@@ -1,5 +1,5 @@
 # Standard library imports
-from typing import TypeVar, Callable, Generic, Optional, Iterable, List
+from typing import TypeVar, Callable, Generic, Optional, Iterable, List, Any, Set
 import subprocess
 import re
 
@@ -22,3 +22,14 @@ def find(xs: Iterable[T], p: Callable[[T], bool]) -> T:
 
 def safeFind(xs: Iterable[T], p: Callable[[T], bool]) -> Optional[T]:
   return next(( x for x in xs if p(x) ), None)
+
+
+def uniqueBy(xs: Iterable[T], f: Callable[[T], Any]) -> Set[T]:
+  s, u = set(), set()
+  for x in xs:
+    y = f(x)
+    if y not in s:
+      s.add(y)
+      u.add(x)
+
+  return u

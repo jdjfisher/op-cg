@@ -1,8 +1,10 @@
 # Standard library imports
 from __future__ import annotations
 from typing import TYPE_CHECKING, Final, Optional, Dict, List
+import typing
 
 # Application imports
+from util import uniqueBy
 if TYPE_CHECKING:
   from parser.common import Location
 
@@ -186,34 +188,16 @@ class Loop:
 
 
   @property
-  def indirectVars(self) -> List[Arg]:
-    vs, args = [], []
-    for arg in self.indirects:
-      if arg.var not in vs:
-        vs.append(arg.var)
-        args.append(arg)
-
-    return args
+  def indirectVars(self) -> typing.Set[Arg]:
+    return uniqueBy(self.indirects, lambda a: a.var)
 
 
   @property
-  def indirectMaps(self) -> List[Arg]:
-    ms, args = [], []
-    for arg in self.indirects:
-      if arg.map not in ms:
-        ms.append(arg.map)
-        args.append(arg)
-
-    return args
+  def indirectMaps(self) -> typing.Set[Arg]:
+    return uniqueBy(self.indirects, lambda a: a.map)
 
 
   @property
-  def indirectIdxs(self) -> List[Arg]:
-    ids, args = [], []
-    for arg in self.indirects:
-      if (arg.map, arg.idx) not in ids:
-        ids.append((arg.map, arg.idx))
-        args.append(arg)
-
-    return args
+  def indirectIdxs(self) -> typing.Set[Arg]:
+    return uniqueBy(self.indirects, lambda a: (a.map, a.idx))
 

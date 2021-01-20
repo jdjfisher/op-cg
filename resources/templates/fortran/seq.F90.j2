@@ -70,9 +70,9 @@ MODULE {{ parloop.name|upper }}_MODULE
     {{ arg.typ }} gblDat_{{ arg.var }}({{ dim }})
     {% endfor %}
 
-    {% for i in parloop.indirectMaps %}
-    INTEGER(kind=4) map_{{ i.map }}(*)
-    INTEGER(kind=4) mapDim_{{ i.map }}
+    {% for arg in parloop.indirectMaps %}
+    INTEGER(kind=4) map_{{ arg.map }}(*)
+    INTEGER(kind=4) mapDim_{{ arg.map }}
     {% endfor %}
     {% for arg in parloop.indirectIdxs %}
     INTEGER(kind=4) mapIdx_{{ arg.map }}_{{ arg.idx-1 }}
@@ -148,9 +148,9 @@ MODULE {{ parloop.name|upper }}_MODULE
     {{ arg.typ }}, POINTER, DIMENSION(:) :: gblDat_{{ arg.var }}
     {% endfor %}
     {# Maps #}
-    {% for i in parloop.indirectMaps  %}
-    INTEGER(kind=4), POINTER, DIMENSION(:) :: map_{{ i.map }}
-    INTEGER(kind=4) :: mapDim_{{ i.map }}
+    {% for arg in parloop.indirectMaps  %}
+    INTEGER(kind=4), POINTER, DIMENSION(:) :: map_{{ arg.map }}
+    INTEGER(kind=4) :: mapDim_{{ arg.map }}
     {% endfor %}
 
     INTEGER(kind=4) :: i

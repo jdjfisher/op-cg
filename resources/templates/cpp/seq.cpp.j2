@@ -1,0 +1,75 @@
+
+{# Template imports #}
+{% from 'macros.j2' import comma %}
+
+{# !!! W.I.P !!! #}
+
+// user function
+#include "{{ parloop.kernel }}.h"
+
+// host stub function
+void op_par_loop_{{ parloop.name }}_host(
+  char const *name, 
+  op_set set,
+  {% for arg in parloop.args %}
+  op_arg arg{{ arg.i }}{{ comma(loop) }}       
+  {% endfor %}
+) {
+
+  int nargs = {{ parloop.args | length }};
+  op_arg args[{{ parloop.args | length }}];
+
+  {% for arg in parloop.args %}
+  args[{{ arg.i }}] = arg{{ arg.i }};
+  {% endfor %}
+
+  // initialise timers
+  double cpu_t1, cpu_t2, wall_t1, wall_t2;
+  op_timing_realloc({{ id }});
+  op_timers_core(&cpu_t1, &wall_t1);
+
+  if (OP_diags>2)
+  {
+    printf(" kernel routine {{ 'with' if parloop.indirection else 'w/o' }} indirection: {{ parloop.name }}\n");
+  }
+
+  int set_size = op_mpi_halo_exchanges(set, nargs, args);
+
+  if (set_size > 0)
+  {
+    {% if parloop.indirection %}
+    {% else %}
+    {% endif %}
+  }
+
+  {% if parloop.indirection %}
+  if (set_size == 0 || set_size == set->core_size) 
+  {
+    op_mpi_wait_all(nargs, args);
+  }
+  {% endif %}
+
+  // combine reduction data
+  {% for arg in parloop.globals %} 
+  {% if arg.acc != 'OP_READ' and arg.typ in ('int', 'float', 'double') %}
+  op_mpi_reduce_{{ arg.typ }}(&arg{{ arg.i }},({{ arg.typ }}*)arg{{ arg.i }}.data);
+  {% endif %}
+  {% endfor %}
+  op_mpi_set_dirtybit(nargs, args);
+
+  // update kernel record
+  op_timers_core(&cpu_t2, &wall_t2);
+  OP_kernels[{{ id }}].name      = name;
+  OP_kernels[{{ id }}].count    += 1;
+  OP_kernels[{{ id }}].time     += wall_t2 - wall_t1;
+
+  {% if parloop.indirection %}
+  {# Indirection #}
+  {% for arg in parloop.indirectVars %}
+  {# TODO #}
+  {% endfor %}
+  {% else %}
+  {# No indirection #}
+  {# TODO #}
+  {% endif %}
+}

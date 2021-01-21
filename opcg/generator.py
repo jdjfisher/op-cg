@@ -41,7 +41,7 @@ env.tests['indirect'] = lambda arg: arg.indirect
 templates: Dict[Tuple[Lang, Opt], Template] = {
   (language.f, optimisation.seq): env.get_template('fortran/seq.F90.j2'),
   (language.f, optimisation.cuda): env.get_template('fortran/cuda.F90.j2'),
-  (language.c, optimisation.seq): env.get_template('cpp/seq.hpp.j2'),
+  (language.c, optimisation.seq): env.get_template('cpp/seq.cpp.j2'),
 }
 
 

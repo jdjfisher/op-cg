@@ -2,7 +2,8 @@
 {# !!! WIP !!! #}
 
 {# Template imports #}
-{% from 'fortran/macros.j2' import comma %}
+{% from 'fortran/macros.j2' import op_opt %}
+{% from 'macros.j2' import comma %}
 
 {# {% set indirect_rw = any([ arg['acc'] == 'OP_RW' for arg in parloop.indirects.values() ]) %} #}
 {% set indirect_rw = 'OP_RW' in parloop.indirects.values()|selectattr('acc') %}

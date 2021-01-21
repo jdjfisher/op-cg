@@ -1,5 +1,6 @@
 {# Template imports #}
-{% from 'fortran/macros.j2' import op_opt, comma %}
+{% from 'fortran/macros.j2' import op_opt %}
+{% from 'macros.j2' import comma %}
 
 MODULE {{ parloop.name|upper }}_MODULE
 

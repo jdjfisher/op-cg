@@ -149,13 +149,11 @@ class Store:
 
 
   def validate(self, lang: Lang) -> None:
-    # TODO: Enforce single dat access
-
     if not self.init:
-      print('WARNING: No call to op_init found')
+      print('OP warning: No call to op_init found')
 
     if not self.exit:
-      print('WARNING: No call to op_exit found')
+      print('OP warning: No call to op_exit found')
 
     # Collect the pointers of defined sets
     set_ptrs = [ s.ptr for s in self.sets ]
@@ -234,10 +232,10 @@ class Store:
             if arg.idx is None or arg.idx < min_idx or arg.idx > max_idx:
               raise OpError(f'index {arg.idx} out of range, must be in the interval [{min_idx},{max_idx}]', arg.loc)
 
-            # Check duplicate indirect accesses     
-            predicate = lambda a: a is not arg and a.var == arg.var and a.map == arg.map and a.idx == arg.idx
-            if safeFind(loop.indirects, predicate):
-              raise OpError(f'duplicate indirect accesses in the same par loop', arg.loc)
+          # Enforce unique data access
+          for other in loop.args:
+            if other is not arg and other.var == arg.var and (other.idx == arg.idx and other.map == arg.map):
+              raise OpError(f'duplicate data accesses in the same par loop', arg.loc)
 
 
   def __str__(self) -> str:

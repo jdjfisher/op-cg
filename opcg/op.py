@@ -187,6 +187,11 @@ class Loop:
 
 
   @property
+  def uniqueVars(self) -> List[Arg]:
+    return uniqueBy(self.args, lambda a: a.var)
+
+
+  @property
   def indirectVars(self) -> List[Arg]:
     return uniqueBy(self.indirects, lambda a: a.var)
 

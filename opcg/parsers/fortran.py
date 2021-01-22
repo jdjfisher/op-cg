@@ -113,11 +113,11 @@ def parseConst(nodes: List[Element], loc: Location) -> OP.Const:
   if len(nodes) != 3:
     raise ParseError('incorrect number of args passed to op_decl_const', loc)
 
-  name  = parseIdentifier(nodes[0])
+  ptr  = parseIdentifier(nodes[0])
   dim   = parseIntLit(nodes[1], signed=False)
   debug = parseStringLit(nodes[2])
 
-  return OP.Const(name, dim, loc)
+  return OP.Const(ptr, dim, debug, loc)
 
 
 def parseLoop(nodes: List[Element], loc: Location) -> OP.Loop:

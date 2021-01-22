@@ -76,9 +76,13 @@ def genOpProgram(lang: Lang, source: str, store: Store, soa: bool = False) -> st
 
 
   elif lang.name == 'c++':
-    # 1. Update const calls TODO: Update to const2
+    # 1. Update const calls
     for const in store.consts:
-      lines[const.loc.line - 1] = lang.com_delim + ' ' + lines[const.loc.line - 1]
+      lines[const.loc.line - 1] = re.sub(
+        r'op_decl_const\s*\(',
+        f'op_decl_const2("{const.debug}", ',
+        lines[const.loc.line - 1]
+      )
 
     # 2. Update loop calls
     for loop in store.loops:

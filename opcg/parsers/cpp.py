@@ -131,9 +131,10 @@ def parseConst(nodes: List[Cursor], loc: Location) -> OP.Const:
 
   dim  = parseIntLit(nodes[0], signed=False)
   typ  = parseStringLit(nodes[1])
-  name = parseIdentifier(nodes[2])
+  ptr = parseIdentifier(nodes[2])
+  debug = ptr
 
-  return OP.Const(name, dim, loc)
+  return OP.Const(ptr, dim, debug, loc)
 
 
 def parseLoop(nodes: List[Cursor], loc: Location) -> OP.Loop:

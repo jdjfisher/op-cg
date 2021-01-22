@@ -92,15 +92,15 @@ class Store:
 
   def addConst(self, const: OP.Const) -> None:
     # Search for previous decleration
-    prev = safeFind(self.consts, lambda c: c.name == const.name)
+    prev = safeFind(self.consts, lambda c: c.ptr == const.ptr)
 
     # If there is a previous decleration verify compatibilty and then skip
     if prev:
       if const.dim != prev.dim:
-        raise ParseError(f"dim mismatch in repeated decleration of '{const.name}' const")  
+        raise ParseError(f"dim mismatch in repeated decleration of '{const.ptr}' const")  
       
       elif const.dim != prev.dim:
-        raise ParseError(f"size mismatch in repeated decleration of '{const.name}' const") 
+        raise ParseError(f"size mismatch in repeated decleration of '{const.ptr}' const") 
       
       else:
         return # TODO: We need to keep track of the location still

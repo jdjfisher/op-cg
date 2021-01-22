@@ -1,7 +1,6 @@
 # Standard library imports
 from __future__ import annotations
 from typing import TYPE_CHECKING, Final, Optional, Dict, List
-import typing
 
 # Application imports
 from util import uniqueBy
@@ -188,16 +187,16 @@ class Loop:
 
 
   @property
-  def indirectVars(self) -> typing.Set[Arg]:
+  def indirectVars(self) -> List[Arg]:
     return uniqueBy(self.indirects, lambda a: a.var)
 
 
   @property
-  def indirectMaps(self) -> typing.Set[Arg]:
+  def indirectMaps(self) -> List[Arg]:
     return uniqueBy(self.indirects, lambda a: a.map)
 
 
   @property
-  def indirectIdxs(self) -> typing.Set[Arg]:
+  def indirectIdxs(self) -> List[Arg]:
     return uniqueBy(self.indirects, lambda a: (a.map, a.idx))
 

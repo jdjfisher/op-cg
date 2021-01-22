@@ -24,12 +24,12 @@ def safeFind(xs: Iterable[T], p: Callable[[T], bool]) -> Optional[T]:
   return next(( x for x in xs if p(x) ), None)
 
 
-def uniqueBy(xs: Iterable[T], f: Callable[[T], Any]) -> Set[T]:
-  s, u = set(), set()
+def uniqueBy(xs: Iterable[T], f: Callable[[T], Any]) -> List[T]:
+  s, u = set(), list()
   for x in xs:
     y = f(x)
     if y not in s:
       s.add(y)
-      u.add(x)
+      u.append(x)
 
   return u

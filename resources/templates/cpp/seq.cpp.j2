@@ -1,5 +1,6 @@
 
 {# Template imports #}
+{% from 'cpp/macros.j2' import op_opt %}
 {% from 'macros.j2' import comma %}
 
 {# !!! W.I.P !!! #}
@@ -37,9 +38,37 @@ void op_par_loop_{{ parloop.name }}_host(
 
   if (set_size > 0)
   {
-    {% if parloop.indirection %}
-    {% else %}
-    {% endif %}
+    for (int n=0; n<set_size; n++)
+    {
+      {% if parloop.indirection %}
+      if (n == set->core_size)
+      {
+        op_mpi_wait_all(nargs, args);
+      }
+      {# Idxs #}
+      {% for arg in parloop.indirectIdxs %}
+      {%- call op_opt(arg) %}  
+      int map{{ arg.i }}idx = arg{{ arg.i }}.map_data[n * arg{{ arg.i }}.map->dim + {{ arg.idx }}];
+      {%- endcall %}
+      {% endfor %}
+      {# TODO: vec #}
+      {% endif %}
+
+
+      {{ parloop.kernel }}(
+      {% for arg in parloop.args %}
+      {% if arg.indirect %}
+      {# TODO: vec #}
+      {# TODO: Fix arg id #}
+        &(({{ arg.typ }}*)arg{{ arg.i }}.data)[{{ arg.dim }} * map{{ arg.i }}idx]{{ comma(loop) }}
+      {% elif arg.direct %}
+        &(({{ arg.typ }}*)arg{{ arg.i }}.data)[{{ arg.dim }} * n]{{ comma(loop) }}
+      {% elif arg.global_ %}
+        ({{ arg.typ }}*)arg{{ arg.i }}.data{{ comma(loop) }}
+      {% endif %}
+      {% endfor %}
+      );
+    }
   }
 
   {% if parloop.indirection %}
@@ -59,9 +88,9 @@ void op_par_loop_{{ parloop.name }}_host(
 
   // update kernel record
   op_timers_core(&cpu_t2, &wall_t2);
-  OP_kernels[{{ id }}].name      = name;
-  OP_kernels[{{ id }}].count    += 1;
-  OP_kernels[{{ id }}].time     += wall_t2 - wall_t1;
+  OP_kernels[{{ id }}].name = name;
+  OP_kernels[{{ id }}].count += 1;
+  OP_kernels[{{ id }}].time += wall_t2 - wall_t1;
 
   {% if parloop.indirection %}
   {# Indirection #}
@@ -70,6 +99,12 @@ void op_par_loop_{{ parloop.name }}_host(
   {% endfor %}
   {% else %}
   {# No indirection #}
-  {# TODO #}
+  {% for arg in parloop.args %}
+  {% if not arg.global_ %}
+  {%- call op_opt(arg) %}  
+  OP_kernels[{{ id }}].transfer += (float)set->size * arg{{ arg.i }}{% if arg.acc != 'OP_READ' %} * 2.0f{% endif %};
+  {%- endcall %}
+  {% endif %}
+  {% endfor %}
   {% endif %}
 }

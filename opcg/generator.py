@@ -63,36 +63,40 @@ def genOpProgram(lang: Lang, source: str, store: Store, soa: bool = False) -> st
       after = after.replace(loop.kernel, f'"{loop.kernel}"') # TODO: This assumes that the kernel arg is on the same line as the call
       lines[loop.loc.line - 1] = before + f'op_par_loop_{loop.name}_host' + after
 
-    source = ''.join(lines)
+    # 3. Update headers
+    index = lines.index('  use OP2_Fortran_Reference\n')  # TODO: Make more robust
+    for loop in store.loops:
+      lines.insert(index, f'  use {loop.name.upper()}_MODULE\n') 
 
-    # 3. Update init call
+    # 4. Update init call TODO: Use a line number from the store
+    source = ''.join(lines)
     if soa:
       source = re.sub(r'\bop_init(\w*)\b\s*\((.*)\)','op_init\\1_soa(\\2,1)', source)
       source = re.sub(r'\bop_mpi_init(\w*)\b\s*\((.*)\)','op_mpi_init\\1_soa(\\2,1)', source)
 
-    # 4. Update headers
-    before, after = source.split('  use OP2_Fortran_Reference\n', 1) # TODO: Make more robust
-    for loop in store.loops:
-      before += f'  use {loop.name.upper()}_MODULE\n' 
-
-    source = before + after
 
   elif lang.name == 'c++':
-    # 1. Update const calls
-    # ...
+    # 1. Update const calls TODO: Update to const2
+    for const in store.consts:
+      lines[const.loc.line - 1] = lang.com_delim + ' ' + lines[const.loc.line - 1]
 
     # 2. Update loop calls
-    # ...
+    for loop in store.loops:
+      before, after = lines[loop.loc.line - 1].split('op_par_loop', 1)
+      after = re.sub(f'{loop.kernel}\s*,\s*', '', after, count=1) # TODO: This assumes that the kernel arg is on the same line as the call
+      lines[loop.loc.line - 1] = before + f'op_par_loop_{loop.name}_host' + after
 
+    # 3. Update headers
+    index = lines.index('#include "op_seq.h"\n') + 2 # TODO: Make more robust
+    for loop in store.loops:
+      prototype = f'void op_par_loop_{loop.name}_host(char const *, op_set{", op_arg" * len(loop.args)});\n'
+      lines.insert(index, prototype)
+
+    # 4. Update init call TODO: Use a line number from the store
     source = ''.join(lines)
-
-    # 3. Update init call
     if soa:
       source = re.sub(r'\bop_init\b\s*\((.*)\)','op_init_soa(\\1,1)', source)
       source = re.sub(r'\bop_mpi_init\b\s*\((.*)\)','op_mpi_init_soa(\\1,1)', source)
-
-    # 4. Update headers
-    # ...
 
   return source
 

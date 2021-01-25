@@ -87,12 +87,16 @@ def main(argv=None) -> None:
   main_store.validate(lang)
 
   if args.verbose:
-    print('\nMain store:', main_store)
+    print('\nOP Store:', main_store)
 
   if args.dump:
     # Dump main store to a json file
-    with open(os.path.join(args.out, 'store.json'), 'w') as file:
+    store_path = os.path.join(args.out, 'store.json')
+
+    with open(store_path, 'w') as file:
       file.write(json.dumps(main_store.__dict__, default=vars, indent=4))
+    if args.verbose:
+      print('Dumped OP store:', store_path, end='\n\n')
 
 
 

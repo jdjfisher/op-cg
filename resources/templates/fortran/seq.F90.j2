@@ -21,6 +21,11 @@ MODULE {{ parloop.name|upper }}_MODULE
     {% for arg in parloop.indirectVars %}
     & indDat_{{ arg.var }}, &
     {% endfor %}
+    {# Maps #}
+    {% for arg in parloop.indirectMaps  %}
+    & map_{{ arg.map }}, &
+    & mapDim_{{ arg.map }}, & 
+    {% endfor %}
     {# Directs #}
     {% for arg in parloop.directs %}
     & dirDat_{{ arg.var }}, &
@@ -28,11 +33,6 @@ MODULE {{ parloop.name|upper }}_MODULE
     {# Globals #}
     {% for arg in parloop.globals  %}
     & gblDat_{{ arg.var }}, &
-    {% endfor %}
-    {# Maps #}
-    {% for arg in parloop.indirectMaps  %}
-    & map_{{ arg.map }}, &
-    & mapDim_{{ arg.map }}, & 
     {% endfor %}
     {#  #}
     & bottom, &
@@ -206,6 +206,11 @@ MODULE {{ parloop.name|upper }}_MODULE
       {% for arg in parloop.indirectVars %}
       & indDat_{{ arg.var }}, &
       {% endfor %}
+      {# Maps #}
+      {% for arg in parloop.indirectMaps  %}
+      & map_{{ arg.map }}, &
+      & mapDim_{{ arg.map }}, & 
+      {% endfor %}
       {# Directs #}
       {% for arg in parloop.directs %}
       & dirDat_{{ arg.var }}, &
@@ -213,11 +218,6 @@ MODULE {{ parloop.name|upper }}_MODULE
       {# Globals #}
       {% for arg in parloop.globals  %}
       & gblDat_{{ arg.var }}, &
-      {% endfor %}
-      {# Maps #}
-      {% for arg in parloop.indirectMaps  %}
-      & map_{{ arg.map }}, &
-      & mapDim_{{ arg.map }}, & 
       {% endfor %}
       {#  #}
       & 0, & 
@@ -231,6 +231,11 @@ MODULE {{ parloop.name|upper }}_MODULE
       {% for arg in parloop.indirectVars %}
       & indDat_{{ arg.var }}, &
       {% endfor %}
+      {# Maps #}
+      {% for arg in parloop.indirectMaps  %}
+      & map_{{ arg.map }}, &
+      & mapDim_{{ arg.map }}, & 
+      {% endfor %}
       {# Directs #}
       {% for arg in parloop.directs %}
       & dirDat_{{ arg.var }}, &
@@ -238,11 +243,6 @@ MODULE {{ parloop.name|upper }}_MODULE
       {# Globals #}
       {% for arg in parloop.globals  %}
       & gblDat_{{ arg.var }}, &
-      {% endfor %}
-      {# Maps #}
-      {% for arg in parloop.indirectMaps  %}
-      & map_{{ arg.map }}, &
-      & mapDim_{{ arg.map }}, & 
       {% endfor %}
       {#  #}
       & opSetCore%core_size, & 

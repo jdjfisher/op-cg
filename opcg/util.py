@@ -1,5 +1,6 @@
 # Standard library imports
 from typing import TypeVar, Callable, Generic, Optional, Iterable, List, Any, Set
+from pathlib import Path
 import subprocess
 import re
 
@@ -8,8 +9,13 @@ import re
 T = TypeVar('T')
 
 
+def getRootPath() -> Path:
+  return Path(__file__).parent.parent.absolute()
+
+
 def getVersion() -> str:
-  return subprocess.check_output(["git", "describe", "--always"]).strip().decode()
+  args = ['git', '-C', getRootPath(), 'describe', '--always']
+  return subprocess.check_output(args).strip().decode()
 
 
 def enumRegex(values: List[str]) -> str:

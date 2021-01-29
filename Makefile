@@ -15,6 +15,9 @@ cseq: # temp for development
 install:
 	pip3 install -r requirements.txt
 
+alias:
+	echo 'alias opcg="python3 ${CURDIR}/opcg"' >> ~/.bashrc
+
 lint:
 	mypy opcg
 	pylint opcg --indent-string='  '

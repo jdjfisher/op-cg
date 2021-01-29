@@ -14,7 +14,7 @@ def getRootPath() -> Path:
 
 
 def getVersion() -> str:
-  args = ['git', '-C', getRootPath(), 'describe', '--always']
+  args = ['git', '-C', str(getRootPath()), 'describe', '--always']
   return subprocess.check_output(args).strip().decode()
 
 

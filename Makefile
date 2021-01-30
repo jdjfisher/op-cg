@@ -4,19 +4,20 @@ all:
 	exit
 
 fseq: # temp for development 
-	python3 opcg seq -vdm -soa examples/fortran/airfoil/airfoil.F90 -o temp/
+	python3 opcg seq -vd -soa examples/fortran/airfoil/airfoil.F90 -o temp/
 
 fcuda: # temp for development 
-	python3 opcg cuda -vdm examples/fortran/airfoil/airfoil.F90 -o temp/
+	python3 opcg cuda -vd examples/fortran/airfoil/airfoil.F90 -o temp/
 
 cseq: # temp for development 
-	python3 opcg seq -vdm examples/cpp/airfoil/airfoil.cpp -o temp/
+	python3 opcg seq -vd examples/cpp/airfoil/airfoil.cpp -o temp/
 
 install:
 	pip3 install -r requirements.txt
 
 alias:
-	echo 'alias opcg="python3 ${CURDIR}/opcg"' >> ~/.bashrc
+	echo 'Create an alias with this' 
+	alias opcg="python3 ${CURDIR}/opcg"
 
 lint:
 	mypy opcg

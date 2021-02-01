@@ -21,8 +21,12 @@ def parse(path: Path) -> Store:
   # Init libclang
   index = Index.create()
 
-  op2_include = os.path.join(os.getenv('OP2_INSTALL_PATH'), 'c/include')
-  args = [ '-I' + op2_include ]
+  # Locate OP2 install
+  op2_install = os.getenv('OP2_INSTALL_PATH')
+  if not op2_install:
+    exit('Fatal: OP2_INSTALL_PATH not set')
+
+  args = [ '-I' + os.path.join(op2_install, 'c/include') ]
 
   # Invoke Clang parser on the source
   translation_unit = index.parse(path, args=args, options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)

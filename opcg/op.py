@@ -90,7 +90,7 @@ class Data:
 class Const:
   ptr: str
   dim: int
-  debug: atr
+  debug: str
   loc: Location
 
   def __init__(self, ptr: str, dim: int, debug: str, loc: Location) -> None:

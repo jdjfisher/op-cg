@@ -16,9 +16,9 @@ MODULE {{ parloop.name | upper }}_MODULE
   USE CUDAFOR
   USE CUDACONFIGURATIONPARAMS
 
-  #ifdef _OPENMP
+#ifdef _OPENMP
     USE OMP_LIB
-  #endif
+#endif
 
   ! {{ parloop.kernel }} variable declarations
 
@@ -26,10 +26,10 @@ MODULE {{ parloop.name | upper }}_MODULE
 
   {% if parloop.indirection %}
   TYPE ( c_ptr )  :: planReturn
-   {% endif %}
+  {% endif %}
 
   {# {% if TODO: anySoa %}
-  #define OP2_SOA(var,dim,stride) var((dim-1)*stride+1)
+#define OP2_SOA(var,dim,stride) var((dim-1)*stride+1)
   {% endif %} #}
 
   CONTAINS
@@ -198,7 +198,7 @@ MODULE {{ parloop.name | upper }}_MODULE
   {% endif %}
 
   attributes (host) &
-  #include "{{ parloop.kernel }}.inc"
+#include "{{ parloop.kernel }}.inc"
   attributes (device) &
 
   ! CUDA kernel wrapper function

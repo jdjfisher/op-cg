@@ -38,10 +38,10 @@ env.tests['indirect'] = lambda arg: arg.indirect
 
 
 # TODO: Make more robust
-templates: Dict[Tuple[Lang, Opt], Template] = {
-  (language.f, optimisation.seq): env.get_template('fortran/seq.F90.j2'),
-  (language.f, optimisation.cuda): env.get_template('fortran/cuda.F90.j2'),
-  (language.c, optimisation.seq): env.get_template('cpp/seq.cpp.j2'),
+templates: Dict[Tuple[Lang, Opt], Path] = {
+  (language.f, optimisation.seq): Path('fortran/seq.F90.j2'),
+  (language.f, optimisation.cuda): Path('fortran/cuda.CUF.j2'),
+  (language.c, optimisation.seq): Path('cpp/seq.cpp.j2'),
 }
 
 
@@ -106,15 +106,18 @@ def genOpProgram(lang: Lang, source: str, store: Store, soa: bool = False) -> st
 
 
 # 
-def genLoopHost(lang: Lang, opt: Opt, loop: OP.Loop, i: int) -> str:
+def genLoopHost(lang: Lang, opt: Opt, loop: OP.Loop, i: int) -> Tuple[str, str]:
   # Lookup generation template
-  template = templates.get((lang, opt))
+  path = templates.get((lang, opt))
 
-  if not template:
+  if not path:
     exit(f'template not found for {lang.name}-{opt.name}')
 
+  template = env.get_template(str(path))
+  extension = path.suffixes[-2][1:]
+
   # Generate source from the template
-  return template.render(parloop=loop, id=i)
+  return template.render(parloop=loop, id=i), extension
 
 
 # 

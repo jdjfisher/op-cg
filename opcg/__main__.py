@@ -112,11 +112,11 @@ def main(argv=None) -> None:
   # Generate loop optimisations
   for i, loop in enumerate(main_store.loops, 1):
 
+    # Generate loop host source
+    source, extension = genLoopHost(lang, opt, loop, i)
+
     # Form output file path 
     path = Path(os.path.join(args.out, f'{args.prefix}_{opt.name}_{loop.name}.{extension}'))
-
-    # Generate loop host source
-    source = genLoopHost(lang, opt, loop, i)
 
     # Write the generated source file
     with open(path, 'w') as file:

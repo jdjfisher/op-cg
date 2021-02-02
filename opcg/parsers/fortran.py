@@ -1,9 +1,9 @@
 
 # Standard library imports
 from subprocess import CalledProcessError
-from xml.etree.ElementTree import Element
+from xml.etree.ElementTree import Element, dump
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 import re
 
 # Third party imports
@@ -11,7 +11,7 @@ import open_fortran_parser as fp
 
 # Local application imports
 from parsers.store import ParseError, Store, Location
-from util import enumRegex
+from util import enumRegex, safeFind
 import op as OP
 
 
@@ -19,59 +19,83 @@ import op as OP
 _current_file: str = '?'
 
 
-def parseKernel(path: Path) -> None:  
-  pass
+def parse(path: Path) -> Element:
+  try:
+    # Invoke OFP on the source
+    return fp.parse(Path(path), raise_on_error=True)
+  except CalledProcessError as error:
+    raise ParseError(error.output)
+
+
+def parseKernel(path: Path, kernel: str) -> Dict[str, str]:  
+  # Parse AST
+  ast = parse(path)
+
+  nodes = ast.findall('file/subroutine')
+  node = safeFind(nodes, lambda n: n.attrib['name'] == kernel)
+  if not node:
+    exit('panic')
+
+  args = { n.attrib['name']: None for n in node.findall('header/arguments/argument') }
+
+  # TODO: Cleanup
+  for decl in node.findall('body/specification/declaration'):
+    if decl.attrib and decl.attrib['type'] == 'variable':
+      type = decl.find('type')
+      for variable in decl.findall('variables/variable'):
+        if variable.attrib:
+          identifier = variable.attrib['name']
+          if identifier in args:
+            args[identifier] = type.attrib['name']
+
+  return args
 
 
 def parseProgram(path: Path) -> Store:  
-  try:
-    # Try to parse the source
-    xml = fp.parse(Path(path), raise_on_error=True)
-    # xml.etree.ElementTree.dump(xml)
-    global _current_file
-    _current_file = str(path)
+  # Parse AST
+  ast = parse(path)
 
-    # Create a store
-    store = Store()
+  # Debug
+  global _current_file
+  _current_file = str(path)
 
-    # Iterate over all Call AST nodes
-    for call in xml.findall('.//call'):
+  # Create a store
+  store = Store()
 
-      # Store call source location
-      loc = parseLocation(call)
-      name = parseIdentifier(call)
+  # Iterate over all Call AST nodes
+  for call in ast.findall('.//call'):
 
-      if call.find('name').attrib['type'] == 'procedure':
-        # Collect the call arg nodes
-        args = call.findall('name/subscripts/subscript')
+    # Store call source location
+    loc = parseLocation(call)
+    name = parseIdentifier(call)
 
-        if name == 'op_init_base':
-          store.recordInit(loc)
+    if call.find('name').attrib['type'] == 'procedure':
+      # Collect the call arg nodes
+      args = call.findall('name/subscripts/subscript')
 
-        elif name == 'op_decl_set':
-          store.addSet(parseSet(args, loc))
+      if name == 'op_init_base':
+        store.recordInit(loc)
 
-        elif name == 'op_decl_map':
-          store.addMap(parseMap(args, loc))
+      elif name == 'op_decl_set':
+        store.addSet(parseSet(args, loc))
 
-        elif name == 'op_decl_dat':
-          store.addData(parseData(args, loc))
+      elif name == 'op_decl_map':
+        store.addMap(parseMap(args, loc))
 
-        elif name == 'op_decl_const':
-          store.addConst(parseConst(args, loc))
+      elif name == 'op_decl_dat':
+        store.addData(parseData(args, loc))
 
-        elif re.search(r'op_par_loop_[1-9]\d*', name):
-          store.addLoop(parseLoop(args, loc))
+      elif name == 'op_decl_const':
+        store.addConst(parseConst(args, loc))
 
-        elif name == 'op_exit':
-          store.recordExit()
+      elif re.search(r'op_par_loop_[1-9]\d*', name):
+        store.addLoop(parseLoop(args, loc))
 
-    # Return the store
-    return store
+      elif name == 'op_exit':
+        store.recordExit()
 
-  # Catch ofp error
-  except CalledProcessError as error:
-    raise ParseError(error.output)
+  # Return the store
+  return store
 
 
 def parseSet(nodes: List[Element], loc: Location) -> OP.Set:

@@ -110,11 +110,11 @@ def main(argv=None) -> None:
   # 
   for kernel in main_store.kernels:
     include_paths = [ os.path.join(dir, f'{kernel}.{lang.include_ext}') for dir in include_dirs ]
-    path = safeFind(include_paths, os.path.isfile)
-    # if not path:
-    #   panic
-    # with open(path, 'r') as file:
-    #   print(file.read())
+    kernel_path = safeFind(include_paths, os.path.isfile)
+    if not kernel_path:
+      exit('TODO: panic')
+    params = lang.parseKernel(Path(kernel_path), kernel)
+    print(params)
 
 
 

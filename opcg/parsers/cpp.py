@@ -1,6 +1,6 @@
 
 # Standard library imports
-from typing import Optional, List
+from typing import Optional, List, Dict
 from pathlib import Path
 import re
 import os
@@ -17,14 +17,28 @@ import op as OP
 macro_instances = {} # TODO: Cleanup
 
 
-def parseKernel(path: Path) -> None:  
-  pass
+def parseKernel(path: Path, kernel: str) -> Dict[str, str]:  
+  # Invoke Clang parser on kernel source
+  translation_unit = Index.create().parse(path)
+
+  # Collect root-level nodes
+  nodes = translation_unit.cursor.get_children()
+
+  # Search for kernel function
+  node = safeFind(nodes, lambda n: n.kind == CursorKind.FUNCTION_DECL and n.spelling == kernel)
+  if not node:
+    exit('panic')
+
+  args = {}
+
+  for n in node.get_children():
+    if n.kind == CursorKind.PARM_DECL:
+      args[n.spelling] = n.type.spelling
+
+  return args
 
 
 def parseProgram(path: Path) -> Store:
-  # Init libclang
-  index = Index.create()
-
   # Locate OP2 install
   op2_install = os.getenv('OP2_INSTALL_PATH')
   if not op2_install:
@@ -32,8 +46,12 @@ def parseProgram(path: Path) -> Store:
 
   args = [ '-I' + os.path.join(op2_install, 'c/include') ]
 
-  # Invoke Clang parser on the source
-  translation_unit = index.parse(path, args=args, options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
+  # Invoke Clang parser on the program source
+  translation_unit = Index.create().parse(
+    path, 
+    args=args, 
+    options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
+  )
 
   # Throw the parse error first parse error caught in the diagnostics 
   error = next(iter(translation_unit.diagnostics), None)

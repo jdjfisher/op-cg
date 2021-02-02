@@ -5,7 +5,7 @@ from typing import Callable, List, ClassVar
 from pathlib import Path
 
 # Application imports
-from parsers.common import Parser, Store, ParseError
+from parsers.common import Store, ParseError
 import parsers.fortran as fp
 import parsers.cpp as cp
 from util import find
@@ -19,7 +19,6 @@ class Lang(object):
   types: List[str]
   source_exts: List[str]
   include_ext: str
-  parser: Parser
   zero_idx: bool
 
 
@@ -30,7 +29,6 @@ class Lang(object):
     types: List[str], 
     source_exts: List[str], 
     include_ext: str, 
-    parser: Parser,
     zero_idx: bool = True
   ) -> None:
     self.__class__.instances.append(self)
@@ -39,18 +37,15 @@ class Lang(object):
     self.types = types
     self.source_exts = source_exts
     self.include_ext = include_ext
-    self.parser = parser
     self.zero_idx = zero_idx
 
 
-  def parse(self, path: Path) -> Store:
-    if not self.parser:
-      raise NotImplementedError(f'no parser registered for the "{self.name}" language')
+  def parseProgram(self, path: Path) -> Store:
+    raise NotImplementedError(f'no program parser registered for the "{self.name}" language')
 
-    try:
-      return self.parser(path)
-    except Exception as e:
-      exit(e)
+
+  def parseKernel(self, path: Path) -> None:
+    raise NotImplementedError(f'no kernel parser registered for the "{self.name}" language')
 
 
   def __str__(self) -> str:
@@ -80,20 +75,26 @@ class Lang(object):
 
 c = Lang(
   name='c++', 
-  parser=cp.parse,
   com_delim='//', 
   source_exts=['cpp'], 
   include_ext='h',
   types=['float', 'double', 'int', 'uint', 'll', 'ull', 'bool'], 
 )
 
+
 f = Lang(
   name='fortran', 
-  parser=fp.parse,
   com_delim='!',
   zero_idx=False, 
   source_exts=['F90', 'F95'], 
   include_ext='inc',
   types=['integer(4)', 'real(8)'],
 )
+
+# Register parsers ...
+
+setattr(c, 'parseProgram', cp.parseProgram)
+setattr(f, 'parseProgram', fp.parseProgram)
+
+
 

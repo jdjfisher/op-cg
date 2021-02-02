@@ -19,7 +19,11 @@ import op as OP
 _current_file: str = '?'
 
 
-def parse(path: Path) -> Store:  
+def parseKernel(path: Path) -> None:  
+  pass
+
+
+def parseProgram(path: Path) -> Store:  
   try:
     # Try to parse the source
     xml = fp.parse(Path(path), raise_on_error=True)

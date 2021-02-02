@@ -78,7 +78,7 @@ def main(argv=None) -> None:
       print(f'Parsing file {i} of {len(args.file_paths)}: {raw_path}')
     
     # Create a store
-    store = lang.parse(Path(raw_path)) 
+    store = lang.parseProgram(Path(raw_path)) 
     stores.append(store)
 
     if args.verbose:

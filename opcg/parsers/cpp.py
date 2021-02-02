@@ -17,7 +17,11 @@ import op as OP
 macro_instances = {} # TODO: Cleanup
 
 
-def parse(path: Path) -> Store:
+def parseKernel(path: Path) -> None:  
+  pass
+
+
+def parseProgram(path: Path) -> Store:
   # Init libclang
   index = Index.create()
 

@@ -13,10 +13,6 @@ if TYPE_CHECKING:
   from language import Lang
 
 
-class Parser(Protocol):
-  def __call__(self, path: Path) -> Store: ...
-
-
 class Location:
   file: str
   line: int

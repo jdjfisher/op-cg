@@ -9,7 +9,7 @@ import os
 from clang.cindex import Index, Config, TranslationUnit, Cursor, CursorKind
 
 # Local application imports
-from parsers.common import ParseError, Store, Location
+from parsers.store import ParseError, Store, Location
 from util import enumRegex, safeFind
 import op as OP
 

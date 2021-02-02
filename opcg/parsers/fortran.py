@@ -10,7 +10,7 @@ import re
 import open_fortran_parser as fp
 
 # Local application imports
-from parsers.common import ParseError, Store, Location
+from parsers.store import ParseError, Store, Location
 from util import enumRegex
 import op as OP
 

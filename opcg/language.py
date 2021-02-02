@@ -5,7 +5,7 @@ from typing import Callable, List, ClassVar
 from pathlib import Path
 
 # Application imports
-from parsers.common import Store, ParseError
+from parsers.store import Store, ParseError
 import parsers.fortran as fp
 import parsers.cpp as cp
 from util import find
@@ -80,7 +80,6 @@ c = Lang(
   include_ext='h',
   types=['float', 'double', 'int', 'uint', 'll', 'ull', 'bool'], 
 )
-
 
 f = Lang(
   name='fortran', 

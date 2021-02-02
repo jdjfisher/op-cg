@@ -10,7 +10,7 @@ import os
 from jinja2 import Environment, FileSystemLoader, select_autoescape, Template
 
 # Local application imports
-from parsers.common import Store
+from parsers.store import Store
 from optimisation import Opt
 from language import Lang
 import optimisation

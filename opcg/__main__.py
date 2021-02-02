@@ -13,7 +13,7 @@ import re
 from generator import genOpProgram, genLoopHost, genMakefile
 from language import Lang
 from optimisation import Opt
-from parsers.common import Store
+from parsers.store import Store
 from util import getVersion, safeFind
 
 

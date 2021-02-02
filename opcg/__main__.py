@@ -14,13 +14,15 @@ from generator import genOpProgram, genLoopHost, genMakefile
 from language import Lang
 from optimisation import Opt
 from parsers.common import Store
-from util import getVersion
+from util import getVersion, safeFind
 
 
 # Program entrypoint
 def main(argv=None) -> None:
   # Build arg parser
   parser = argparse.ArgumentParser(prog='opcg')
+
+  # Flags
   parser.add_argument('-V', '-version', '--version', help='Version', action='version', version=getVersion())
   parser.add_argument('-v', '--verbose', help='Verbose', action='store_true')
   parser.add_argument('-d', '--dump', help='Dump Store', action='store_true')
@@ -28,8 +30,12 @@ def main(argv=None) -> None:
   parser.add_argument('-o', '--out', help='Output Directory', type=isDirPath, default='.')
   parser.add_argument('-p', '--prefix', help='Output File Prefix', type=isValidPrefix, default='op')
   parser.add_argument('-soa', '--soa', help='Structs of Arrays', action='store_true')
+  parser.add_argument('-I', help='Header Include', type=isDirPath, action='append', nargs='+', default=['.'])
+  
+  # Positional args
   parser.add_argument('optimisation', help='Target Optimisation', type=str, choices=Opt.names())
   parser.add_argument('file_paths', help='Input Files', type=isFilePath, nargs='+')
+
   args = parser.parse_args(argv)
 
   # Collect the set of file extensions
@@ -98,6 +104,17 @@ def main(argv=None) -> None:
     if args.verbose:
       print('Dumped OP store:', store_path, end='\n\n')
 
+  # 
+  include_dirs = set([ dir for [ dir ] in args.I ])
+
+  # 
+  for kernel in main_store.kernels:
+    include_paths = [ os.path.join(dir, f'{kernel}.{lang.include_ext}') for dir in include_dirs ]
+    path = safeFind(include_paths, os.path.isfile)
+    # if not path:
+    #   panic
+    # with open(path, 'r') as file:
+    #   print(file.read())
 
 
 

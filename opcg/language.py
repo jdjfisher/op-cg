@@ -17,7 +17,8 @@ class Lang(object):
   name: str
   com_delim: str
   types: List[str]
-  extensions: List[str]
+  source_exts: List[str]
+  include_ext: str
   parser: Parser
   zero_idx: bool
 
@@ -27,7 +28,8 @@ class Lang(object):
     name: str, 
     com_delim: str, 
     types: List[str], 
-    extensions: List[str], 
+    source_exts: List[str], 
+    include_ext: str, 
     parser: Parser,
     zero_idx: bool = True
   ) -> None:
@@ -35,7 +37,8 @@ class Lang(object):
     self.name = name
     self.com_delim = com_delim
     self.types = types
-    self.extensions = extensions
+    self.source_exts = source_exts
+    self.include_ext = include_ext
     self.parser = parser
     self.zero_idx = zero_idx
 
@@ -69,7 +72,7 @@ class Lang(object):
 
   @classmethod
   def find(cls, name: str) -> Lang:
-    return find(cls.all(), lambda l: name == l.name or name in l.extensions)
+    return find(cls.all(), lambda l: name == l.name or name in l.source_exts)
 
 
 
@@ -79,7 +82,8 @@ c = Lang(
   name='c++', 
   parser=cp.parse,
   com_delim='//', 
-  extensions=['cpp'], 
+  source_exts=['cpp'], 
+  include_ext='h',
   types=['float', 'double', 'int', 'uint', 'll', 'ull', 'bool'], 
 )
 
@@ -88,7 +92,8 @@ f = Lang(
   parser=fp.parse,
   com_delim='!',
   zero_idx=False, 
-  extensions=['F90', 'F95'], 
-  types=['integer(4)', 'real(8)'], # TODO: Check these
+  source_exts=['F90', 'F95'], 
+  include_ext='inc',
+  types=['integer(4)', 'real(8)'],
 )
 

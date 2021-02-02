@@ -238,6 +238,11 @@ class Store:
               raise OpError(f'duplicate data accesses in the same par loop', arg.loc)
 
 
+  @property
+  def kernels(self):
+    return set([ loop.kernel for loop in self.loops ])
+
+
   def __str__(self) -> str:
     return f"{'init, ' if self.init else ''}{len(self.consts)} constants, {len(self.loops)} loops{', exit' if self.exit else ''}"
 

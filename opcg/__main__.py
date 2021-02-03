@@ -38,6 +38,9 @@ def main(argv=None) -> None:
 
   args = parser.parse_args(argv)
 
+  # 
+  include_dirs = set([ Path(dir) for [ dir ] in args.I ])
+
   # Collect the set of file extensions
   extensions = { os.path.splitext(path)[1][1:] for path in args.file_paths }
 
@@ -78,7 +81,7 @@ def main(argv=None) -> None:
       print(f'Parsing file {i} of {len(args.file_paths)}: {raw_path}')
     
     # Create a store
-    store = lang.parseProgram(Path(raw_path)) 
+    store = lang.parseProgram(Path(raw_path), include_dirs) 
     stores.append(store)
 
     if args.verbose:
@@ -92,8 +95,21 @@ def main(argv=None) -> None:
   # Run semantic checks on the store content
   main_store.validate(lang)
 
+  # 
+  for kernel in main_store.kernels:
+    file_name = f'{kernel}.{lang.include_ext}'
+    include_paths = [ os.path.join(dir, file_name) for dir in include_dirs ]
+    kernel_path = safeFind(include_paths, os.path.isfile)
+
+    if not kernel_path:
+      exit(f'failed to locate kernel include {file_name}')
+
+    params = lang.parseKernel(Path(kernel_path), kernel)
+    print(params)
+
+
   if args.verbose:
-    print('\nOP Store:', main_store)
+    print('OP Store:', main_store)
 
   if args.dump:
     # Dump main store to a json file
@@ -104,17 +120,6 @@ def main(argv=None) -> None:
     if args.verbose:
       print('Dumped OP store:', store_path, end='\n\n')
 
-  # 
-  include_dirs = set([ dir for [ dir ] in args.I ])
-
-  # 
-  for kernel in main_store.kernels:
-    include_paths = [ os.path.join(dir, f'{kernel}.{lang.include_ext}') for dir in include_dirs ]
-    kernel_path = safeFind(include_paths, os.path.isfile)
-    if not kernel_path:
-      exit('TODO: panic')
-    params = lang.parseKernel(Path(kernel_path), kernel)
-    print(params)
 
 
 

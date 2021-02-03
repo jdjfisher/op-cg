@@ -1,6 +1,6 @@
 
 # Standard library imports
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Set
 from pathlib import Path
 import re
 import os
@@ -34,17 +34,23 @@ def parseKernel(path: Path, kernel: str) -> Dict[str, str]:
   for n in node.get_children():
     if n.kind == CursorKind.PARM_DECL:
       args[n.spelling] = n.type.spelling
+      # get_pointee() is_const_qualified()
 
   return args
 
 
-def parseProgram(path: Path) -> Store:
+def parseProgram(path: Path, include_dirs: Set[Path]) -> Store:
   # Locate OP2 install
   op2_install = os.getenv('OP2_INSTALL_PATH')
   if not op2_install:
     exit('Fatal: OP2_INSTALL_PATH not set')
 
-  args = [ '-I' + os.path.join(op2_install, 'c/include') ]
+  # Add OP2 includes
+  op2_include = Path(op2_install).joinpath('c/include')
+  include_dirs.add(op2_include)
+
+  # Form Clang args
+  args = [ f'-I{dir}' for dir in include_dirs ]
 
   # Invoke Clang parser on the program source
   translation_unit = Index.create().parse(

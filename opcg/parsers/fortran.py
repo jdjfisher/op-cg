@@ -3,7 +3,7 @@
 from subprocess import CalledProcessError
 from xml.etree.ElementTree import Element, dump
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Set
 import re
 
 # Third party imports
@@ -51,7 +51,7 @@ def parseKernel(path: Path, kernel: str) -> Dict[str, str]:
   return args
 
 
-def parseProgram(path: Path) -> Store:  
+def parseProgram(path: Path, include_dirs: Set[Path]) -> Store:  
   # Parse AST
   ast = parse(path)
 

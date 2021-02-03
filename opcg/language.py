@@ -1,7 +1,7 @@
 # Standard library imports
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Callable, List, Dict, ClassVar
+from typing import Callable, List, Dict, ClassVar, Set
 from pathlib import Path
 
 # Application imports
@@ -40,7 +40,7 @@ class Lang(object):
     self.zero_idx = zero_idx
 
 
-  def parseProgram(self, path: Path) -> Store:
+  def parseProgram(self, path: Path, include_dirs: Set[Path]) -> Store:
     raise NotImplementedError(f'no program parser registered for the "{self.name}" language')
 
 

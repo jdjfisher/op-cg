@@ -1,7 +1,7 @@
 # Standard library imports
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Callable, List, Dict, ClassVar, Set
+from typing import Callable, List, ClassVar, Set
 from pathlib import Path
 
 # Application imports
@@ -44,7 +44,7 @@ class Lang(object):
     raise NotImplementedError(f'no program parser registered for the "{self.name}" language')
 
 
-  def parseKernel(self, path: Path, kernel: str) -> Dict[str, str]:
+  def parseKernel(self, path: Path, kernel: str) -> List[str]:
     raise NotImplementedError(f'no kernel parser registered for the "{self.name}" language')
 
 

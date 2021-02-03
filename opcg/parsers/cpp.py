@@ -1,6 +1,6 @@
 
 # Standard library imports
-from typing import Optional, List, Dict, Set
+from typing import Optional, List, Set
 from pathlib import Path
 import re
 import os
@@ -17,7 +17,7 @@ import op as OP
 macro_instances = {} # TODO: Cleanup
 
 
-def parseKernel(path: Path, kernel: str) -> Dict[str, str]:  
+def parseKernel(path: Path, kernel: str) -> List[str]:  
   # Invoke Clang parser on kernel source
   translation_unit = Index.create().parse(path)
 
@@ -29,14 +29,14 @@ def parseKernel(path: Path, kernel: str) -> Dict[str, str]:
   if not node:
     exit('panic')
 
-  args = {}
+  param_types = []
 
   for n in node.get_children():
     if n.kind == CursorKind.PARM_DECL:
-      args[n.spelling] = n.type.spelling
-      # get_pointee() is_const_qualified()
+      type = n.type.get_pointee() or n.type
+      param_types.append(re.sub(r'\s*const\s*', '', type.spelling))
 
-  return args
+  return param_types
 
 
 def parseProgram(path: Path, include_dirs: Set[Path]) -> Store:

@@ -36,9 +36,10 @@ def main(argv=None) -> None:
   parser.add_argument('optimisation', help='Target Optimisation', type=str, choices=Opt.names())
   parser.add_argument('file_paths', help='Input Files', type=isFilePath, nargs='+')
 
+  # Invoke arg parser
   args = parser.parse_args(argv)
 
-  # 
+  # Collect the include directories
   include_dirs = set([ Path(dir) for [ dir ] in args.I ])
 
   # Collect the set of file extensions
@@ -47,10 +48,8 @@ def main(argv=None) -> None:
   # Validate the file extensions
   if not extensions:
     exit('Missing file extensions, unable to determine target language.')
-
   elif len(extensions) > 1:
     exit('Varying file extensions, unable to determine target language.')
-
   else:
     [ extension ] = extensions 
 
@@ -104,8 +103,18 @@ def main(argv=None) -> None:
     if not kernel_path:
       exit(f'failed to locate kernel include {file_name}')
 
-    params = lang.parseKernel(Path(kernel_path), kernel)
-    print(params)
+    # 
+    param_types = lang.parseKernel(Path(kernel_path), kernel)
+
+    # TODO: cleanup
+    for loop in main_store.loops:
+      if loop.kernel == kernel:
+        if len(param_types) != len(loop.args):
+          exit('panic1')
+          
+        for i, (param_type, arg) in enumerate(zip(param_types, loop.args)):
+          if arg.typ != param_type:
+            exit('panic2')
 
 
   if args.verbose:

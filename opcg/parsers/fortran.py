@@ -3,7 +3,7 @@
 from subprocess import CalledProcessError
 from xml.etree.ElementTree import Element, dump
 from pathlib import Path
-from typing import List, Dict, Set
+from typing import List, Set
 import re
 
 # Third party imports
@@ -27,7 +27,7 @@ def parse(path: Path) -> Element:
     raise ParseError(error.output)
 
 
-def parseKernel(path: Path, kernel: str) -> Dict[str, str]:  
+def parseKernel(path: Path, kernel: str) -> List[str]:  
   # Parse AST
   ast = parse(path)
 
@@ -36,7 +36,8 @@ def parseKernel(path: Path, kernel: str) -> Dict[str, str]:
   if not node:
     exit('panic')
 
-  args = { n.attrib['name']: None for n in node.findall('header/arguments/argument') }
+  param_identifiers = [ n.attrib['name'] for n in node.findall('header/arguments/argument') ]
+  param_types = [None] * len(param_identifiers)
 
   # TODO: Cleanup
   for decl in node.findall('body/specification/declaration'):
@@ -45,10 +46,11 @@ def parseKernel(path: Path, kernel: str) -> Dict[str, str]:
       for variable in decl.findall('variables/variable'):
         if variable.attrib:
           identifier = variable.attrib['name']
-          if identifier in args:
-            args[identifier] = type.attrib['name']
+          if identifier in param_identifiers:
+            index = param_identifiers.index(identifier)
+            param_types[index] = parseType(type)
 
-  return args
+  return param_types
 
 
 def parseProgram(path: Path, include_dirs: Set[Path]) -> Store:  
@@ -129,7 +131,7 @@ def parseData(nodes: List[Element], loc: Location) -> OP.Data:
 
   set_  = parseIdentifier(nodes[0])
   dim   = parseIntLit(nodes[1], signed=False)
-  typ   = parseStringLit(nodes[2])
+  typ   = normaliseType(parseStringLit(nodes[2]))
   _     = parseIdentifier(nodes[3])
   ptr   = parseIdentifier(nodes[4])
   debug = parseStringLit(nodes[5])
@@ -192,7 +194,7 @@ def parseArgDat(nodes: List[Element], loc: Location) -> OP.Arg:
   idx  = parseIntLit(nodes[1], signed=True)
   map_ = parseIdentifier(nodes[2])
   dim  = parseIntLit(nodes[3], signed=False)
-  typ  = parseStringLit(nodes[4])
+  typ  = normaliseType(parseStringLit(nodes[4]))
   acc  = parseIdentifier(nodes[5], regex=access_regex)
 
   return OP.Arg(var, dim, typ, acc, loc, map_, idx)
@@ -221,7 +223,7 @@ def parseArgGbl(nodes: List[Element], loc: Location) -> OP.Arg:
   
   var = parseIdentifier(nodes[0])
   dim = parseIntLit(nodes[1], signed=False)
-  typ = parseStringLit(nodes[2])
+  typ = normaliseType(parseStringLit(nodes[2]))
   acc = parseIdentifier(nodes[3], regex=access_regex)
 
   return OP.Arg(var, dim, typ, acc, loc)
@@ -319,3 +321,19 @@ def parseLocation(node: Element) -> Location:
     int(node.attrib['line_begin']), 
     int(node.attrib['col_begin'])
   )
+
+
+def parseType(node: Element) -> str:
+  # Get the base type
+  type = node.attrib['name']
+
+  # Append kind
+  if node.attrib['hasKind']:
+    kind = parseIntLit(node.find('kind'), signed=False)
+    type = f'{type}({kind})'
+
+  return normaliseType(type)
+
+
+def normaliseType(type: str) -> str:
+  return re.sub(r'\s*kind\s*=\s*', '', type.lower())

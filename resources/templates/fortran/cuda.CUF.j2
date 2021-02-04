@@ -245,7 +245,7 @@ MODULE {{ parloop.name | upper }}_MODULE
     {% endfor %}
     {# Directs #}
     {% for arg in parloop.directs %}
-    {% if arg.typ == 'OP_READ' %}
+    {% if arg.acc == 'OP_READ' %}
     {{ arg.typ }}, DEVICE, INTENT(IN) :: dirDat_{{ arg.var }}(*)
     {% else %}
     {{ arg.typ }}, DEVICE :: dirDat_{{ arg.var }}(*)
@@ -260,8 +260,8 @@ MODULE {{ parloop.name | upper }}_MODULE
     INTEGER(kind=4), DEVICE, INTENT(IN) :: map_{{ arg.map }}(*)
     {% endfor %}
     {# Idxs #}
-    INTEGER(kind=4) {% for arg in parloop.indirectIdxs -%} 
-    mapIdx_{{ arg.map }}_{{ arg.idx-1 }}{{ comma(loop) }}{{ ' ' }}
+    {% for arg in parloop.indirectIdxs %} 
+    INTEGER(kind=4) mapIdx_{{ arg.map }}_{{ arg.idx-1 }}
     {%- endfor %}
 
 
@@ -348,13 +348,13 @@ MODULE {{ parloop.name | upper }}_MODULE
         {% elif arg.indirect %}
         {# Indirects #}
         {% if arg.dim == 1 %}
-        & indDat_{{ arg.var }}(1 + mapIdx_{{ arg.idx }}){{ comma(loop) }} &
+        & indDat_{{ arg.var }}(1 +  mapIdx_{{ arg.map }}_{{ arg.idx-1 }}){{ comma(loop) }} &
         {% else %}
-        & indDat_{{ arg.var }}(1 + mapIdx_{{ arg.idx }} * ({{ arg.dim }}): mapIdx_{{ arg.idx }} * ({{ arg.dim }}) + {{ arg.dim }}){{ comma(loop) }} &
+        & indDat_{{ arg.var }}(1 +  mapIdx_{{ arg.map }}_{{ arg.idx-1 }} * ({{ arg.dim }}): mapIdx_{{ arg.map }}_{{ arg.idx-1 }} * ({{ arg.dim }}) + {{ arg.dim }}){{ comma(loop) }} &
         {% endif %}
         {% endif %}
       {% endfor %}
-      &)
+      & )
 
       {# TODO: Stage flags #}
     END IF
@@ -393,7 +393,9 @@ MODULE {{ parloop.name | upper }}_MODULE
 
     DO i1=0, {{ arg.dim }}-1, 8
       i2 = MIN(i1+8, {{ arg.dim }})
-      CALL {{ '???' }}({{ '???' }}, reductionArrayDevice{{ arg.i+1 }}((blockIdx%x - 1)*({{ arg.dim }}) + 1+i1:),gblDat_{{ arg.var }}(i1:),{{ '???????' }},i2-i1)
+      {% set type = 'Float8' %} {# TODO: Int4 #}
+      {% set access = 0 %} {# TODO: Finish #}
+      CALL Reduction{{ type }}Mdim(red{{ type }}, reductionArrayDevice{{ arg.i+1 }}((blockIdx%x - 1)*({{ arg.dim }}) + 1+i1:),gblDat_{{ arg.var }}(i1:),{{ access }},i2-i1)
     END DO
 
     {% endif %}
@@ -456,17 +458,20 @@ MODULE {{ parloop.name | upper }}_MODULE
     REAL(kind=8) :: endTime
     INTEGER(kind=4) :: returnSetKernelTiming
 
-    {# Indirects #}
-    {% for arg in parloop.indirectVars %}
-    {{ arg.typ }}, DIMENSION(:), DEVICE, POINTER :: indDat_{{ arg.var }}
-    INTEGER(kind=4), DIMENSION(:), DEVICE, POINTER :: map_{{ arg.var }}
-    {% endfor %}
     {# Direct #}
     {% for arg in parloop.directs %}
     {{ arg.typ }}, DIMENSION(:), DEVICE, POINTER :: dirDat_{{ arg.var }}
     {% endfor %}
-
+    {# Indirects #}
     {% for arg in parloop.indirectVars %}
+    {{ arg.typ }}, DIMENSION(:), DEVICE, POINTER :: indDat_{{ arg.var }}
+    {% endfor %}
+    {# Maps #}
+    {% for arg in parloop.indirectMaps %}
+    INTEGER(kind=4), DIMENSION(:), DEVICE, POINTER :: map_{{ arg.map }}
+    {% endfor %}
+
+    {% for arg in parloop.globals %}
     INTEGER(kind=4) :: opDat{{ arg.i+1 }}Cardinality
     INTEGER(kind=4) :: opMap{{ arg.i+1 }}Cardinality
     {% endfor %}
@@ -474,7 +479,7 @@ MODULE {{ parloop.name | upper }}_MODULE
     INTEGER(kind=4) :: opDat{{ arg.i+1 }}Cardinality
     INTEGER(kind=4) :: opMap{{ arg.i+1 }}Cardinality
     {% endfor %}
-    {% for arg in parloop.globals %}
+    {% for arg in parloop.indirectVars %}
     INTEGER(kind=4) :: opDat{{ arg.i+1 }}Cardinality
     INTEGER(kind=4) :: opMap{{ arg.i+1 }}Cardinality
     {% endfor %}
@@ -554,8 +559,8 @@ MODULE {{ parloop.name | upper }}_MODULE
 
     {% if parloop.indirection %}
     {# Indirection #}
-    {% for arg in parloop.args %}
-    indirectionDescriptorArray({{ arg.i+1 }}) = {{ '??????' }}
+    {% for i in parloop.indirectionDescriptor %}
+    indirectionDescriptorArray({{ loop.index }}) = {{ i }}
     {% endfor %}
 
     numberOfIndirectOpDats = {{ parloop.indirectVars | length }}
@@ -682,19 +687,19 @@ MODULE {{ parloop.name | upper }}_MODULE
       CALL {{ parloop.name }}_cuda_wrap <<<blocksPerGrid,threadsPerBlock,dynamicSharedMemorySize>>>( &
         {% for arg in parloop.globals %}
         {# Globals #}
-        & gblDat_{{ arg.var }}{{ comma(loop) }} &
+        & gblDat_{{ arg.var }}, &
         {% endfor %}
         {% for arg in parloop.directs %}
         {# Directs #}
-        & dirDat_{{ arg.var }}{{ comma(loop) }} &
+        & dirDat_{{ arg.var }}, &
         {% endfor %}
         {% for arg in parloop.indirectVars %}
         {# Indirects #}
-        & indDat_{{ arg.var }}{{ comma(loop) }} &
+        & indDat_{{ arg.var }}, &
         {% endfor %}
         {% for arg in parloop.indirectMaps %}
         {# Maps #}
-        & map_{{ arg.map }}{{ comma(loop) }} &
+        & map_{{ arg.map }}, &
         {% endfor %}
         & itstart, itend, &
         & set%setPtr%size+set%setPtr%exec_size &
@@ -706,11 +711,11 @@ MODULE {{ parloop.name | upper }}_MODULE
     CALL {{ parloop.name }}_cuda_wrap <<<blocksPerGrid,threadsPerBlock,dynamicSharedMemorySize>>>( &
       {% for arg in parloop.globals %}
       {# Globals #}
-      & gblDat_{{ arg.var }}{{ comma(loop) }} &
+      & gblDat_{{ arg.var }}, &
       {% endfor %}
       {% for arg in parloop.directs %}
       {# Directs #}
-      & dirDat_{{ arg.var }}{{ comma(loop) }} &
+      & dirDat_{{ arg.var }}, &
       {% endfor %}
       & set%setPtr%size &
     & )

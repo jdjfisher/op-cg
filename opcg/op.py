@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Final, Optional, Dict, List
 
 # Application imports
-from util import uniqueBy
+from util import uniqueBy, find
 if TYPE_CHECKING:
   from parser.common import Location
 
@@ -206,4 +206,20 @@ class Loop:
   @property
   def indirectIdxs(self) -> List[Arg]:
     return uniqueBy(self.indirects, lambda a: (a.map, a.idx))
+
+  
+  @property
+  def indirectionDescriptor(self) -> List[int]:
+    # TODO: Tidy
+    descriptor = []
+
+    for arg in self.args:
+      if arg.indirect:
+        for i, a in enumerate(self.indirectVars):
+          if a.var == arg.var:
+            descriptor.append(i)
+      else:
+        descriptor.append(-1)
+        
+    return descriptor
 

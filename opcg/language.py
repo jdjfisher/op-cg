@@ -5,9 +5,7 @@ from typing import Callable, List, ClassVar, Set
 from pathlib import Path
 
 # Application imports
-from parsers.store import Store, ParseError
-import parsers.fortran as fp
-import parsers.cpp as cp
+from store import Store, ParseError
 from util import find
 
 
@@ -40,12 +38,19 @@ class Lang(object):
     self.zero_idx = zero_idx
 
 
+  # 
   def parseProgram(self, path: Path, include_dirs: Set[Path]) -> Store:
     raise NotImplementedError(f'no program parser registered for the "{self.name}" language')
 
 
+  # 
   def parseKernel(self, path: Path, kernel: str) -> List[str]:
     raise NotImplementedError(f'no kernel parser registered for the "{self.name}" language')
+
+
+  # Augment source program to use generated kernel hosts
+  def translateProgram(self, source: str, store: Store, soa: bool = False) -> str:
+    raise NotImplementedError(f'no program translator registered for the "{self.name}" language')
 
 
   def __str__(self) -> str:
@@ -68,35 +73,4 @@ class Lang(object):
   @classmethod
   def find(cls, name: str) -> Lang:
     return find(cls.all(), lambda l: name == l.name or name in l.source_exts)
-
-
-
-# Define languages here ...
-
-c = Lang(
-  name='c++', 
-  com_delim='//', 
-  source_exts=['cpp'], 
-  include_ext='h',
-  types=['float', 'double', 'int', 'uint', 'll', 'ull', 'bool'], 
-)
-
-f = Lang(
-  name='fortran', 
-  com_delim='!',
-  zero_idx=False, 
-  source_exts=['F90', 'F95'], 
-  include_ext='inc',
-  types=['integer(4)', 'real(8)'],
-)
-
-# Register parsers ...
-
-setattr(c, 'parseProgram', cp.parseProgram)
-setattr(c, 'parseKernel', cp.parseKernel)
-
-setattr(f, 'parseProgram', fp.parseProgram)
-setattr(f, 'parseKernel', fp.parseKernel)
-
-
 

@@ -10,8 +10,8 @@ import os
 import re 
 
 # Application imports
-from generator import genOpProgram, genLoopHost, genMakefile
-from parsers.store import Store, ParseError
+from generator import genLoopHost, genMakefile
+from store import Store, ParseError
 from util import getVersion, safeFind
 from optimisation import Opt
 from language import Lang
@@ -166,7 +166,7 @@ def codegen(args: Namespace, lang: Lang, opt: Opt, stores: List[Store], heap_sto
     with open(raw_path, 'r') as raw_file:
 
       # Generate the translated source
-      source = genOpProgram(lang, raw_file.read(), store, args.soa)
+      source = lang.translateProgram(raw_file.read(), store, args.soa)
 
       # Form output file path 
       new_path = Path(os.path.join(args.out, f'{args.prefix}_{os.path.basename(raw_path)}'))

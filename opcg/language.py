@@ -1,11 +1,11 @@
 # Standard library imports
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Callable, List, ClassVar
+from typing import Callable, List, ClassVar, Set
 from pathlib import Path
 
 # Application imports
-from parsers.common import Parser, Store, ParseError
+from parsers.store import Store, ParseError
 import parsers.fortran as fp
 import parsers.cpp as cp
 from util import find
@@ -17,8 +17,8 @@ class Lang(object):
   name: str
   com_delim: str
   types: List[str]
-  extensions: List[str]
-  parser: Parser
+  source_exts: List[str]
+  include_ext: str
   zero_idx: bool
 
 
@@ -27,27 +27,25 @@ class Lang(object):
     name: str, 
     com_delim: str, 
     types: List[str], 
-    extensions: List[str], 
-    parser: Parser,
+    source_exts: List[str], 
+    include_ext: str, 
     zero_idx: bool = True
   ) -> None:
     self.__class__.instances.append(self)
     self.name = name
     self.com_delim = com_delim
     self.types = types
-    self.extensions = extensions
-    self.parser = parser
+    self.source_exts = source_exts
+    self.include_ext = include_ext
     self.zero_idx = zero_idx
 
 
-  def parse(self, path: Path) -> Store:
-    if not self.parser:
-      raise NotImplementedError(f'no parser registered for the "{self.name}" language')
+  def parseProgram(self, path: Path, include_dirs: Set[Path]) -> Store:
+    raise NotImplementedError(f'no program parser registered for the "{self.name}" language')
 
-    try:
-      return self.parser(path)
-    except Exception as e:
-      exit(e)
+
+  def parseKernel(self, path: Path, kernel: str) -> List[str]:
+    raise NotImplementedError(f'no kernel parser registered for the "{self.name}" language')
 
 
   def __str__(self) -> str:
@@ -69,7 +67,7 @@ class Lang(object):
 
   @classmethod
   def find(cls, name: str) -> Lang:
-    return find(cls.all(), lambda l: name == l.name or name in l.extensions)
+    return find(cls.all(), lambda l: name == l.name or name in l.source_exts)
 
 
 
@@ -77,18 +75,28 @@ class Lang(object):
 
 c = Lang(
   name='c++', 
-  parser=cp.parse,
   com_delim='//', 
-  extensions=['cpp'], 
+  source_exts=['cpp'], 
+  include_ext='h',
   types=['float', 'double', 'int', 'uint', 'll', 'ull', 'bool'], 
 )
 
 f = Lang(
   name='fortran', 
-  parser=fp.parse,
   com_delim='!',
   zero_idx=False, 
-  extensions=['F90', 'F95'], 
-  types=['integer(4)', 'real(8)'], # TODO: Check these
+  source_exts=['F90', 'F95'], 
+  include_ext='inc',
+  types=['integer(4)', 'real(8)'],
 )
+
+# Register parsers ...
+
+setattr(c, 'parseProgram', cp.parseProgram)
+setattr(c, 'parseKernel', cp.parseKernel)
+
+setattr(f, 'parseProgram', fp.parseProgram)
+setattr(f, 'parseKernel', fp.parseKernel)
+
+
 

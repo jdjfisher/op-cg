@@ -1,17 +1,17 @@
 
 # Standard library imports
 from subprocess import CalledProcessError
-from xml.etree.ElementTree import Element
+from xml.etree.ElementTree import Element, dump
 from pathlib import Path
-from typing import List
+from typing import List, Set
 import re
 
 # Third party imports
 import open_fortran_parser as fp
 
 # Local application imports
-from parsers.common import ParseError, Store, Location
-from util import enumRegex
+from parsers.store import ParseError, Store, Location
+from util import enumRegex, safeFind
 import op as OP
 
 
@@ -19,55 +19,88 @@ import op as OP
 _current_file: str = '?'
 
 
-def parse(path: Path) -> Store:  
+def parse(path: Path) -> Element:
   try:
-    # Try to parse the source
-    xml = fp.parse(Path(path), raise_on_error=True)
-    # xml.etree.ElementTree.dump(xml)
+    # Track the current file for parse errors
     global _current_file
     _current_file = str(path)
 
-    # Create a store
-    store = Store()
-
-    # Iterate over all Call AST nodes
-    for call in xml.findall('.//call'):
-
-      # Store call source location
-      loc = parseLocation(call)
-      name = parseIdentifier(call)
-
-      if call.find('name').attrib['type'] == 'procedure':
-        # Collect the call arg nodes
-        args = call.findall('name/subscripts/subscript')
-
-        if name == 'op_init_base':
-          store.recordInit(loc)
-
-        elif name == 'op_decl_set':
-          store.addSet(parseSet(args, loc))
-
-        elif name == 'op_decl_map':
-          store.addMap(parseMap(args, loc))
-
-        elif name == 'op_decl_dat':
-          store.addData(parseData(args, loc))
-
-        elif name == 'op_decl_const':
-          store.addConst(parseConst(args, loc))
-
-        elif re.search(r'op_par_loop_[1-9]\d*', name):
-          store.addLoop(parseLoop(args, loc))
-
-        elif name == 'op_exit':
-          store.recordExit()
-
-    # Return the store
-    return store
-
-  # Catch ofp error
+    # Invoke OFP on the source
+    return fp.parse(path, raise_on_error=True)
   except CalledProcessError as error:
     raise ParseError(error.output)
+
+
+def parseKernel(path: Path, kernel: str) -> List[str]:  
+  # Parse AST
+  ast = parse(path)
+
+  # Search for kernel function
+  nodes = ast.findall('file/subroutine')
+  node = safeFind(nodes, lambda n: n.attrib['name'] == kernel)
+  if not node:
+    raise ParseError(f'failed to locate kernel function {kernel}')
+
+  # Parse parameter identifiers
+  param_identifiers = [ n.attrib['name'] for n in node.findall('header/arguments/argument') ]
+  param_types = [ '' ] * len(param_identifiers)
+
+  # TODO: Cleanup
+  for decl in node.findall('body/specification/declaration'):
+    if decl.attrib and decl.attrib['type'] == 'variable':
+      type = decl.find('type')
+      for variable in decl.findall('variables/variable'):
+        if variable.attrib:
+          identifier = variable.attrib['name']
+          if identifier in param_identifiers:
+            index = param_identifiers.index(identifier)
+            param_types[index] = parseType(type)
+
+  # Return parameter types
+  return param_types
+
+
+def parseProgram(path: Path, include_dirs: Set[Path]) -> Store:  
+  # Parse AST
+  ast = parse(path)
+
+  # Create a store
+  store = Store()
+
+  # Iterate over all Call AST nodes
+  for call in ast.findall('.//call'):
+
+    # Store call source location
+    loc = parseLocation(call)
+    name = parseIdentifier(call)
+
+    if call.find('name').attrib['type'] == 'procedure':
+      # Collect the call arg nodes
+      args = call.findall('name/subscripts/subscript')
+
+      if name == 'op_init_base':
+        store.recordInit(loc)
+
+      elif name == 'op_decl_set':
+        store.addSet(parseSet(args, loc))
+
+      elif name == 'op_decl_map':
+        store.addMap(parseMap(args, loc))
+
+      elif name == 'op_decl_dat':
+        store.addData(parseData(args, loc))
+
+      elif name == 'op_decl_const':
+        store.addConst(parseConst(args, loc))
+
+      elif re.search(r'op_par_loop_[1-9]\d*', name):
+        store.addLoop(parseLoop(args, loc))
+
+      elif name == 'op_exit':
+        store.recordExit()
+
+  # Return the store
+  return store
 
 
 def parseSet(nodes: List[Element], loc: Location) -> OP.Set:
@@ -101,7 +134,7 @@ def parseData(nodes: List[Element], loc: Location) -> OP.Data:
 
   set_  = parseIdentifier(nodes[0])
   dim   = parseIntLit(nodes[1], signed=False)
-  typ   = parseStringLit(nodes[2])
+  typ   = normaliseType(parseStringLit(nodes[2]))
   _     = parseIdentifier(nodes[3])
   ptr   = parseIdentifier(nodes[4])
   debug = parseStringLit(nodes[5])
@@ -164,7 +197,7 @@ def parseArgDat(nodes: List[Element], loc: Location) -> OP.Arg:
   idx  = parseIntLit(nodes[1], signed=True)
   map_ = parseIdentifier(nodes[2])
   dim  = parseIntLit(nodes[3], signed=False)
-  typ  = parseStringLit(nodes[4])
+  typ  = normaliseType(parseStringLit(nodes[4]))
   acc  = parseIdentifier(nodes[5], regex=access_regex)
 
   return OP.Arg(var, dim, typ, acc, loc, map_, idx)
@@ -193,7 +226,7 @@ def parseArgGbl(nodes: List[Element], loc: Location) -> OP.Arg:
   
   var = parseIdentifier(nodes[0])
   dim = parseIntLit(nodes[1], signed=False)
-  typ = parseStringLit(nodes[2])
+  typ = normaliseType(parseStringLit(nodes[2]))
   acc = parseIdentifier(nodes[3], regex=access_regex)
 
   return OP.Arg(var, dim, typ, acc, loc)
@@ -291,3 +324,19 @@ def parseLocation(node: Element) -> Location:
     int(node.attrib['line_begin']), 
     int(node.attrib['col_begin'])
   )
+
+
+def parseType(node: Element) -> str:
+  # Get the base type
+  type = node.attrib['name']
+
+  # Append kind
+  if node.attrib['hasKind']:
+    kind = parseIntLit(node.find('kind'), signed=False)
+    type = f'{type}({kind})'
+
+  return normaliseType(type)
+
+
+def normaliseType(type: str) -> str:
+  return re.sub(r'\s*kind\s*=\s*', '', type.lower())

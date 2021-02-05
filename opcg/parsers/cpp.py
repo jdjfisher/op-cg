@@ -1,6 +1,6 @@
 
 # Standard library imports
-from typing import Optional, List
+from typing import Optional, List, Set
 from pathlib import Path
 import re
 import os
@@ -9,7 +9,7 @@ import os
 from clang.cindex import Index, Config, TranslationUnit, Cursor, CursorKind
 
 # Local application imports
-from parsers.common import ParseError, Store, Location
+from parsers.store import ParseError, Store, Location
 from util import enumRegex, safeFind
 import op as OP
 
@@ -17,19 +17,47 @@ import op as OP
 macro_instances = {} # TODO: Cleanup
 
 
-def parse(path: Path) -> Store:
-  # Init libclang
-  index = Index.create()
+def parseKernel(path: Path, kernel: str) -> List[str]:  
+  # Invoke Clang parser on kernel source
+  translation_unit = Index.create().parse(path)
 
+  # Collect root-level nodes
+  nodes = translation_unit.cursor.get_children()
+
+  # Search for kernel function
+  node = safeFind(nodes, lambda n: n.kind == CursorKind.FUNCTION_DECL and n.spelling == kernel)
+  if not node:
+    raise ParseError(f'failed to locate kernel function {kernel}', parseLocation(node))
+
+  # Collect parameter types
+  param_types = []
+  for n in node.get_children():
+    if n.kind == CursorKind.PARM_DECL:
+      type = n.type.get_pointee() or n.type
+      param_types.append(re.sub(r'\s*const\s*', '', type.spelling))
+
+  return param_types
+
+
+def parseProgram(path: Path, include_dirs: Set[Path]) -> Store:
   # Locate OP2 install
   op2_install = os.getenv('OP2_INSTALL_PATH')
   if not op2_install:
     exit('Fatal: OP2_INSTALL_PATH not set')
 
-  args = [ '-I' + os.path.join(op2_install, 'c/include') ]
+  # Add OP2 includes
+  op2_include = Path(op2_install).joinpath('c/include')
+  include_dirs.add(op2_include)
 
-  # Invoke Clang parser on the source
-  translation_unit = index.parse(path, args=args, options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
+  # Form Clang args
+  args = [ f'-I{dir}' for dir in include_dirs ]
+
+  # Invoke Clang parser on the program source
+  translation_unit = Index.create().parse(
+    path, 
+    args=args, 
+    options=TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
+  )
 
   # Throw the parse error first parse error caught in the diagnostics 
   error = next(iter(translation_unit.diagnostics), None)

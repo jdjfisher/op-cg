@@ -1,16 +1,15 @@
-# .SILENT:
 
 all:
 	exit
 
 fseq: # temp for development 
-	python3 opcg seq -vd -soa examples/fortran/airfoil/airfoil.F90 -o temp/
+	python3 opcg seq -vd -soa examples/fortran/airfoil/airfoil.F90 -Iexamples/fortran/airfoil/ -o temp/
 
 fcuda: # temp for development 
-	python3 opcg cuda -vd examples/fortran/airfoil/airfoil.F90 -o temp/
+	python3 opcg cuda -vd examples/fortran/airfoil/airfoil.F90 -Iexamples/fortran/airfoil/ -o temp/
 
 cseq: # temp for development 
-	python3 opcg seq -vd examples/cpp/airfoil/airfoil.cpp -o temp/
+	python3 opcg seq -vd examples/cpp/airfoil/airfoil.cpp -Iexamples/cpp/airfoil/ -o temp/
 
 install:
 	pip3 install -r requirements.txt

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Final, Optional, Dict, List
 # Application imports
 from util import uniqueBy, find
 if TYPE_CHECKING:
-  from parser.common import Location
+  from parser.store import Location
 
 
 ID: Final[str] = 'OP_ID'

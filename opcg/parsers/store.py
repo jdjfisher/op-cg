@@ -13,10 +13,6 @@ if TYPE_CHECKING:
   from language import Lang
 
 
-class Parser(Protocol):
-  def __call__(self, path: Path) -> Store: ...
-
-
 class Location:
   file: str
   line: int
@@ -150,10 +146,10 @@ class Store:
 
   def validate(self, lang: Lang) -> None:
     if not self.init:
-      print('OP warning: No call to op_init found')
+      print('warning: no call to op_init found')
 
     if not self.exit:
-      print('OP warning: No call to op_exit found')
+      print('warning: no call to op_exit found')
 
     # Collect the pointers of defined sets
     set_ptrs = [ s.ptr for s in self.sets ]
@@ -236,6 +232,11 @@ class Store:
           for other in loop.args:
             if other is not arg and other.var == arg.var and (other.idx == arg.idx and other.map == arg.map):
               raise OpError(f'duplicate data accesses in the same par loop', arg.loc)
+
+
+  @property
+  def kernels(self):
+    return set([ loop.kernel for loop in self.loops ])
 
 
   def __str__(self) -> str:

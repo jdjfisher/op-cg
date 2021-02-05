@@ -21,8 +21,12 @@ _current_file: str = '?'
 
 def parse(path: Path) -> Element:
   try:
+    # Track the current file for parse errors
+    global _current_file
+    _current_file = str(path)
+
     # Invoke OFP on the source
-    return fp.parse(Path(path), raise_on_error=True)
+    return fp.parse(path, raise_on_error=True)
   except CalledProcessError as error:
     raise ParseError(error.output)
 
@@ -31,13 +35,15 @@ def parseKernel(path: Path, kernel: str) -> List[str]:
   # Parse AST
   ast = parse(path)
 
+  # Search for kernel function
   nodes = ast.findall('file/subroutine')
   node = safeFind(nodes, lambda n: n.attrib['name'] == kernel)
   if not node:
-    exit('panic')
+    raise ParseError(f'failed to locate kernel function {kernel}')
 
+  # Parse parameter identifiers
   param_identifiers = [ n.attrib['name'] for n in node.findall('header/arguments/argument') ]
-  param_types = [None] * len(param_identifiers)
+  param_types = [ '' ] * len(param_identifiers)
 
   # TODO: Cleanup
   for decl in node.findall('body/specification/declaration'):
@@ -50,16 +56,13 @@ def parseKernel(path: Path, kernel: str) -> List[str]:
             index = param_identifiers.index(identifier)
             param_types[index] = parseType(type)
 
+  # Return parameter types
   return param_types
 
 
 def parseProgram(path: Path, include_dirs: Set[Path]) -> Store:  
   # Parse AST
   ast = parse(path)
-
-  # Debug
-  global _current_file
-  _current_file = str(path)
 
   # Create a store
   store = Store()

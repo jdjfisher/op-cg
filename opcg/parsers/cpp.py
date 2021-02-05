@@ -27,10 +27,10 @@ def parseKernel(path: Path, kernel: str) -> List[str]:
   # Search for kernel function
   node = safeFind(nodes, lambda n: n.kind == CursorKind.FUNCTION_DECL and n.spelling == kernel)
   if not node:
-    exit('panic')
+    raise ParseError(f'failed to locate kernel function {kernel}', parseLocation(node))
 
+  # Collect parameter types
   param_types = []
-
   for n in node.get_children():
     if n.kind == CursorKind.PARM_DECL:
       type = n.type.get_pointee() or n.type

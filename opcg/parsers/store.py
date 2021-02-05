@@ -146,10 +146,10 @@ class Store:
 
   def validate(self, lang: Lang) -> None:
     if not self.init:
-      print('OP warning: No call to op_init found')
+      print('warning: no call to op_init found')
 
     if not self.exit:
-      print('OP warning: No call to op_exit found')
+      print('warning: no call to op_exit found')
 
     # Collect the pointers of defined sets
     set_ptrs = [ s.ptr for s in self.sets ]

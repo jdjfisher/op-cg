@@ -201,6 +201,13 @@ MODULE {{ parloop.name | upper }}_MODULE
 #include "{{ parloop.kernel }}.inc"
   attributes (device) &
 
+
+  ! GPU kernel 
+  SUBROUTINE {{ parloop.kernel }}_gpu()
+    ! TODO: ...
+  END SUBROUTINE
+
+
   ! CUDA kernel wrapper function
   attributes (global) SUBROUTINE {{ parloop.name }}_cuda_wrap( &
     {# TODO: OPT flags #}
@@ -333,7 +340,7 @@ MODULE {{ parloop.name | upper }}_MODULE
       {%- endfor %} #}
 
       ! kernel call
-      CALL {{ parloop.kernel }}_gpu( &
+      CALL {{ parloop.kernel }}{#_gpu#}( &
       {% for arg in parloop.args %}
         {% if arg.global %}
         {# Globals #}
@@ -363,9 +370,9 @@ MODULE {{ parloop.name | upper }}_MODULE
     DO i1 = threadIdx%x - 1 + (blockIdx%x - 1) * blockDim%x, setSize - 1, blockDim%x * gridDim%x
 
       ! kernel call
-      CALL {{ parloop.kernel }}_gpu( &
+      CALL {{ parloop.kernel }}{#_gpu#}( &
       {% for arg in parloop.args %}
-        {% if arg.global %}
+        {% if arg.global_ %}
         {# Globals #}
         & gblDat_{{ arg.var }}{% if arg.dim == 1 and arg.acc == 'OP_WRITE' %}(1){% endif %}{{ comma(loop) }} &
         {% elif arg.direct %}
@@ -377,7 +384,7 @@ MODULE {{ parloop.name | upper }}_MODULE
         {% endif %}
         {% endif %}
       {% endfor %}
-      &)
+      & )
 
       {# TODO: Stage flags #}
     END DO
@@ -386,21 +393,20 @@ MODULE {{ parloop.name | upper }}_MODULE
     {# call cuda reduction for each OP_GBL #}
     {% for arg in parloop.globals %}
     {% if arg.acc != 'OP_READ' %}
-
+    {#  #}
     {% if arg.type == 'integer(4)' %}
+    {% set type = 'Int4' %}
     {% elif arg.type == 'real(8)' %}
+    {% set type = 'Float8' %}
     {% endif %}
-
+    {#  #}
     DO i1=0, {{ arg.dim }}-1, 8
       i2 = MIN(i1+8, {{ arg.dim }})
-      {% set type = 'Float8' %} {# TODO: Int4 #}
       {% set access = 0 %} {# TODO: Finish #}
       CALL Reduction{{ type }}Mdim(red{{ type }}, reductionArrayDevice{{ arg.i+1 }}((blockIdx%x - 1)*({{ arg.dim }}) + 1+i1:),gblDat_{{ arg.var }}(i1:),{{ access }},i2-i1)
     END DO
-
     {% endif %}
     {% endfor %}
-
 
   END SUBROUTINE
 
@@ -743,7 +749,7 @@ MODULE {{ parloop.name | upper }}_MODULE
     call op_timers_core(endTime)
 
     returnSetKernelTiming = setKernelTime( &
-      & {{ parloop.i }}, kernel//C_NULL_CHAR, &
+      & {{ id }}, kernel//C_NULL_CHAR, &
       & endTime-startTime, &
       {% if parloop.indirection %}
       {% if atomics %}
@@ -756,7 +762,6 @@ MODULE {{ parloop.name | upper }}_MODULE
       {% endif %}
       & 1 &
     & )
-
 
     calledTimes = calledTimes + 1
     

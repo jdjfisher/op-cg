@@ -223,3 +223,13 @@ class Loop:
         
     return descriptor
 
+
+  @property
+  def reduction(self) -> bool:
+    return any( arg.acc != READ for arg in self.globals )
+
+
+  @property
+  def multiDimReduction(self) -> bool:
+    return self.reduction and any( arg.dim > 1 for arg in self.globals )
+

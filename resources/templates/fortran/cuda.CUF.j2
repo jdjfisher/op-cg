@@ -24,6 +24,14 @@ MODULE {{ parloop.name | upper }}_MODULE
 
   {# TODO: Strides for SoA #}
 
+  {% for arg in parloop.globals %}
+  {% if arg.acc == 'OP_READ' %}
+  {{ arg.typ }}, DIMENSION(:), DEVICE, ALLOCATABLE :: gblDat_{{ arg.var }}
+  {% else %}
+  {{ arg.typ }}, DIMENSION(:), DEVICE, ALLOCATABLE :: reductionArrayDevice{{ arg.i+1 }}
+  {% endif %}
+  {% endfor %}
+
   {% if parloop.indirection %}
   TYPE ( c_ptr )  :: planReturn
   {% endif %}
@@ -34,8 +42,8 @@ MODULE {{ parloop.name | upper }}_MODULE
 
   CONTAINS
   {#  #}
-  {% if reduct_1dim or unknown_reduction_size %}
-  ! Reduction cuda kernel
+  {% if parloop.reduction %}
+  ! Standard cuda kernel reduction
   attributes (device) SUBROUTINE ReductionFloat8(sharedDouble8, reductionResult,inputValue,reductionOperation)
     REAL(kind=8), DIMENSION(:), DEVICE :: reductionResult
     REAL(kind=8) :: inputValue
@@ -87,7 +95,7 @@ MODULE {{ parloop.name | upper }}_MODULE
     CALL syncthreads()
   END SUBROUTINE
 
-  ! ...
+  ! Standard cuda kernel reduction
   attributes (device) SUBROUTINE ReductionInt4(sharedInt4, reductionResult,inputValue,reductionOperation)
     INTEGER(kind=4), DIMENSION(:), DEVICE :: reductionResult
     INTEGER(kind=4) :: inputValue
@@ -139,8 +147,9 @@ MODULE {{ parloop.name | upper }}_MODULE
     CALL syncthreads()
   END SUBROUTINE
   {% endif %}
-  {% if reduct_mdim %}
-  ! Multidimensional reduction cuda kernel
+
+  {% if parloop.multiDimReduction %}
+  ! Multidimensional cuda kernel reduction
   attributes (device) SUBROUTINE ReductionFloat8Mdim(sharedDouble8, reductionResult,inputValue,reductionOperation,dim)
     REAL(kind=8), DIMENSION(:), DEVICE :: reductionResult
     REAL(kind=8), DIMENSION(:) :: inputValue
@@ -157,7 +166,7 @@ MODULE {{ parloop.name | upper }}_MODULE
 
     DO WHILE (i1 > 0)
       CALL syncthreads()
-      IF('threadID < i1
+      IF (threadID < i1) THEN
         SELECT CASE(reductionOperation)
           CASE (0)
             DO i2 = 0, dim - 1, 1
@@ -172,13 +181,13 @@ MODULE {{ parloop.name | upper }}_MODULE
               sharedDouble8(threadID*dim + i2) = MAX(sharedDouble8(threadID*dim + i2), sharedDouble8((threadID + i1)*dim + i2))
             END DO
         END SELECT
-      ENDIF()
+      END IF
       i1 = ishft(i1,-1)
     END DO
 
     CALL syncthreads()
 
-    IF('threadID .EQ. 0
+    IF (threadID .EQ. 0) THEN
       SELECT CASE(reductionOperation)
         CASE (0)
           reductionResult(1:dim) = reductionResult(1:dim) + sharedDouble8(0:dim-1)
@@ -191,7 +200,7 @@ MODULE {{ parloop.name | upper }}_MODULE
             reductionResult(1+i2) = MAX(reductionResult(1+i2) , sharedDouble8(i2))
           END DO
       END SELECT
-    ENDIF()
+    END IF
 
     CALL syncthreads()
   END SUBROUTINE
@@ -213,7 +222,7 @@ MODULE {{ parloop.name | upper }}_MODULE
     {# TODO: OPT flags #}
     {# Globals #}
     {% for arg in parloop.globals %}
-    & gblDat_{{ arg.var }}, &
+    {# & gblDat_{{ arg.var }}, & #}
     {% endfor %}
     {# Directs #}
     {% for arg in parloop.directs %}
@@ -249,6 +258,11 @@ MODULE {{ parloop.name | upper }}_MODULE
 
     {# Globals #}
     {% for arg in parloop.globals %}
+    {% if arg.acc == 'OP_READ' and arg.dim == 1 %}
+    {{ arg.typ }}, VALUE :: gblDat_{{ arg.var }}
+    {% else %}
+    {{ arg.typ }}, DIMENSION(0:{{ arg.dim }}-1) :: gblDat_{{ arg.var }}
+    {% endif %}
     {% endfor %}
     {# Directs #}
     {% for arg in parloop.directs %}
@@ -286,14 +300,9 @@ MODULE {{ parloop.name | upper }}_MODULE
     INTEGER(kind=4) :: thrIdx
     {% endif %}
 
-    {% if reduct %}
-    {# TODO: ... #}
-    {# {% if add_real %}
+    {% if parloop.reduction %}
     REAL(kind=8), DIMENSION(0:*), SHARED :: redFloat8
-    {% endif %}
-    {% if add_int %}
     INTEGER(kind=4), DIMENSION(0:*), SHARED :: redInt4
-    {% endif %} #}
     {% endif %}
 
     {% for arg in parloop.args %}
@@ -394,15 +403,22 @@ MODULE {{ parloop.name | upper }}_MODULE
     {% for arg in parloop.globals %}
     {% if arg.acc != 'OP_READ' %}
     {#  #}
-    {% if arg.type == 'integer(4)' %}
+    {% if arg.typ == 'integer(4)' %}
     {% set type = 'Int4' %}
-    {% elif arg.type == 'real(8)' %}
+    {% elif arg.typ == 'real(8)' %}
     {% set type = 'Float8' %}
+    {% endif %}
+    {#  #}
+    {% if arg.acc == 'OP_INC' %}
+    {% set access = 0 %}
+    {% elif arg.acc == 'OP_MIN' %}
+    {% set access = 1 %}
+    {% elif arg.acc == 'OP_MAX' %}
+    {% set access = 2 %}
     {% endif %}
     {#  #}
     DO i1=0, {{ arg.dim }}-1, 8
       i2 = MIN(i1+8, {{ arg.dim }})
-      {% set access = 0 %} {# TODO: Finish #}
       CALL Reduction{{ type }}Mdim(red{{ type }}, reductionArrayDevice{{ arg.i+1 }}((blockIdx%x - 1)*({{ arg.dim }}) + 1+i1:),gblDat_{{ arg.var }}(i1:),{{ access }},i2-i1)
     END DO
     {% endif %}
@@ -691,20 +707,20 @@ MODULE {{ parloop.name | upper }}_MODULE
       dynamicSharedMemorySize = reductionSize(opArgArray, numberOfOpDats) * threadsPerBlock
 
       CALL {{ parloop.name }}_cuda_wrap <<<blocksPerGrid,threadsPerBlock,dynamicSharedMemorySize>>>( &
-        {% for arg in parloop.globals %}
         {# Globals #}
-        & gblDat_{{ arg.var }}, &
+        {% for arg in parloop.globals %}
+        {# & gblDat_{{ arg.var }}, & #}
         {% endfor %}
-        {% for arg in parloop.directs %}
         {# Directs #}
+        {% for arg in parloop.directs %}
         & dirDat_{{ arg.var }}, &
         {% endfor %}
-        {% for arg in parloop.indirectVars %}
         {# Indirects #}
+        {% for arg in parloop.indirectVars %}
         & indDat_{{ arg.var }}, &
         {% endfor %}
-        {% for arg in parloop.indirectMaps %}
         {# Maps #}
+        {% for arg in parloop.indirectMaps %}
         & map_{{ arg.map }}, &
         {% endfor %}
         & itstart, itend, &
@@ -715,12 +731,12 @@ MODULE {{ parloop.name | upper }}_MODULE
     {% else %}
     {# No indirection #}
     CALL {{ parloop.name }}_cuda_wrap <<<blocksPerGrid,threadsPerBlock,dynamicSharedMemorySize>>>( &
-      {% for arg in parloop.globals %}
       {# Globals #}
-      & gblDat_{{ arg.var }}, &
+      {% for arg in parloop.globals %}
+      {# & gblDat_{{ arg.var }}, & #}
       {% endfor %}
-      {% for arg in parloop.directs %}
       {# Directs #}
+      {% for arg in parloop.directs %}
       & dirDat_{{ arg.var }}, &
       {% endfor %}
       & set%setPtr%size &
@@ -741,12 +757,14 @@ MODULE {{ parloop.name | upper }}_MODULE
     {% endif %}
     {% endfor %}
 
-    {% if reduct %}
+    {% if parloop.reduction %}
     {# Reductions #}
     {% endif %}
 
     istat = cudaDeviceSynchronize()
     call op_timers_core(endTime)
+
+    {# Data transfers #}
 
     returnSetKernelTiming = setKernelTime( &
       & {{ id }}, kernel//C_NULL_CHAR, &

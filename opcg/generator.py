@@ -25,7 +25,6 @@ env = Environment(
   trim_blocks=True,
 )
 
-env.globals['any'] = any
 env.tests['r_or_w_acc'] = lambda arg: arg.acc in (OP.READ, OP.WRITE)
 env.tests['rw_acc'] = lambda arg: arg.acc == OP.RW
 env.tests['inc_acc'] = lambda arg: arg.acc == OP.INC

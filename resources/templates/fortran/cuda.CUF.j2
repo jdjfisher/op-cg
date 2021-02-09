@@ -349,7 +349,7 @@ MODULE {{ parloop.name | upper }}_MODULE
       {%- endfor %} #}
 
       ! kernel call
-      CALL {{ parloop.kernel }}{#_gpu#}( &
+      CALL {{ parloop.kernel }}_gpu( &
       {% for arg in parloop.args %}
         {% if arg.global %}
         {# Globals #}
@@ -379,7 +379,7 @@ MODULE {{ parloop.name | upper }}_MODULE
     DO i1 = threadIdx%x - 1 + (blockIdx%x - 1) * blockDim%x, setSize - 1, blockDim%x * gridDim%x
 
       ! kernel call
-      CALL {{ parloop.kernel }}{#_gpu#}( &
+      CALL {{ parloop.kernel }}_gpu( &
       {% for arg in parloop.args %}
         {% if arg.global_ %}
         {# Globals #}
@@ -443,7 +443,7 @@ MODULE {{ parloop.name | upper }}_MODULE
     {% endfor %}
 
     IF (getHybridGPU().EQ.1) THEN
-      CALL {{ parloop.name }}_host_gpu( &
+      CALL op_par_loop_{{ parloop.name }}_host_gpu( &
         & kernel, &
         & set, &
         {% for arg in parloop.args %}

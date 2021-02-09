@@ -120,15 +120,18 @@ seq:
 		constants.F90 input.F90 airfoil_seqfun.F90 \
 		op_seq_save_soln.F90 op_seq_adt_calc.F90 op_seq_res_calc.F90 op_seq_bres_calc.F90 op_seq_update.F90 \
 		op_airfoil.F90
-	$(MPIF90) $(OPT) $(OPENMP) $(FLINK) -o airfoil_seq -lop2_for_seq \
-	       	input.o constants.o airfoil_seqfun.o op_airfoil.o op_seq_save_soln.o op_seq_adt_calc.o op_seq_res_calc.o op_seq_bres_calc.o op_seq_update.o
+	$(MPIF90) $(OPT) $(OPENMP) $(FLINK) \
+		input.o constants.o airfoil_seqfun.o \
+		op_seq_save_soln.o op_seq_adt_calc.o op_seq_res_calc.o op_seq_bres_calc.o op_seq_update.o \
+		op_airfoil.o \
+		-o airfoil_seq -lop2_for_seq
 
 
 cuda:
-	$(FC) $(OPT) $(OPT_CUDA) $(FMODS)/cuda $(FMODS) $(FLINK) -DOP2_WITH_CUDAFOR -o airfoil_cuda -lop2_for_cuda \
+	$(FC) $(OPT) $(OPT_CUDA) $(FMODS)/cuda $(FMODS) $(FLINK) -DOP2_WITH_CUDAFOR \
 		constants.F90 input.F90 airfoil_seqfun.F90 cudaConfigurationParams.F95 \
 		op_cuda_save_soln.CUF op_cuda_adt_calc.CUF op_cuda_res_calc.CUF op_cuda_bres_calc.CUF op_cuda_update.CUF \
-		op_airfoil.F90 
+		op_airfoil.F90 -o airfoil_cuda -lop2_for_cuda
 
 
 clean:

@@ -209,13 +209,12 @@ MODULE {{ parloop.name | upper }}_MODULE
   attributes (host) &
 #include "{{ parloop.kernel }}.inc"
   attributes (device) &
+#include "{{ parloop.kernel }}.inc2"
 
-
-  ! GPU kernel 
+  {# ! GPU kernel 
   SUBROUTINE {{ parloop.kernel }}_gpu()
     ! TODO: ...
-  END SUBROUTINE
-
+  END SUBROUTINE #}
 
   ! CUDA kernel wrapper function
   attributes (global) SUBROUTINE {{ parloop.name }}_cuda_wrap( &
@@ -570,7 +569,7 @@ MODULE {{ parloop.name | upper }}_MODULE
     {% endfor %}
 
     returnSetKernelTiming = setKernelTime( &
-      & {{ id }} , kernel//C_NULL_CHAR, 0.0_8, 0.00000_4,0.00000_4, 0 &
+      & {{ id }}, kernel//C_NULL_CHAR, 0.0_8, 0.00000_4,0.00000_4, 0 &
     & )
 
     {# TODO: Managing constants #}
@@ -597,7 +596,7 @@ MODULE {{ parloop.name | upper }}_MODULE
       & numberOfOpDats, &
       & opArgArray, &
       & numberOfIndirectOpDats, &
-      & indirectionDescriptorArray, 
+      & indirectionDescriptorArray, &
       & 4 &
     & )
     {% endif %}
@@ -699,7 +698,7 @@ MODULE {{ parloop.name | upper }}_MODULE
     {% else %} 
     DO i2 = 0, actualPlan%ncolors - 1, 1
       IF (i2 .EQ. actualPlan%ncolors_core) THEN
-        code('CALL op_mpi_wait_all_cuda(numberOfOpDats,opArgArray)')
+        CALL op_mpi_wait_all_cuda(numberOfOpDats,opArgArray)
       END IF
 
       blocksPerGrid = (color2_offsets(i2+2)-color2_offsets(i2+1)-1)/threadsPerBlock+1
@@ -723,7 +722,14 @@ MODULE {{ parloop.name | upper }}_MODULE
         {% for arg in parloop.indirectMaps %}
         & map_{{ arg.map }}, &
         {% endfor %}
-        & itstart, itend, &
+        {% if atomics %}
+        & itstart, &
+        & itend, &
+        {% else %}
+        & color2_offsets(i2+1), &
+        & color2_offsets(i2+2), &
+        & pcol_reord, &
+        {% endif %}
         & set%setPtr%size+set%setPtr%exec_size &
       & )
 

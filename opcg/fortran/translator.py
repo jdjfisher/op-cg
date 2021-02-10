@@ -22,6 +22,7 @@ def translateProgram(source: str, store: Store, soa: bool = False) -> str:
 
   # 3. Update headers
   index = lines.index('  use OP2_Fortran_Reference\n')  # TODO: Make more robust
+  lines[index]  = '! ' + lines[index]
   for loop in store.loops:
     lines.insert(index, f'  use {loop.name.upper()}_MODULE\n') 
 

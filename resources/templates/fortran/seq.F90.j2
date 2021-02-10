@@ -255,7 +255,7 @@ MODULE {{ parloop.name|upper }}_MODULE
     CALL op_mpi_set_dirtybit(numberOfOpDats,opArgArray)
 
     {% for arg in parloop.globals %} 
-    {%   if arg.acc in ['OP_INC', 'OP_MIN', 'OP_MAX', 'OP_WRITE'] %}
+    {%   if arg.acc != 'OP_READ' %}
     {%     call op_opt(arg) %} 
     {%     if arg.typ in ['real(8)', 'REAL(kind=8)', 'real*8', 'r8'] %}
     CALL op_mpi_reduce_double(opArg{{ arg.i+1 }}, opArg{{ arg.i+1 }}%data)

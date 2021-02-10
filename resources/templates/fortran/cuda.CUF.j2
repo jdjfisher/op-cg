@@ -28,7 +28,7 @@ MODULE {{ parloop.name | upper }}_MODULE
   {% if arg.acc == 'OP_READ' %}
   {{ arg.typ }}, DIMENSION(:), DEVICE, ALLOCATABLE :: gblDat_{{ arg.var }}
   {% else %}
-  {{ arg.typ }}, DIMENSION(:), DEVICE, ALLOCATABLE :: reductionArrayDevice{{ arg.i+1 }}
+  {{ arg.typ }}, DIMENSION(:), DEVICE, ALLOCATABLE :: reductionArrayDevice{{ arg.i+1 }}update
   {% endif %}
   {% endfor %}
 
@@ -356,9 +356,9 @@ MODULE {{ parloop.name | upper }}_MODULE
         {% elif arg.direct %}
         {# Directs #}
         {% if arg.dim == 1 %}
-        & dirDat_{{ arg.var }}(i1 + 1){{ comma(loop) }} &
+        & dirDat_{{ arg.var }}(i3 + 1){{ comma(loop) }} &
         {% else %}
-        & dirDat_{{ arg.var }}(i1 * ({{ arg.dim }}) + 1: i1 * ({{ arg.dim }}) + {{ arg.dim }}){{ comma(loop) }} &
+        & dirDat_{{ arg.var }}(i3 * ({{ arg.dim }}) + 1: i3 * ({{ arg.dim }}) + {{ arg.dim }}){{ comma(loop) }} &
         {% endif %}
         {% elif arg.indirect %}
         {# Indirects #}
@@ -418,11 +418,10 @@ MODULE {{ parloop.name | upper }}_MODULE
     {#  #}
     DO i1=0, {{ arg.dim }}-1, 8
       i2 = MIN(i1+8, {{ arg.dim }})
-      CALL Reduction{{ type }}Mdim(red{{ type }}, reductionArrayDevice{{ arg.i+1 }}((blockIdx%x - 1)*({{ arg.dim }}) + 1+i1:),gblDat_{{ arg.var }}(i1:),{{ access }},i2-i1)
+      CALL Reduction{{ type }}Mdim(red{{ type }}, reductionArrayDevice{{ arg.i+1 }}update((blockIdx%x - 1)*({{ arg.dim }}) + 1+i1:),gblDat_{{ arg.var }}(i1:),{{ access }},i2-i1)
     END DO
     {% endif %}
     {% endfor %}
-
   END SUBROUTINE
 
   attributes (host) SUBROUTINE op_par_loop_{{ parloop.name }}_host( &
@@ -494,11 +493,9 @@ MODULE {{ parloop.name | upper }}_MODULE
 
     {% for arg in parloop.globals %}
     INTEGER(kind=4) :: opDat{{ arg.i+1 }}Cardinality
-    INTEGER(kind=4) :: opMap{{ arg.i+1 }}Cardinality
     {% endfor %}
     {% for arg in parloop.directs %}
     INTEGER(kind=4) :: opDat{{ arg.i+1 }}Cardinality
-    INTEGER(kind=4) :: opMap{{ arg.i+1 }}Cardinality
     {% endfor %}
     {% for arg in parloop.indirectVars %}
     INTEGER(kind=4) :: opDat{{ arg.i+1 }}Cardinality
@@ -512,7 +509,6 @@ MODULE {{ parloop.name | upper }}_MODULE
     INTEGER(kind=4) :: i1
     INTEGER(kind=4) :: i2
     INTEGER(kind=4) :: i10
-
     {# Indirection #}
     {% if parloop.indirection %}
     TYPE ( op_plan ) , POINTER :: actualPlan
@@ -532,7 +528,6 @@ MODULE {{ parloop.name | upper }}_MODULE
     {% endif %}
     INTEGER(kind=4) :: partitionSize
     INTEGER(kind=4) :: blockSize
-
     {# No indirection #}
     {% else %}
     INTEGER(kind=4) :: i20
@@ -655,31 +650,49 @@ MODULE {{ parloop.name | upper }}_MODULE
     {% endif %}
 
     {% for arg in parloop.globals %}
-    {# {%   if ((accs[g_m]==OP_READ and ((not dims[g_m].isdigit()) or int(dims[g_m]) > 1)) or arg['acc'] == 'OP_WRITE' %} #}
-    {# IF (.not. allocated(opGblDat{{ i+1 }}Device_{{ parloop.kernel }})) THEN
-      allocate(opGblDat{{ i+1 }}Device_{{ parloop.kernel }}(opArg{{ i+1 }}%dim))
+    {% if arg.acc == 'OP_READ' and arg.dim > 1 %}
+    IF (.not. allocated(reductionArrayDevice{{ arg.i+1 }}update)) THEN
+      allocate(reductionArrayDevice{{ arg.i+1 }}update(opArg{{ arg.i+1 }}%dim))
     END IF
-    opGblDat{{ i+1 }}Device_{{ parloop.kernel }}(1:opArg{{ i+1 }}%dim) = opDat{{ i+1 }}Host(1:opArg{{ i+1 }}%dim)  #}
-    {# {%   endif %} #}
+    reductionArrayDevice{{ arg.i+1 }}update(1:opArg{{ arg.i+1 }}%dim) = opDat{{ arg.i+1 }}Host(1:opArg{{ arg.i+1 }}%dim) 
+    {% endif %}
     {% endfor %}
 
-    {% if parloop.indirection and reduct %}
+    {% if parloop.indirection and parloop.reduction %}
     blocksPerGrid=0
-    {%   if not atomics %}
+    {% if atomics %}
+    blocksPerGrid = (set%setPtr%size+set%setPtr%exec_size-1)/threadsPerBlock+1
+    {% else %}
     DO i2 = 0, actualPlan%ncolors - 1, 1
       blocksPerGrid = blocksPerGrid+(color2_offsets(i2+2)-color2_offsets(i2+1)-1)/threadsPerBlock+1
     END DO
-    {%   else %}
-    blocksPerGrid = (set%setPtr%size+set%setPtr%exec_size-1)/threadsPerBlock+1
-    {%   endif %}
+    {% endif %}
     {% endif %}
 
-    {# TODO: dims #}
     {# Setup for reduction #}
-    {# {% for arg in parloop.globals %}
-    {% endfor %} #}
-    {# {% if unknown_reduction_size %}
-    {% endif %} #}
+    {% for arg in parloop.globals %}
+    {% if arg.acc != 'OP_READ' %}
+    reductionCardinality{{ arg.i+1 }} = blocksPerGrid * 1
+    allocate( reductionArrayHost{{ arg.i+1 }}(reductionCardinality{{ arg.i+1 }} * {{ arg.dim }}) )
+    IF (.not. allocated(reductionArrayDevice{{ arg.i+1 }}update)) THEN
+      allocate( reductionArrayDevice{{ arg.i+1 }}update(reductionCardinality{{ arg.i+1 }} * {{ arg.dim }}) )
+    END IF
+
+    DO i10 = 0, reductionCardinality{{ arg.i+1 }} - 1, 1
+    {% if arg.dim == 1 %}
+      reductionArrayHost{{ arg.i+1 }}(i10+1) = {{ 0.0 if arg.acc == 'OP_INC' else 'opDatHost' }}
+    {% else %}
+      reductionArrayHost{{ arg.i+1 }}(i10 * ({{ arg.dim }}) + 1 : i10 * ({{ arg.dim }}) + ({{ arg.dim }})) = {{ 0.0 if arg.acc == 'OP_INC' else 'opDatHost' }}
+    {% endif %}
+    END DO
+ 
+    reductionArrayDevice{{ arg.i+1 }}update = reductionArrayHost{{ arg.i+1 }}
+    {% endif %}
+    {% endfor %}
+
+    {% if unknown_reduction_size %}
+    {#  #}
+    {% endif %}
 
     {% if parloop.indirection %}
     {# Indirection #}
@@ -698,7 +711,7 @@ MODULE {{ parloop.name | upper }}_MODULE
     {% else %} 
     DO i2 = 0, actualPlan%ncolors - 1, 1
       IF (i2 .EQ. actualPlan%ncolors_core) THEN
-        CALL op_mpi_wait_all_cuda(numberOfOpDats,opArgArray)
+        CALL op_mpi_wait_all_cuda(numberOfOpDats, opArgArray)
       END IF
 
       blocksPerGrid = (color2_offsets(i2+2)-color2_offsets(i2+1)-1)/threadsPerBlock+1
@@ -751,35 +764,70 @@ MODULE {{ parloop.name | upper }}_MODULE
 
     {% if not atomics %}
     IF ((n_upper .EQ. 0) .OR. (n_upper .EQ. set%setPtr%core_size)) THEN
-      CALL op_mpi_wait_all_cuda(numberOfOpDats,opArgArray)
+      CALL op_mpi_wait_all_cuda(numberOfOpDats, opArgArray)
     END IF
     {% endif%}
 
     CALL op_mpi_set_dirtybit_cuda(numberOfOpDats, opArgArray)
 
-    {% for arg in parloop.globals %}
-    {% if arg.acc == 'OP_WRITE' %}
-    opDat{{ arg.i+1 }}Host(1:opArg{{ arg.i+1 }}%dim) = gblDat_{{ arg.var }}(1:opArg{{ arg.i+1 }}%dim)
+    {# Reductions #}
+    {% for arg in parloop.globals %} {# TODO: Maybe add reductions prop #}
+    {% if arg.acc != 'OP_READ' %}
+    {% call op_opt(arg) %} 
+    reductionArrayHost{{ arg.i+1 }} = reductionArrayDevice{{ arg.i+1 }}update
+    DO i10 = 0, reductionCardinality{{ arg.i+1 }} - 1, 1
+    {% if arg.acc == 'OP_INC' %}
+      {# opDat{{ arg.i+1 }}Host = opDat{{ arg.i+1 }}Host + reductionArrayHost{{ arg.i+1 }}(i10+1) #}
+      opDat{{ arg.i+1 }}Host(1:{{ arg.dim }}) = opDat{{ arg.i+1 }}Host(1:{{ arg.dim }}) + reductionArrayHost{{ arg.i+1 }}(i10 * ({{ arg.dim }}) + 1 : i10 * ({{ arg.dim }}) + ({{ arg.dim }}))
+    {% elif arg.acc == 'OP_MIN' %}
+      {# opDat{{ arg.i+1 }}Host = MIN(opDat{{ arg.i+1 }}Host , reductionArrayHost{{ arg.i+1 }}(i10+1)) #}
+      opDat{{ arg.i+1 }}Host(1:{{ arg.dim }}) = MIN(opDat{{ arg.i+1 }}Host(1:{{ arg.dim }}) , reductionArrayHost{{ arg.i+1 }}(i10 * ({{ arg.dim }}) + 1 : i10 * ({{ arg.dim }}) + ({{ arg.dim }})))
+    {% elif arg.acc == 'OP_MAX' %}
+      {# opDat{{ arg.i+1 }}Host = MAX(opDat{{ arg.i+1 }}Host , reductionArrayHost{{ arg.i+1 }}(i10+1)) #}
+      opDat{{ arg.i+1 }}Host(1:{{ arg.dim }}) = MAX(opDat{{ arg.i+1 }}Host(1:{{ arg.dim }}) , reductionArrayHost{{ arg.i+1 }}(i10 * ({{ arg.dim }}) + 1 : i10 * ({{ arg.dim }}) + ({{ arg.dim }})))
+    {% endif %}
+    END DO
+    {% endcall %}
+    {#  #}
+    deallocate( reductionArrayHost{{ arg.i+1 }} )
+    {#  #}
+    {% call op_opt(arg) %} 
+    {% if arg.typ in ['real(8)', 'REAL(kind=8)', 'real*8', 'r8'] %}
+    CALL op_mpi_reduce_double(opArg{{ arg.i+1 }}, opArg{{ arg.i+1 }}%data)
+    {% elif arg.typ in ['real(4)', 'REAL(kind=4)', 'real*4', 'r4'] %} 
+    CALL op_mpi_reduce_float(opArg{{ arg.i+1 }}, opArg{{ arg.i+1 }}%data)
+    {% elif arg.typ in ['integer(4)', 'INTEGER(kind=4)', 'integer*4', 'i4'] %}
+    {CALL op_mpi_reduce_int(opArg{{ arg.i+1 }}, opArg{{ arg.i+1 }}%data)
+    {% elif arg.typ in ['logical', 'logical*1'] %}
+    CALL op_mpi_reduce_bool(opArg{{ arg.i+1 }}, opArg{{ arg.i+1 }}%data)
+    {% endif %}
+    {% endcall %}
+    {#  #}
     {% endif %}
     {% endfor %}
-
-    {% if parloop.reduction %}
-    {# Reductions #}
-    {% endif %}
-
+    
     istat = cudaDeviceSynchronize()
     call op_timers_core(endTime)
 
     {# Data transfers #}
+    {% if not parloop.indirection %}
+    dataTransfer = 0.0
+    {% for arg in parloop.args %}
+    dataTransfer = dataTransfer + opArg{{ arg.i+1 }}%size 
+    {%- if arg is not global %} * getSetSizeFromOpArg(opArg{{ arg.i+1 }}){% endif %} 
+    {%- if arg is not r_or_w_acc %} * 2.d0{% endif %}
+
+    {% endfor %}
+    {% endif %}
 
     returnSetKernelTiming = setKernelTime( &
       & {{ id }}, kernel//C_NULL_CHAR, &
       & endTime-startTime, &
       {% if parloop.indirection %}
       {% if atomics %}
-      & actualPlan%transfer, actualPlan%transfer2, &
-      {% else %}
       & 0.00000_4, 0.00000_4, &
+      {% else %}
+      & actualPlan%transfer, actualPlan%transfer2, &
       {% endif %}
       {% else %}
       & dataTransfer, 0.00000_4, &

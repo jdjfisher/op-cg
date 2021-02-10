@@ -499,6 +499,8 @@ MODULE {{ parloop.name | upper }}_MODULE
     {% endfor %}
     {% for arg in parloop.indirectVars %}
     INTEGER(kind=4) :: opDat{{ arg.i+1 }}Cardinality
+    {% endfor %}
+    {% for arg in parloop.indirectMaps %}
     INTEGER(kind=4) :: opMap{{ arg.i+1 }}Cardinality
     {% endfor %}
 

@@ -5,6 +5,7 @@ from typing import List, ClassVar
 # Application imports
 from util import find
 
+
 class Opt(object):
   instances: ClassVar[List[Opt]] = []
 
@@ -44,6 +45,3 @@ class Opt(object):
 seq  = Opt('seq')
 cuda = Opt('cuda')
 omp  = Opt('omp3')
-
-
-

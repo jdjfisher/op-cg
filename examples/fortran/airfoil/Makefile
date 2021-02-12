@@ -136,4 +136,4 @@ cuda:
 
 clean:
 	rm -f exe_seq \
-		op_*.F90 op_*.CUF op_*.0
+		op_*.F90 op_*.CUF *.o op_*.optrpt *.mod

@@ -209,7 +209,7 @@ MODULE {{ parloop.name | upper }}_MODULE
   attributes (host) &
 #include "{{ parloop.kernel }}.inc"
   attributes (device) &
-#include "{{ parloop.kernel }}.inc2"
+#include "{{ parloop.kernel }}_gpu.inc"
 
   {# ! GPU kernel 
   SUBROUTINE {{ parloop.kernel }}_gpu()

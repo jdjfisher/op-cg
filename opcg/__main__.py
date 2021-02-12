@@ -10,10 +10,10 @@ import os
 import re 
 
 # Application imports
-from generator import genLoopHost, genMakefile
 from store import Store, ParseError
 from util import getVersion, safeFind
 from optimisation import Opt
+from scheme import Scheme
 from language import Lang
 
 
@@ -58,15 +58,18 @@ def main(argv=None) -> None:
   if not lang:
     exit(f'Unsupported file extension: {extension}')
 
+  scheme = Scheme.find(lang, opt)
+  if not scheme:
+    exit('fatal')
+
   if args.verbose:
-    print(f'Target language: {lang}')
-    print(f'Target optimisation: {opt}\n')
+    print(f'Translation scheme: {scheme}')
 
   # Parsing phase
-  stores, heap_store = parsing(args, lang)
+  stores, heap_store = parsing(args, scheme)
 
   # Code-generation phase
-  codegen(args, lang, opt, stores, heap_store)
+  codegen(args, scheme, stores, heap_store)
 
   # End of main
   if args.verbose:
@@ -74,7 +77,7 @@ def main(argv=None) -> None:
 
 
 
-def parsing(args: Namespace, lang: Lang):
+def parsing(args: Namespace, scheme: Scheme):
   # Collect the include directories
   include_dirs = set([ Path(dir) for [ dir ] in args.I ])
 
@@ -87,7 +90,7 @@ def parsing(args: Namespace, lang: Lang):
       print(f'Parsing file {i} of {len(args.file_paths)}: {raw_path}')
     
     # Create a store
-    store = lang.parseProgram(Path(raw_path), include_dirs) 
+    store = scheme.lang.parseProgram(Path(raw_path), include_dirs) 
     stores.append(store)
 
     if args.verbose:
@@ -99,19 +102,19 @@ def parsing(args: Namespace, lang: Lang):
     heap_store.merge(store)
 
   # Run semantic checks on the store content
-  heap_store.validate(lang)
+  heap_store.validate(scheme.lang)
 
   # 
   for kernel in heap_store.kernels:
     # Locate kernel header file
-    file_name = f'{kernel}.{lang.include_ext}'
+    file_name = f'{kernel}.{scheme.lang.include_ext}'
     include_paths = [ os.path.join(dir, file_name) for dir in include_dirs ]
     kernel_path = safeFind(include_paths, os.path.isfile)
     if not kernel_path:
       exit(f'failed to locate kernel include {file_name}')
 
     # Parse kernel header file
-    param_types = lang.parseKernel(Path(kernel_path), kernel)
+    param_types = scheme.lang.parseKernel(Path(kernel_path), kernel)
 
     # Validate par loop arguments against kernel parameters
     for loop in heap_store.loops:
@@ -137,7 +140,7 @@ def parsing(args: Namespace, lang: Lang):
 
 
 
-def codegen(args: Namespace, lang: Lang, opt: Opt, stores: List[Store], heap_store: Store):
+def codegen(args: Namespace, scheme: Scheme, stores: List[Store], heap_store: Store):
   # Collect the paths of the generated files
   generated_paths: List[Path] = []
 
@@ -145,14 +148,14 @@ def codegen(args: Namespace, lang: Lang, opt: Opt, stores: List[Store], heap_sto
   for i, loop in enumerate(heap_store.loops, 1):
 
     # Generate loop host source
-    source, extension = genLoopHost(lang, opt, loop, i)
+    source, extension = scheme.genLoopHost(loop, i)
 
     # Form output file path 
-    path = Path(os.path.join(args.out, f'{args.prefix}_{opt.name}_{loop.name}.{extension}'))
+    path = Path(os.path.join(args.out, f'{args.prefix}_{scheme.opt.name}_{loop.name}.{extension}'))
 
     # Write the generated source file
     with open(path, 'w') as file:
-      file.write(f'\n{lang.com_delim} Auto-generated at {datetime.now()} by opcg\n\n')
+      file.write(f'\n{scheme.lang.com_delim} Auto-generated at {datetime.now()} by opcg\n\n')
       file.write(source)
       generated_paths.append(path)
 
@@ -166,14 +169,14 @@ def codegen(args: Namespace, lang: Lang, opt: Opt, stores: List[Store], heap_sto
     with open(raw_path, 'r') as raw_file:
 
       # Generate the translated source
-      source = lang.translateProgram(raw_file.read(), store, args.soa)
+      source = scheme.lang.translateProgram(raw_file.read(), store, args.soa)
 
       # Form output file path 
       new_path = Path(os.path.join(args.out, f'{args.prefix}_{os.path.basename(raw_path)}'))
 
       # Write the translated source file
       with open(new_path, 'w') as new_file:
-        new_file.write(f'\n{lang.com_delim} Auto-generated at {datetime.now()} by opcg\n\n')
+        new_file.write(f'\n{scheme.lang.com_delim} Auto-generated at {datetime.now()} by opcg\n\n')
         new_file.write(source)
         generated_paths.append(new_path)
 
@@ -181,17 +184,17 @@ def codegen(args: Namespace, lang: Lang, opt: Opt, stores: List[Store], heap_sto
           print(f'Translated program  {i} of {len(args.file_paths)}: {new_path}') 
 
   # Generate Makefile
-  if args.makefile:
-    # TODO: Append directive if file exists
-    with open(os.path.join(args.out, 'Makefile'), 'w') as file:
+  # TODO: Append directive if file exists
+  # if args.makefile:
+  #   with open(os.path.join(args.out, 'Makefile'), 'w') as file:
 
-      source = genMakefile(opt, generated_paths)
+  #     stub = scheme.genMakeStub(generated_paths)
       
-      file.write(f'\n# Auto-generated at {datetime.now()} by opcg\n\n')
-      file.write(source)
+  #     file.write(f'\n# Auto-generated at {datetime.now()} by opcg\n\n')
+  #     file.write(source)
       
-      if args.verbose:
-        print(f'Created Makefile') 
+  #     if args.verbose:
+  #       print(f'Created Makefile') 
 
 
 

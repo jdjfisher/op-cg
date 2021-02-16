@@ -184,17 +184,18 @@ def codegen(args: Namespace, scheme: Scheme, stores: List[Store], heap_store: St
           print(f'Translated program  {i} of {len(args.file_paths)}: {new_path}') 
 
   # Generate Makefile
-  # TODO: Append directive if file exists
-  # if args.makefile:
-  #   with open(os.path.join(args.out, 'Makefile'), 'w') as file:
+  # if args.makefile and scheme.make_stub_template:
+  #   with open(os.path.join(args.out, 'Makefile'), 'r+') as file:
+  #     # Append the stub if not already defined
+  #     foo =  re.search(f'^{scheme.opt.name}:', file.read())
+  #     print(foo)
+  #     if not foo:
+  #       stub = scheme.genMakeStub(generated_paths)
 
-  #     stub = scheme.genMakeStub(generated_paths)
+  #       print(file.write(stub))
       
-  #     file.write(f'\n# Auto-generated at {datetime.now()} by opcg\n\n')
-  #     file.write(source)
-      
-  #     if args.verbose:
-  #       print(f'Created Makefile') 
+  #       if args.verbose:
+  #         print(f'Generated make stub') 
 
 
 

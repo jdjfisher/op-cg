@@ -74,6 +74,6 @@ class Scheme(object):
 
 # Register schemes here ...
 
-Scheme(fortran.lang, optimisation.seq, Path('fortran/seq/loop_host.F90.j2'))
-Scheme(fortran.lang, optimisation.cuda, Path('fortran/cuda/loop_host.CUF.j2'))
+Scheme(fortran.lang, optimisation.seq, Path('fortran/seq/loop_host.F90.j2'), Path('fortran/seq/make_stub.make.j2'))
+Scheme(fortran.lang, optimisation.cuda, Path('fortran/cuda/loop_host.CUF.j2'), Path('fortran/cuda/make_stub.make.j2'))
 Scheme(cpp.lang, optimisation.seq, Path('cpp/seq/loop_host.cpp.j2'))

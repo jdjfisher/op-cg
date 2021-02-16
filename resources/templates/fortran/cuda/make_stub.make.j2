@@ -1,3 +1,4 @@
+
 cuda:
 	$(FC) $(OPT) $(OPT_CUDA) $(FMODS)/cuda $(FMODS) $(FLINK) -DOP2_WITH_CUDAFOR \
 		constants.F90 input.F90 airfoil_seqfun.F90 cudaConfigurationParams.F95 \

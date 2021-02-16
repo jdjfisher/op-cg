@@ -8,7 +8,7 @@ import clang.cindex
 
 # Application imports
 from cpp.parser import parseProgram, parseKernel
-from cpp.translator import translateProgram
+from cpp.translator.program import translateProgram
 from language import Lang
 
 

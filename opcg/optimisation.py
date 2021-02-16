@@ -8,10 +8,13 @@ from util import find
 
 class Opt(object):
   instances: ClassVar[List[Opt]] = []
+  name: str
+  kernel_translation: bool
 
-  def __init__(self, name: str) -> None:
+  def __init__(self, name: str, kernel_translation: bool = False) -> None:
     self.__class__.instances.append(self)
     self.name = name
+    self.kernel_translation = kernel_translation
 
 
   def __str__(self) -> str:
@@ -43,5 +46,5 @@ class Opt(object):
 
 # Define optimisations here
 seq  = Opt('seq')
-cuda = Opt('cuda')
+cuda = Opt('cuda', True)
 omp  = Opt('omp3')

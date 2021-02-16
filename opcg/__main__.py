@@ -10,7 +10,7 @@ import os
 import re 
 
 # Application imports
-from store import Store, ParseError
+from store import Store, Kernel, ParseError
 from util import getVersion, safeFind
 from optimisation import Opt
 from scheme import Scheme
@@ -66,10 +66,10 @@ def main(argv=None) -> None:
     print(f'Translation scheme: {scheme}')
 
   # Parsing phase
-  stores, heap_store = parsing(args, scheme)
+  kernels, stores, heap_store = parsing(args, scheme)
 
   # Code-generation phase
-  codegen(args, scheme, stores, heap_store)
+  codegen(args, scheme, kernels, stores, heap_store)
 
   # End of main
   if args.verbose:
@@ -82,6 +82,7 @@ def parsing(args: Namespace, scheme: Scheme):
   include_dirs = set([ Path(dir) for [ dir ] in args.I ])
 
   stores = []
+  kernels = [] 
 
   # Parse the input files
   for i, raw_path in enumerate(args.file_paths, 1):
@@ -104,27 +105,19 @@ def parsing(args: Namespace, scheme: Scheme):
   # Run semantic checks on the store content
   heap_store.validate(scheme.lang)
 
-  # 
-  for kernel in heap_store.kernels:
+  # Parse the referenced kernels
+  for kernel_name in heap_store.referenced_kernels:
     # Locate kernel header file
-    file_name = f'{kernel}.{scheme.lang.include_ext}'
+    file_name = f'{kernel_name}.{scheme.lang.include_ext}'
     include_paths = [ os.path.join(dir, file_name) for dir in include_dirs ]
     kernel_path = safeFind(include_paths, os.path.isfile)
     if not kernel_path:
       exit(f'failed to locate kernel include {file_name}')
 
     # Parse kernel header file
-    param_types = scheme.lang.parseKernel(Path(kernel_path), kernel)
-
-    # Validate par loop arguments against kernel parameters
-    for loop in heap_store.loops:
-      if loop.kernel == kernel:
-        if len(param_types) != len(loop.args):
-          raise ParseError(f'incorrect number of args passed to the {kernel} kernel', loop.loc)
-          
-        for i, (param_type, arg) in enumerate(zip(param_types, loop.args)):
-          if arg.typ != param_type:
-            raise ParseError(f'argument {i} to {kernel} kernel has incompatible type {arg.typ}, expected {param_type}', arg.loc)
+    kernel = scheme.lang.parseKernel(Path(kernel_path), kernel_name)
+    heap_store.crossValidate(kernel)
+    kernels.append(kernel)
 
   # Dump heap store to a json file
   if args.dump:
@@ -136,15 +129,15 @@ def parsing(args: Namespace, scheme: Scheme):
     if args.verbose:
       print('Dumped store:', store_path, end='\n\n')
 
-  return stores, heap_store
+  return kernels, stores, heap_store
 
 
 
-def codegen(args: Namespace, scheme: Scheme, stores: List[Store], heap_store: Store):
+def codegen(args: Namespace, scheme: Scheme, kernels: List[Kernel], stores: List[Store], heap_store: Store):
   # Collect the paths of the generated files
   generated_paths: List[Path] = []
 
-  # Generate loop optimisations
+  # Generate loop hosts 
   for i, loop in enumerate(heap_store.loops, 1):
 
     # Generate loop host source
@@ -168,7 +161,7 @@ def codegen(args: Namespace, scheme: Scheme, stores: List[Store], heap_store: St
     # Read the raw source file
     with open(raw_path, 'r') as raw_file:
 
-      # Generate the translated source
+      # Generate the source translation
       source = scheme.lang.translateProgram(raw_file.read(), store, args.soa)
 
       # Form output file path 
@@ -182,6 +175,23 @@ def codegen(args: Namespace, scheme: Scheme, stores: List[Store], heap_store: St
 
         if args.verbose:
           print(f'Translated program  {i} of {len(args.file_paths)}: {new_path}') 
+
+  # Generate kernel translations
+  if scheme.opt.kernel_translation:
+    for i, kernel in enumerate(kernels):
+
+      # Generate the source translation
+      source = scheme.translateKernel(kernel)
+
+      # Form output file path 
+      new_path = Path(os.path.join(args.out, f'{kernel}_{scheme.opt.name}.{scheme.lang.include_ext}'))
+
+      # Write the translated source file
+      with open(new_path, 'w') as new_file:
+        new_file.write(source)
+
+        if args.verbose:
+          print(f'Translated kernel   {i} of {len(kernels)}: {new_path}') 
 
   # Generate Makefile
   # if args.makefile and scheme.make_stub_template:

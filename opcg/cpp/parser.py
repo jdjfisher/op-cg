@@ -9,7 +9,7 @@ import os
 from clang.cindex import Index, Config, TranslationUnit, Cursor, CursorKind
 
 # Local application imports
-from store import ParseError, Store, Location
+from store import ParseError, Store, Kernel, Location
 from util import enumRegex, safeFind
 import op as OP
 
@@ -17,7 +17,7 @@ import op as OP
 macro_instances = {} # TODO: Cleanup
 
 
-def parseKernel(path: Path, kernel: str) -> List[str]:  
+def parseKernel(path: Path, name: str) -> Kernel:  
   # Invoke Clang parser on kernel source
   translation_unit = Index.create().parse(path)
 
@@ -25,9 +25,9 @@ def parseKernel(path: Path, kernel: str) -> List[str]:
   nodes = translation_unit.cursor.get_children()
 
   # Search for kernel function
-  node = safeFind(nodes, lambda n: n.kind == CursorKind.FUNCTION_DECL and n.spelling == kernel)
+  node = safeFind(nodes, lambda n: n.kind == CursorKind.FUNCTION_DECL and n.spelling == name)
   if not node:
-    raise ParseError(f'failed to locate kernel function {kernel}', parseLocation(node))
+    raise ParseError(f'failed to locate kernel function {name}', parseLocation(node))
 
   # Collect parameter types
   param_types = []
@@ -36,7 +36,7 @@ def parseKernel(path: Path, kernel: str) -> List[str]:
       type = n.type.get_pointee() or n.type
       param_types.append(re.sub(r'\s*const\s*', '', type.spelling))
 
-  return param_types
+  return Kernel(name, param_types)
 
 
 def parseProgram(path: Path, include_dirs: Set[Path]) -> Store:

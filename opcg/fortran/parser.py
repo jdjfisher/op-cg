@@ -10,7 +10,7 @@ import re
 import open_fortran_parser as fp
 
 # Local application imports
-from store import ParseError, Store, Location
+from store import ParseError, Store, Kernel, Location
 from util import enumRegex, safeFind
 import op as OP
 
@@ -31,15 +31,15 @@ def parse(path: Path) -> Element:
     raise ParseError(error.output)
 
 
-def parseKernel(path: Path, kernel: str) -> List[str]:  
+def parseKernel(path: Path, name: str) -> Kernel:  
   # Parse AST
   ast = parse(path)
 
   # Search for kernel function
   nodes = ast.findall('file/subroutine')
-  node = safeFind(nodes, lambda n: n.attrib['name'] == kernel)
+  node = safeFind(nodes, lambda n: n.attrib['name'] == name)
   if not node:
-    raise ParseError(f'failed to locate kernel function {kernel}')
+    raise ParseError(f'failed to locate kernel function {name}')
 
   # Parse parameter identifiers
   param_identifiers = [ n.attrib['name'] for n in node.findall('header/arguments/argument') ]
@@ -56,8 +56,7 @@ def parseKernel(path: Path, kernel: str) -> List[str]:
             index = param_identifiers.index(identifier)
             param_types[index] = parseType(type)
 
-  # Return parameter types
-  return param_types
+  return Kernel(name, param_types)
 
 
 def parseProgram(path: Path, include_dirs: Set[Path]) -> Store:  

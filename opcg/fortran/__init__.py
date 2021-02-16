@@ -1,7 +1,7 @@
 
 # Application imports
 from fortran.parser import parseProgram, parseKernel
-from fortran.translator import translateProgram
+from fortran.translator.program import translateProgram
 from language import Lang
 
 

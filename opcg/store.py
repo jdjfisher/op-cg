@@ -1,6 +1,6 @@
 # Standard library imports
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional, List
+from typing import TYPE_CHECKING, Optional, List, Set
 from typing_extensions import Protocol
 from os.path import basename
 from pathlib import Path
@@ -234,12 +234,42 @@ class Store:
               raise OpError(f'duplicate data accesses in the same par loop', arg.loc)
 
 
+  def crossValidate(self, kernel: Kernel) -> None:
+    # Validate par loop arguments against kernel parameters
+    for loop in self.loops:
+      if loop.kernel == kernel.name:
+        if len(loop.args) != kernel.argCount:
+          raise ParseError(f'incorrect number of args passed to the {kernel} kernel', loop.loc)
+          
+        for i, (param_type, arg) in enumerate(zip(kernel.arg_types, loop.args)):
+          if arg.typ != param_type:
+            raise ParseError(f'argument {i} to {kernel} kernel has incompatible type {arg.typ}, expected {param_type}', arg.loc)
+
+
+
   @property
-  def kernels(self):
-    return set([ loop.kernel for loop in self.loops ])
+  def referenced_kernels(self) -> Set[str]:
+    return set( loop.kernel for loop in self.loops )
 
 
   def __str__(self) -> str:
     return f"{'init, ' if self.init else ''}{len(self.consts)} constants, {len(self.loops)} loops{', exit' if self.exit else ''}"
 
 
+class Kernel:
+  name: str
+  arg_types: List[str]
+  
+  
+  def __init__(self, name: str, arg_types: List[str]):
+    self.name = name
+    self.arg_types = arg_types
+
+
+  @property
+  def argCount(self) -> int:
+    return len(self.arg_types)
+
+
+  def __str__(self) -> str:
+    return self.name

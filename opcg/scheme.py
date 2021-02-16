@@ -4,8 +4,9 @@ from typing import List, ClassVar, Tuple
 from pathlib import Path
 
 # Application imports
-from language import Lang
 from util import find, safeFind
+from language import Lang
+from store import Kernel
 from jinja import env
 import optimisation
 import fortran
@@ -67,13 +68,17 @@ class Scheme(object):
     )
 
 
-  def translateKernel(self) -> None:
+  def translateKernel(self, kernel: Kernel) -> str:
     raise NotImplementedError(f'no kernel translator registered for the "{self}" scheme')
 
 
 
 # Register schemes here ...
 
-Scheme(fortran.lang, optimisation.seq, Path('fortran/seq/loop_host.F90.j2'), Path('fortran/seq/make_stub.make.j2'))
-Scheme(fortran.lang, optimisation.cuda, Path('fortran/cuda/loop_host.CUF.j2'), Path('fortran/cuda/make_stub.make.j2'))
-Scheme(cpp.lang, optimisation.seq, Path('cpp/seq/loop_host.cpp.j2'))
+cseq = Scheme(cpp.lang, optimisation.seq, Path('cpp/seq/loop_host.cpp.j2'))
+fseq = Scheme(fortran.lang, optimisation.seq, Path('fortran/seq/loop_host.F90.j2'), Path('fortran/seq/make_stub.make.j2'))
+fcuda = Scheme(fortran.lang, optimisation.cuda, Path('fortran/cuda/loop_host.CUF.j2'), Path('fortran/cuda/make_stub.make.j2'))
+
+# TODO: Move this
+from fortran.translator.kernels.cuda import translateKernel
+setattr(fcuda, "translateKernel", translateKernel)

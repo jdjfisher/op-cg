@@ -5,7 +5,7 @@ from typing import Callable, List, ClassVar, Set
 from pathlib import Path
 
 # Application imports
-from store import Store, ParseError
+from store import Store, Kernel, ParseError
 from util import find
 
 
@@ -44,7 +44,7 @@ class Lang(object):
 
 
   # 
-  def parseKernel(self, path: Path, kernel: str) -> List[str]:
+  def parseKernel(self, path: Path, name: str) -> Kernel:
     raise NotImplementedError(f'no kernel parser registered for the "{self.name}" language')
 
 

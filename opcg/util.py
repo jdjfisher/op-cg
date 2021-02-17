@@ -1,5 +1,5 @@
 # Standard library imports
-from typing import TypeVar, Callable, Generic, Optional, Iterable, List, Any, Set
+from typing import TypeVar, Callable, Generic, Optional, Iterable, List, Any, Set, Tuple
 from pathlib import Path
 import subprocess
 import re
@@ -20,6 +20,11 @@ def getVersion() -> str:
 
 def enumRegex(values: List[str]) -> str:
   return '(' + ')|('.join(map(re.escape, values)) + ')'
+
+
+def indexSplit(s: str, i: int, j: int = None) -> Tuple[str, str]:
+  # TODO: Range errors (j < i or i, j > len(s))
+  return s[:i], s[j or i:]
 
 
 def find(xs: Iterable[T], p: Callable[[T], bool]) -> T:

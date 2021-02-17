@@ -1,6 +1,6 @@
 # Standard library imports
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional, List, Set
+from typing import TYPE_CHECKING, Optional, List, Set, Any
 from typing_extensions import Protocol
 from os.path import basename
 from pathlib import Path
@@ -258,11 +258,15 @@ class Store:
 
 class Kernel:
   name: str
+  ast: Any
+  source: str
   arg_types: List[str]
   
   
-  def __init__(self, name: str, arg_types: List[str]):
+  def __init__(self, name: str, ast: Any, source: str, arg_types: List[str]):
     self.name = name
+    self.ast = ast
+    self.source = source
     self.arg_types = arg_types
 
 

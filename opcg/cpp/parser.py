@@ -36,7 +36,11 @@ def parseKernel(path: Path, name: str) -> Kernel:
       type = n.type.get_pointee() or n.type
       param_types.append(re.sub(r'\s*const\s*', '', type.spelling))
 
-  return Kernel(name, param_types)
+  # TODO: Redo
+  with open(path, 'r') as file:
+    source = file.read()
+
+  return Kernel(name, translation_unit.cursor, source, param_types)
 
 
 def parseProgram(path: Path, include_dirs: Set[Path]) -> Store:

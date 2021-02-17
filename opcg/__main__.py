@@ -178,10 +178,10 @@ def codegen(args: Namespace, scheme: Scheme, kernels: List[Kernel], stores: List
 
   # Generate kernel translations
   if scheme.opt.kernel_translation:
-    for i, kernel in enumerate(kernels):
+    for i, kernel in enumerate(kernels, 1):
 
       # Generate the source translation
-      source = scheme.translateKernel(kernel)
+      source = scheme.translateKernel(kernel, heap_store)
 
       # Form output file path 
       new_path = Path(os.path.join(args.out, f'{kernel}_{scheme.opt.name}.{scheme.lang.include_ext}'))

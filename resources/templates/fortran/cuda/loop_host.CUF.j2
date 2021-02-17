@@ -209,12 +209,7 @@ MODULE {{ parloop.name | upper }}_MODULE
   attributes (host) &
 #include "{{ parloop.kernel }}.inc"
   attributes (device) &
-#include "{{ parloop.kernel }}_gpu.inc"
-
-  {# ! GPU kernel 
-  SUBROUTINE {{ parloop.kernel }}_gpu()
-    ! TODO: ...
-  END SUBROUTINE #}
+#include "{{ parloop.kernel }}_cuda.inc"
 
   ! CUDA kernel wrapper function
   attributes (global) SUBROUTINE {{ parloop.name }}_cuda_wrap( &

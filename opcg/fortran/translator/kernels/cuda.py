@@ -1,7 +1,4 @@
 
-# Standard library
-import re
-
 # Third part imports
 from xml.etree.ElementTree import Element, dump
 
@@ -23,8 +20,10 @@ def translateKernel(kernel: Kernel, store: Store) -> str:
   line = lines[index]
   lines[index] = line.replace(kernel.name, kernel.name + '_gpu')
 
-  # TODO: Pass flag
+  # TODO: Pass atomics flag
   atomics = True
+  needs_istat = False
+
   # Atomize incremenal assignments
   if atomics:
     for assignment in body.findall('.//assignment'):
@@ -52,11 +51,13 @@ def translateKernel(kernel: Kernel, store: Store) -> str:
         l, r = indexSplit(value, operator_offset - value_offset)
         line = assignment_offset * ' ' + 'istat = AtomicAdd(' + l.strip() + ', ' + r.strip() + ')'
         lines[line_index] = line
+        needs_istat = True
 
     # Insert istat typing
-    spec = body.find('specification')
-    indent = ' ' * int(spec.attrib['col_begin'])
-    lines.insert(int(spec.attrib['line_end']), indent + 'INTEGER(kind=4) :: istat(4)')
+    if needs_istat:
+      spec = body.find('specification')
+      indent = ' ' * int(spec.attrib['col_begin'])
+      lines.insert(int(spec.attrib['line_end']), indent + 'INTEGER(kind=4) :: istat(4)')
 
   # Augment OP2 constant references
   source = '\n'.join(lines)

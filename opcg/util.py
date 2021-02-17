@@ -22,9 +22,13 @@ def enumRegex(values: List[str]) -> str:
   return '(' + ')|('.join(map(re.escape, values)) + ')'
 
 
-def indexSplit(s: str, i: int, j: int = None) -> Tuple[str, str]:
-  # TODO: Range errors (j < i or i, j > len(s))
-  return s[:i], s[j or i:]
+def indexSplit(s: str, i: int) -> Tuple[str, str]:
+  if i >= len(s):
+    return s, '' 
+  elif i <= -len(s):
+    return '', s 
+  else:
+    return s[:i], s[i:]
 
 
 def find(xs: Iterable[T], p: Callable[[T], bool]) -> T:

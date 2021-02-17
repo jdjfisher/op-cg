@@ -5,9 +5,9 @@ from pathlib import Path
 
 # Application imports
 from util import find, safeFind
-from language import Lang
+from store import Kernel, Store
 from optimisation import Opt
-from store import Kernel
+from language import Lang
 from jinja import env
 import optimisation
 import op as OP

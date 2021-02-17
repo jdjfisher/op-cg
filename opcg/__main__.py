@@ -121,7 +121,7 @@ def parsing(args: Namespace, scheme: Scheme):
 
   # Dump heap store to a json file
   if args.dump:
-    store_path = os.path.join(args.out, 'store.json')
+    store_path = Path(args.out, 'store.json')
 
     with open(store_path, 'w') as file:
       file.write(json.dumps(heap_store.__dict__, default=vars, indent=4))
@@ -144,7 +144,7 @@ def codegen(args: Namespace, scheme: Scheme, kernels: List[Kernel], stores: List
     source, extension = scheme.genLoopHost(loop, i)
 
     # Form output file path 
-    path = Path(os.path.join(args.out, f'{args.prefix}_{scheme.opt.name}_{loop.name}.{extension}'))
+    path = Path(args.out, f'{args.prefix}_{scheme.opt.name}_{loop.name}.{extension}')
 
     # Write the generated source file
     with open(path, 'w') as file:
@@ -165,7 +165,7 @@ def codegen(args: Namespace, scheme: Scheme, kernels: List[Kernel], stores: List
       source = scheme.lang.translateProgram(raw_file.read(), store, args.soa)
 
       # Form output file path 
-      new_path = Path(os.path.join(args.out, f'{args.prefix}_{os.path.basename(raw_path)}'))
+      new_path = Path(args.out, f'{args.prefix}_{os.path.basename(raw_path)}')
 
       # Write the translated source file
       with open(new_path, 'w') as new_file:
@@ -184,7 +184,7 @@ def codegen(args: Namespace, scheme: Scheme, kernels: List[Kernel], stores: List
       source = scheme.translateKernel(kernel, heap_store)
 
       # Form output file path 
-      new_path = Path(os.path.join(args.out, f'{kernel}_{scheme.opt.name}.{scheme.lang.include_ext}'))
+      new_path = Path(args.out, f'{kernel}_{scheme.opt.name}.{scheme.lang.include_ext}')
 
       # Write the translated source file
       with open(new_path, 'w') as new_file:
@@ -194,18 +194,24 @@ def codegen(args: Namespace, scheme: Scheme, kernels: List[Kernel], stores: List
           print(f'Translated kernel   {i} of {len(kernels)}: {new_path}') 
 
   # Generate Makefile
-  # if args.makefile and scheme.make_stub_template:
-  #   with open(os.path.join(args.out, 'Makefile'), 'r+') as file:
-  #     # Append the stub if not already defined
-  #     foo =  re.search(f'^{scheme.opt.name}:', file.read())
-  #     print(foo)
-  #     if not foo:
-  #       stub = scheme.genMakeStub(generated_paths)
+  if args.makefile and scheme.make_stub_template:
+    path = Path(args.out, 'Makefile')
 
-  #       print(file.write(stub))
-      
-  #       if args.verbose:
-  #         print(f'Generated make stub') 
+    # Check if the Make target has already been defined  
+    found = False
+    if path.is_file():
+      with open(path, 'r') as file:
+        found = bool(re.search(f'^{scheme.opt.name}:', file.read(), re.MULTILINE))
+
+    # Append the stub if not found
+    if not found:
+      with open(path, 'a') as file:
+        stub = scheme.genMakeStub(generated_paths)
+
+        file.write(stub)
+        
+    if args.verbose:
+      print(f'Make target "{scheme.opt.name}" already exists' if found else 'Appended Make target stub') 
 
 
 

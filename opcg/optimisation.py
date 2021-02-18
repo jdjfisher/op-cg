@@ -44,7 +44,9 @@ class Opt(object):
     return find(cls.all(), lambda o: o.name == name)
 
 
-# Define optimisations here
-seq  = Opt('seq')
-cuda = Opt('cuda', True)
-omp  = Opt('omp3')
+# Define optimisations here ...
+
+seq   = Opt('seq')
+cuda  = Opt('cuda', True)
+# omp   = Opt('omp3')
+# simd  = Opt('simd')

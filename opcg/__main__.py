@@ -24,18 +24,18 @@ def main(argv=None) -> None:
   parser = ArgumentParser(prog='opcg')
 
   # Flags
-  parser.add_argument('-V', '-version', '--version', help='Version', action='version', version=getVersion())
+  parser.add_argument('-V', '--version', help='Version', action='version', version=getVersion())
   parser.add_argument('-v', '--verbose', help='Verbose', action='store_true')
-  parser.add_argument('-d', '--dump', help='Dump Store', action='store_true')
-  parser.add_argument('-m', '--makefile', help='Create Makefile', action='store_true')
-  parser.add_argument('-o', '--out', help='Output Directory', type=isDirPath, default='.')
+  parser.add_argument('-d', '--dump', help='JSON store dump', action='store_true')
+  parser.add_argument('-m', '--makefile', help='Create Makefile stub', action='store_true')
+  parser.add_argument('-o', '--out', help='Output directory', type=isDirPath, default='.')
   parser.add_argument('-p', '--prefix', help='Output File Prefix', type=isValidPrefix, default='op')
   parser.add_argument('-soa', '--soa', help='Structs of Arrays', action='store_true')
   parser.add_argument('-I', help='Header Include', type=isDirPath, action='append', nargs='+', default=['.'])
   
   # Positional args
-  parser.add_argument('optimisation', help='Target Optimisation', type=str, choices=Opt.names())
-  parser.add_argument('file_paths', help='Input Files', type=isFilePath, nargs='+')
+  parser.add_argument('optimisation', help='Optimisation scheme', type=str, choices=Opt.names())
+  parser.add_argument('file_paths', help='Input OP2 sources', type=isFilePath, nargs='+')
 
   # Invoke arg parser
   args = parser.parse_args(argv)
@@ -60,7 +60,7 @@ def main(argv=None) -> None:
 
   scheme = Scheme.find(lang, opt)
   if not scheme:
-    exit('fatal')
+    exit(f'No scheme registered for {lang} {opt}')
 
   if args.verbose:
     print(f'Translation scheme: {scheme}')
@@ -86,7 +86,6 @@ def parsing(args: Namespace, scheme: Scheme):
 
   # Parse the input files
   for i, raw_path in enumerate(args.file_paths, 1):
-
     if args.verbose:
       print(f'Parsing file {i} of {len(args.file_paths)}: {raw_path}')
     
@@ -139,7 +138,6 @@ def codegen(args: Namespace, scheme: Scheme, kernels: List[Kernel], stores: List
 
   # Generate loop hosts 
   for i, loop in enumerate(heap_store.loops, 1):
-
     # Generate loop host source
     source, extension = scheme.genLoopHost(loop, i)
 
@@ -157,7 +155,6 @@ def codegen(args: Namespace, scheme: Scheme, kernels: List[Kernel], stores: List
 
   # Generate program translations
   for i, (raw_path, store) in enumerate(zip(args.file_paths, stores), 1):
-
     # Read the raw source file
     with open(raw_path, 'r') as raw_file:
 
@@ -179,7 +176,6 @@ def codegen(args: Namespace, scheme: Scheme, kernels: List[Kernel], stores: List
   # Generate kernel translations
   if scheme.opt.kernel_translation:
     for i, kernel in enumerate(kernels, 1):
-
       # Generate the source translation
       source = scheme.translateKernel(kernel, heap_store)
 

@@ -32,11 +32,11 @@ def translateKernel(kernel: Kernel, store: Store) -> str:
       operands = assignment.findall('value/operation/operand')
       operator = assignment.find('value/operation/operator/add-op')
 
-      # TODO: This is a hack. finish
+      # TODO: Check if the name should be atomised (compare with OP.loop?)
       increment_assignment = name is not None and operator is not None and \
         len(operands) == 2 and \
         name in ('res1', 'res2') and \
-        any(o.find('name').attrib['id'] == name for o in operands)
+        any(o.find('name') and o.find('name').attrib['id'] == name for o in operands)
 
       if increment_assignment:
         # Extract source locations from AST

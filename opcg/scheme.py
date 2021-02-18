@@ -55,7 +55,7 @@ class Scheme(object):
 
   def genMakeStub(self, paths: List[Path]) -> str:
     if self.make_stub_template is None:
-      exit('fatal')
+      exit('No Make stub template registered for {self}')
 
     # Load the make stub template
     template = env.get_template(str(self.make_stub_template))

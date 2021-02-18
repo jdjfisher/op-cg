@@ -31,6 +31,10 @@ def indexSplit(s: str, i: int) -> Tuple[str, str]:
     return s[:i], s[i:]
 
 
+def flattern(arr: List[List[T]]) -> List[T]:
+  return sum(arr, [])
+
+
 def find(xs: Iterable[T], p: Callable[[T], bool]) -> T:
   return next(x for x in xs if p(x))
 

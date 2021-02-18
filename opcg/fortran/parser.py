@@ -10,7 +10,7 @@ import re
 import open_fortran_parser as fp
 
 # Local application imports
-from store import ParseError, Store, Kernel, Location
+from store import ParseError, Program, Kernel, Location
 from util import enumRegex, safeFind
 import op as OP
 
@@ -63,12 +63,12 @@ def parseKernel(path: Path, name: str) -> Kernel:
   return Kernel(name, ast, source, param_types)
 
 
-def parseProgram(path: Path, include_dirs: Set[Path]) -> Store:  
+def parseProgram(path: Path, include_dirs: Set[Path]) -> Program:  
   # Parse AST
   ast = parse(path)
 
-  # Create a store
-  store = Store()
+  # Create a program store
+  program = Program(path)
 
   # Iterate over all Call AST nodes
   for call in ast.findall('.//call'):
@@ -82,28 +82,28 @@ def parseProgram(path: Path, include_dirs: Set[Path]) -> Store:
       args = call.findall('name/subscripts/subscript')
 
       if name == 'op_init_base':
-        store.recordInit(loc)
+        program.recordInit(loc)
 
       elif name == 'op_decl_set':
-        store.addSet(parseSet(args, loc))
+        program.sets.append(parseSet(args, loc))
 
       elif name == 'op_decl_map':
-        store.addMap(parseMap(args, loc))
+        program.maps.append(parseMap(args, loc))
 
       elif name == 'op_decl_dat':
-        store.addData(parseData(args, loc))
+        program.datas.append(parseData(args, loc))
 
       elif name == 'op_decl_const':
-        store.addConst(parseConst(args, loc))
+        program.consts.append(parseConst(args, loc))
 
       elif re.search(r'op_par_loop_[1-9]\d*', name):
-        store.addLoop(parseLoop(args, loc))
+        program.loops.append(parseLoop(args, loc))
 
       elif name == 'op_exit':
-        store.recordExit()
+        program.recordExit()
 
-  # Return the store
-  return store
+  # Return the program
+  return program
 
 
 def parseSet(nodes: List[Element], loc: Location) -> OP.Set:

@@ -10,7 +10,7 @@ import os
 import re 
 
 # Application imports
-from store import Store, Kernel, ParseError
+from store import Application, ParseError
 from util import getVersion, safeFind
 from optimisation import Opt
 from scheme import Scheme
@@ -66,10 +66,10 @@ def main(argv=None) -> None:
     print(f'Translation scheme: {scheme}')
 
   # Parsing phase
-  kernels, stores, heap_store = parsing(args, scheme)
+  app = parsing(args, scheme)
 
   # Code-generation phase
-  codegen(args, scheme, kernels, stores, heap_store)
+  codegen(args, scheme, app)
 
   # End of main
   if args.verbose:
@@ -78,34 +78,26 @@ def main(argv=None) -> None:
 
 
 def parsing(args: Namespace, scheme: Scheme):
+  app = Application()
+
   # Collect the include directories
   include_dirs = set([ Path(dir) for [ dir ] in args.I ])
-
-  stores = []
-  kernels = [] 
 
   # Parse the input files
   for i, raw_path in enumerate(args.file_paths, 1):
     if args.verbose:
       print(f'Parsing file {i} of {len(args.file_paths)}: {raw_path}')
     
-    # Create a store
-    store = scheme.lang.parseProgram(Path(raw_path), include_dirs) 
-    stores.append(store)
+    # Parse the program
+    program = scheme.lang.parseProgram(Path(raw_path), include_dirs) 
+    app.programs.append(program)
 
     if args.verbose:
-      print(f'  Parsed: {store}')
-
-  # Fold all the parsed stores into one
-  heap_store = Store()
-  for store in stores:
-    heap_store.merge(store)
-
-  # Run semantic checks on the store content
-  heap_store.validate(scheme.lang)
+      print(f'  Parsed: {program}')
 
   # Parse the referenced kernels
-  for kernel_name in heap_store.referenced_kernels:
+  for kernel_name in { loop.kernel for loop in app.loops }:
+
     # Locate kernel header file
     file_name = f'{kernel_name}.{scheme.lang.include_ext}'
     include_paths = [ os.path.join(dir, file_name) for dir in include_dirs ]
@@ -115,29 +107,32 @@ def parsing(args: Namespace, scheme: Scheme):
 
     # Parse kernel header file
     kernel = scheme.lang.parseKernel(Path(kernel_path), kernel_name)
-    heap_store.crossValidate(kernel)
-    kernels.append(kernel)
 
-  # Dump heap store to a json file
+    app.kernels.append(kernel)
+
+  # Run semantic checks on the application
+  app.validate(scheme.lang)
+
+  # Dump application to a json file
   if args.dump:
     store_path = Path(args.out, 'store.json')
 
     with open(store_path, 'w') as file:
-      file.write(json.dumps(heap_store.__dict__, default=vars, indent=4))
+      file.write(json.dumps(app.__dict__, default=vars, indent=4))
 
     if args.verbose:
       print('Dumped store:', store_path, end='\n\n')
 
-  return kernels, stores, heap_store
+  return app
 
 
 
-def codegen(args: Namespace, scheme: Scheme, kernels: List[Kernel], stores: List[Store], heap_store: Store):
+def codegen(args: Namespace, scheme: Scheme, app: Application):
   # Collect the paths of the generated files
   generated_paths: List[Path] = []
 
   # Generate loop hosts 
-  for i, loop in enumerate(heap_store.loops, 1):
+  for i, loop in enumerate(app.loops, 1):
     # Generate loop host source
     source, extension = scheme.genLoopHost(loop, i)
 
@@ -151,18 +146,18 @@ def codegen(args: Namespace, scheme: Scheme, kernels: List[Kernel], stores: List
       generated_paths.append(path)
 
       if args.verbose:
-        print(f'Generated loop host {i} of {len(heap_store.loops)}: {path}')
+        print(f'Generated loop host {i} of {len(app.loops)}: {path}')
 
   # Generate program translations
-  for i, (raw_path, store) in enumerate(zip(args.file_paths, stores), 1):
+  for i, program in enumerate(app.programs, 1):
     # Read the raw source file
-    with open(raw_path, 'r') as raw_file:
+    with open(program.path, 'r') as raw_file:
 
       # Generate the source translation
-      source = scheme.lang.translateProgram(raw_file.read(), store, args.soa)
+      source = scheme.lang.translateProgram(raw_file.read(), program, args.soa)
 
       # Form output file path 
-      new_path = Path(args.out, f'{args.prefix}_{os.path.basename(raw_path)}')
+      new_path = Path(args.out, f'{args.prefix}_{os.path.basename(program.path)}')
 
       # Write the translated source file
       with open(new_path, 'w') as new_file:
@@ -175,9 +170,9 @@ def codegen(args: Namespace, scheme: Scheme, kernels: List[Kernel], stores: List
 
   # Generate kernel translations
   if scheme.opt.kernel_translation:
-    for i, kernel in enumerate(kernels, 1):
+    for i, kernel in enumerate(app.kernels, 1):
       # Generate the source translation
-      source = scheme.translateKernel(kernel, heap_store)
+      source = scheme.translateKernel(kernel, app)
 
       # Form output file path 
       new_path = Path(args.out, f'{kernel}_{scheme.opt.name}.{scheme.lang.include_ext}')
@@ -187,7 +182,7 @@ def codegen(args: Namespace, scheme: Scheme, kernels: List[Kernel], stores: List
         new_file.write(source)
 
         if args.verbose:
-          print(f'Translated kernel   {i} of {len(kernels)}: {new_path}') 
+          print(f'Translated kernel   {i} of {len(app.kernels)}: {new_path}') 
 
   # Generate Makefile
   if args.makefile and scheme.make_stub_template:

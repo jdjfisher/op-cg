@@ -5,7 +5,7 @@ from typing import Callable, List, ClassVar, Set
 from pathlib import Path
 
 # Application imports
-from store import Store, Kernel, ParseError
+from store import Program, Kernel, ParseError
 from util import find
 
 
@@ -38,18 +38,16 @@ class Lang(object):
     self.zero_idx = zero_idx
 
 
-  # 
-  def parseProgram(self, path: Path, include_dirs: Set[Path]) -> Store:
+  def parseProgram(self, path: Path, include_dirs: Set[Path]) -> Program:
     raise NotImplementedError(f'no program parser registered for the "{self.name}" language')
 
 
-  # 
   def parseKernel(self, path: Path, name: str) -> Kernel:
     raise NotImplementedError(f'no kernel parser registered for the "{self.name}" language')
 
 
   # Augment source program to use generated kernel hosts
-  def translateProgram(self, source: str, store: Store, soa: bool = False) -> str:
+  def translateProgram(self, source: str, program: Program, soa: bool = False) -> str:
     raise NotImplementedError(f'no program translator registered for the "{self.name}" language')
 
 

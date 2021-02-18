@@ -5,7 +5,7 @@ from pathlib import Path
 
 # Application imports
 from util import find, safeFind
-from store import Kernel, Store
+from store import Kernel, Application
 from optimisation import Opt
 from language import Lang
 from jinja import env
@@ -70,7 +70,7 @@ class Scheme(object):
     )
 
 
-  def translateKernel(self, kernel: Kernel, store: Store) -> str:
+  def translateKernel(self, kernel: Kernel, app: Application) -> str:
     raise NotImplementedError(f'no kernel translator registered for the "{self}" scheme')
 
 

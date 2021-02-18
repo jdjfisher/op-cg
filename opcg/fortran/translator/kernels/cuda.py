@@ -3,12 +3,12 @@
 from xml.etree.ElementTree import Element, dump
 
 # Application imports
-from store import Kernel, Store
+from store import Kernel, Application
 from util import indexSplit
 
 
 # TODO: This is temp, redo
-def translateKernel(kernel: Kernel, store: Store) -> str:
+def translateKernel(kernel: Kernel, app: Application) -> str:
   lines = kernel.source.splitlines()
 
   # Ast traversal
@@ -61,7 +61,7 @@ def translateKernel(kernel: Kernel, store: Store) -> str:
 
   # Augment OP2 constant references
   source = '\n'.join(lines)
-  for const in store.consts:
+  for const in app.consts:
     source = source.replace(const.ptr, const.ptr + '_OP2')
 
   return source

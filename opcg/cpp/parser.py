@@ -9,7 +9,7 @@ import os
 from clang.cindex import Index, Config, TranslationUnit, Cursor, CursorKind
 
 # Local application imports
-from store import ParseError, Store, Kernel, Location
+from store import ParseError, Program, Kernel, Location
 from util import enumRegex, safeFind
 import op as OP
 
@@ -43,7 +43,7 @@ def parseKernel(path: Path, name: str) -> Kernel:
   return Kernel(name, translation_unit.cursor, source, param_types)
 
 
-def parseProgram(path: Path, include_dirs: Set[Path]) -> Store:
+def parseProgram(path: Path, include_dirs: Set[Path]) -> Program:
   # Locate OP2 install
   op2_install = os.getenv('OP2_INSTALL_PATH')
   if not op2_install:
@@ -68,8 +68,8 @@ def parseProgram(path: Path, include_dirs: Set[Path]) -> Store:
   if error:
     raise ParseError(error.spelling, parseLocation(error))
 
-  # Initialise the store and search stack
-  store = Store()
+  # Initialise search stack
+  program = Program(path)
   stack = []
 
   for child in translation_unit.cursor.get_children():
@@ -102,27 +102,27 @@ def parseProgram(path: Path, include_dirs: Set[Path]) -> Store:
       loc = parseLocation(node)
 
       if name == 'op_init':
-        store.recordInit(loc)
+        program.recordInit(loc)
 
       elif name == 'op_decl_set':
-        store.addSet(parseSet(args, ptr, loc))
+        program.sets.append(parseSet(args, ptr, loc))
       
       elif name == 'op_decl_map':
-        store.addMap(parseMap(args, ptr, loc))
+        program.maps.append(parseMap(args, ptr, loc))
       
       elif name == 'op_decl_dat':
-        store.addData(parseData(args, ptr, loc))
+        program.datas.append(parseData(args, ptr, loc))
       
       elif name == 'op_decl_const':
-        store.addConst(parseConst(args, loc))
+        program.consts.append(parseConst(args, loc))
 
       elif name == 'op_par_loop':
-        store.addLoop(parseLoop(args, loc))
+        program.loops.append(parseLoop(args, loc))
 
       elif name == 'op_exit':
-        store.recordExit()
+        program.recordExit()
 
-  return store
+  return program
 
 
 def parseSet(nodes: List[Cursor], ptr: str, loc: Location) -> OP.Set:

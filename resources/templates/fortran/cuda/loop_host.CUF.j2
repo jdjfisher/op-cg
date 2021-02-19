@@ -5,7 +5,7 @@
 {% from 'fortran/macros.j2' import op_opt %}
 {% from 'macros.j2' import comma %}
 
-{% set atomics = true %}
+{% set atomics = opt.config['atomics'] %}
 
 MODULE {{ parloop.name | upper }}_MODULE
 

@@ -4,12 +4,18 @@ from xml.etree.ElementTree import Element, dump
 
 # Application imports
 from store import Kernel, Application
-from util import indexSplit
+from util import indexSplit, find
 
 
-# TODO: This is temp, redo
 def translateKernel(kernel: Kernel, app: Application) -> str:
   lines = kernel.source.splitlines()
+
+  # Collect indirect increment identifiers TODO: Tidy
+  loop = find(app.loops, lambda l: l.kernel == kernel.name)
+  increments = []
+  for param, arg in zip(kernel.params, loop.args):
+    if arg.indirect and arg.acc == 'OP_INC':
+      increments.append(param[0])
 
   # Ast traversal
   subroutine = kernel.ast.find('file/subroutine')
@@ -20,7 +26,7 @@ def translateKernel(kernel: Kernel, app: Application) -> str:
   line = lines[index]
   lines[index] = line.replace(kernel.name, kernel.name + '_gpu')
 
-  # TODO: Pass atomics flag
+  # TODO: Pass atomics flag (opt.config)
   atomics = True
   needs_istat = False
 
@@ -32,13 +38,12 @@ def translateKernel(kernel: Kernel, app: Application) -> str:
       operands = assignment.findall('value/operation/operand')
       operator = assignment.find('value/operation/operator/add-op')
 
-      # TODO: Check if the name should be atomised (compare with OP.loop?)
-      increment_assignment = name is not None and operator is not None and \
-        len(operands) == 2 and \
-        name in ('res1', 'res2') and \
+      # Determine if the assignment is a valid increment that should be atomised 
+      atomise = name is not None and operator is not None and \
+        len(operands) == 2 and name in increments and \
         any(o.find('name') and o.find('name').attrib['id'] == name for o in operands)
 
-      if increment_assignment:
+      if atomise:
         # Extract source locations from AST
         line_index = int(assignment.attrib['line_begin']) - 1
         assignment_offset = int(assignment.attrib['col_begin'])

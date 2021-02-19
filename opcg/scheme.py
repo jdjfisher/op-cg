@@ -50,7 +50,7 @@ class Scheme(object):
     extension = self.loop_host_template.suffixes[-2][1:]
 
     # Generate source from the template
-    return template.render(parloop=loop, id=i), extension
+    return template.render(parloop=loop, opt=self.opt, id=i), extension
 
 
   def genMakeStub(self, paths: List[Path]) -> str:

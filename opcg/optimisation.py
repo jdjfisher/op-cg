@@ -1,6 +1,6 @@
 # Standard library imports
 from __future__ import annotations
-from typing import List, ClassVar
+from typing import List, ClassVar, Dict, Any
 
 # Application imports
 from util import find
@@ -10,11 +10,13 @@ class Opt(object):
   instances: ClassVar[List[Opt]] = []
   name: str
   kernel_translation: bool
+  config: Dict[str, Any]
 
-  def __init__(self, name: str, kernel_translation: bool = False) -> None:
+  def __init__(self, name: str, kernel_translation: bool = False, config: Dict[str, Any] = {}) -> None:
     self.__class__.instances.append(self)
     self.name = name
     self.kernel_translation = kernel_translation
+    self.config = config
 
 
   def __str__(self) -> str:
@@ -46,7 +48,12 @@ class Opt(object):
 
 # Define optimisations here ...
 
-seq   = Opt('seq')
-cuda  = Opt('cuda', True)
-# omp   = Opt('omp3')
-# simd  = Opt('simd')
+seq = Opt('seq', False)
+
+cuda = Opt('cuda', True, config={
+  'atomics': True
+})
+
+# omp = Opt('omp3', False)
+
+# simd = Opt('simd', True)

@@ -30,17 +30,19 @@ def parseKernel(path: Path, name: str) -> Kernel:
     raise ParseError(f'failed to locate kernel function {name}', parseLocation(node))
 
   # Collect parameter types
-  param_types = []
+  params = []
   for n in node.get_children():
     if n.kind == CursorKind.PARM_DECL:
       type = n.type.get_pointee() or n.type
-      param_types.append(re.sub(r'\s*const\s*', '', type.spelling))
+      type = re.sub(r'\s*const\s*', '', type.spelling)
+      param = (n.spelling, type)
+      params.append(param)
 
   # TODO: Redo
   with open(path, 'r') as file:
     source = file.read()
 
-  return Kernel(name, translation_unit.cursor, source, param_types)
+  return Kernel(name, translation_unit.cursor, source, params)
 
 
 def parseProgram(path: Path, include_dirs: Set[Path]) -> Program:

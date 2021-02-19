@@ -43,7 +43,7 @@ def parseKernel(path: Path, name: str) -> Kernel:
 
   # Parse parameter identifiers
   param_identifiers = [ n.attrib['name'] for n in node.findall('header/arguments/argument') ]
-  param_types = [ '' ] * len(param_identifiers)
+  params = [ ('', '') ] * len(param_identifiers)
 
   # TODO: Cleanup
   for decl in node.findall('body/specification/declaration'):
@@ -54,13 +54,13 @@ def parseKernel(path: Path, name: str) -> Kernel:
           identifier = variable.attrib['name']
           if identifier in param_identifiers:
             index = param_identifiers.index(identifier)
-            param_types[index] = parseType(type)
-
+            params[index] = (identifier, parseType(type))
+            
   # TODO: Redo
   with open(path, 'r') as file:
     source = file.read()
 
-  return Kernel(name, ast, source, param_types)
+  return Kernel(name, ast, source, params)
 
 
 def parseProgram(path: Path, include_dirs: Set[Path]) -> Program:  

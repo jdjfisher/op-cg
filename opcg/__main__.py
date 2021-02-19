@@ -77,7 +77,7 @@ def main(argv=None) -> None:
 
 
 
-def parsing(args: Namespace, scheme: Scheme):
+def parsing(args: Namespace, scheme: Scheme) -> Application:
   app = Application()
 
   # Collect the include directories
@@ -113,12 +113,13 @@ def parsing(args: Namespace, scheme: Scheme):
   # Run semantic checks on the application
   app.validate(scheme.lang)
 
-  # Dump application to a json file
+  # Dump to a json file
   if args.dump:
     store_path = Path(args.out, 'store.json')
 
-    with open(store_path, 'w') as file:
-      file.write(json.dumps(app.__dict__, default=vars, indent=4))
+    # TODO: Fix
+    # with open(store_path, 'w') as file:
+    #   file.write(json.dumps(app.kernels, default=vars, indent=4))
 
     if args.verbose:
       print('Dumped store:', store_path, end='\n\n')

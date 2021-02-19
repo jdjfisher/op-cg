@@ -1,6 +1,6 @@
 # Standard library imports
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional, List, Set, Any
+from typing import TYPE_CHECKING, Optional, Tuple, List, Set, Any
 from typing_extensions import Protocol
 from os.path import basename
 from pathlib import Path
@@ -50,8 +50,8 @@ class Program:
   sets: List[OP.Set]
   maps: List[OP.Map]
   datas: List[OP.Data]
-  loops: List[OP.Loop]
   consts: List[OP.Const]
+  loops: List[OP.Loop]
 
 
   def __init__(self, path: Path) -> None:
@@ -61,8 +61,8 @@ class Program:
     self.sets = []
     self.maps = []
     self.datas = []
-    self.loops = []
     self.consts = []
+    self.loops = []
 
 
   def recordInit(self, loc) -> None:
@@ -75,43 +75,7 @@ class Program:
   def recordExit(self) -> None:
     self.exit = True
 
-
-  # def addConst(self, const: OP.Const) -> None:
-  #   # Search for previous decleration
-  #   prev = safeFind(self.consts, lambda c: c.ptr == const.ptr)
-
-  #   # If there is a previous decleration verify compatibilty and then skip
-  #   if prev:
-  #     if const.dim != prev.dim:
-  #       raise ParseError(f"dim mismatch in repeated decleration of '{const.ptr}' const")  
-      
-  #     elif const.dim != prev.dim:
-  #       raise ParseError(f"size mismatch in repeated decleration of '{const.ptr}' const") 
-      
-  #     else:
-  #       return # TODO: We need to keep track of the location still
-      
-  #   # store const
-  #   self.consts.append(const)
-
-
-  # def addLoop(self, loop: OP.Loop) -> None:
-  #   # Search for previous decleration on the same kernel
-  #   prev = safeFind(self.loops, lambda l: l.kernel == loop.kernel)
-
-  #   if prev:
-  #     # TODO: Check for compatitbile repeats (and then skip the loop but track its location)
-
-  #     # Ensure the previous loop has an index
-  #     if prev.i is None:
-  #       prev.i = 1
-        
-  #     # Give the new loop a unqiue index
-  #     loop.i = prev.i + 1
-
-  #   self.loops.append(loop)
-
-
+  
   def __str__(self) -> str:
     return f"{'init, ' if self.init else ''}{len(self.consts)} constants, {len(self.loops)} loops{', exit' if self.exit else ''}"
 
@@ -119,21 +83,21 @@ class Program:
 
 class Kernel:
   name: str
-  ast: Any
+  ast: Any # TODO: Update typing
   source: str
-  arg_types: List[str]
+  params: List[Tuple[str, str]]
   
   
-  def __init__(self, name: str, ast: Any, source: str, arg_types: List[str]):
+  def __init__(self, name: str, ast: Any, source: str, params: List[Tuple[str, str]]):
     self.name = name
     self.ast = ast
     self.source = source
-    self.arg_types = arg_types
+    self.params = params
 
 
   @property
-  def argCount(self) -> int:
-    return len(self.arg_types)
+  def paramCount(self) -> int:
+    return len(self.params)
 
 
   def __str__(self) -> str:
@@ -178,8 +142,24 @@ class Application:
         if set_ not in set_ptrs:
           raise OpError(f'undefined set "{set_}" referenced in map decleration', map.loc)
 
+    # Validate constant declerations
+    for const in self.consts:
+      # Search for previous decleration
+      prev = safeFind(self.consts, lambda c: c.ptr == const.ptr)
+
+      if prev and const.dim != prev.dim:
+        raise ParseError(f"dim mismatch in repeated decleration of '{const.ptr}' const") 
+      elif prev and const.dim != prev.dim:
+        raise ParseError(f"size mismatch in repeated decleration of '{const.ptr}' const") 
+
     # Validate loop calls
     for loop in self.loops:
+      prev = safeFind(self.loops, lambda l: l.kernel == loop.kernel)
+      if prev:
+        for a, b in zip(prev.args, loop.args):
+          pass
+          # TODO: Check duplicate loop compatibility
+
       # Validate loop dataset
       if loop.set not in set_ptrs:
         raise OpError(f'undefined set "{loop.set}" referenced in par loop call', loop.loc)
@@ -244,16 +224,13 @@ class Application:
       # Validate par loop arguments against kernel parameters
       kernel = find(self.kernels, lambda k: k.name == loop.kernel)
 
-      if len(loop.args) != kernel.argCount:
+      if len(loop.args) != kernel.paramCount:
         raise ParseError(f'incorrect number of args passed to the {kernel} kernel', loop.loc)
         
-      for i, (param_type, arg) in enumerate(zip(kernel.arg_types, loop.args)):
-        if arg.typ != param_type:
-          raise ParseError(f'argument {i} to {kernel} kernel has incompatible type {arg.typ}, expected {param_type}', arg.loc)
-        
-    # Validate constant declerations
-    for const in self.consts:
-      pass # TODO: Check duplicate compatibility
+      for i, (param, arg) in enumerate(zip(kernel.params, loop.args)):
+        if arg.typ != param[1]:
+          raise ParseError(f'argument {i} to {kernel} kernel has incompatible type {arg.typ}, expected {param[1]}', arg.loc)
+
 
 
   @property
@@ -282,12 +259,12 @@ class Application:
 
 
   @property
-  def loops(self) -> List[OP.Loop]:
-    return flattern(program.loops for program in self.programs)
+  def consts(self) -> List[OP.Const]:
+    return flattern(program.consts for program in self.programs)
 
 
   @property
-  def consts(self) -> List[OP.Const]:
-    return flattern(program.consts for program in self.programs)
+  def loops(self) -> List[OP.Loop]:
+    return flattern(program.loops for program in self.programs)
 
 

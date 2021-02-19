@@ -17,7 +17,7 @@ import op as OP
 macro_instances = {} # TODO: Cleanup
 
 
-def parseKernel(path: Path, name: str) -> Kernel:  
+def parseKernel(self, path: Path, name: str) -> Kernel:  
   # Invoke Clang parser on kernel source
   translation_unit = Index.create().parse(path)
 
@@ -45,7 +45,7 @@ def parseKernel(path: Path, name: str) -> Kernel:
   return Kernel(name, translation_unit.cursor, source, params)
 
 
-def parseProgram(path: Path, include_dirs: Set[Path]) -> Program:
+def parseProgram(self, path: Path, include_dirs: Set[Path]) -> Program:
   # Locate OP2 install
   op2_install = os.getenv('OP2_INSTALL_PATH')
   if not op2_install:

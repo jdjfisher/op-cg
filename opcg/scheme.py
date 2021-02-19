@@ -1,6 +1,7 @@
 # Standard library imports
 from __future__ import annotations
 from typing import List, ClassVar, Tuple
+from types import MethodType
 from pathlib import Path
 
 # Application imports
@@ -82,5 +83,5 @@ fseq = Scheme(fortran.lang, optimisation.seq, Path('fortran/seq/loop_host.F90.j2
 fcuda = Scheme(fortran.lang, optimisation.cuda, Path('fortran/cuda/loop_host.CUF.j2'), Path('fortran/cuda/make_stub.make.j2'))
 
 # TODO: Move this
-from fortran.translator.kernels.cuda import translateKernel
-setattr(fcuda, "translateKernel", translateKernel)
+from fortran.translator.kernels import cuda
+fcuda.translateKernel = MethodType(cuda.translateKernel, fcuda) # type: ignore

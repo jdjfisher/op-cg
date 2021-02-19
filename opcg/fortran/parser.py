@@ -31,7 +31,7 @@ def parse(path: Path) -> Element:
     raise ParseError(error.output)
 
 
-def parseKernel(path: Path, name: str) -> Kernel:  
+def parseKernel(self, path: Path, name: str) -> Kernel:  
   # Parse AST
   ast = parse(path)
 
@@ -63,7 +63,7 @@ def parseKernel(path: Path, name: str) -> Kernel:
   return Kernel(name, ast, source, params)
 
 
-def parseProgram(path: Path, include_dirs: Set[Path]) -> Program:  
+def parseProgram(self, path: Path, include_dirs: Set[Path]) -> Program:  
   # Parse AST
   ast = parse(path)
 

@@ -1,4 +1,7 @@
 
+# Standard library imports
+from types import MethodType
+
 # Application imports
 from fortran.parser import parseProgram, parseKernel
 from fortran.translator.program import translateProgram
@@ -15,7 +18,8 @@ lang = Lang(
 )
 
 
-setattr(lang, 'parseProgram', parseProgram)
-setattr(lang, 'parseKernel', parseKernel)
-setattr(lang, 'translateProgram', translateProgram)
+lang.parseProgram = MethodType(parseProgram, lang) # type: ignore
+lang.parseKernel = MethodType(parseKernel, lang) # type: ignore
+lang.translateProgram = MethodType(translateProgram, lang) # type: ignore
+
 

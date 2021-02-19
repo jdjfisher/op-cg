@@ -7,7 +7,7 @@ from store import Kernel, Application
 from util import indexSplit, find
 
 
-def translateKernel(kernel: Kernel, app: Application) -> str:
+def translateKernel(self, kernel: Kernel, app: Application) -> str:
   lines = kernel.source.splitlines()
 
   # Collect indirect increment identifiers TODO: Tidy
@@ -26,12 +26,10 @@ def translateKernel(kernel: Kernel, app: Application) -> str:
   line = lines[index]
   lines[index] = line.replace(kernel.name, kernel.name + '_gpu')
 
-  # TODO: Pass atomics flag (opt.config)
-  atomics = True
   needs_istat = False
 
   # Atomize incremenal assignments
-  if atomics:
+  if self.opt.config['atomics']:
     for assignment in body.findall('.//assignment'):
       # Traverse AST
       name = assignment.find('target/name').attrib['id']

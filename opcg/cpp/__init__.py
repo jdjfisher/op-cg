@@ -1,5 +1,6 @@
 
 # Standard library imports
+from types import MethodType
 import os
 
 # Third party imports
@@ -26,7 +27,7 @@ lang = Lang(
 )
 
 
-setattr(lang, 'parseProgram', parseProgram)
-setattr(lang, 'parseKernel', parseKernel)
-setattr(lang, 'translateProgram', translateProgram)
+lang.parseProgram = MethodType(parseProgram, lang) # type: ignore
+lang.parseKernel = MethodType(parseKernel, lang) # type: ignore
+lang.translateProgram = MethodType(translateProgram, lang) # type: ignore
 

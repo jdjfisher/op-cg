@@ -7,7 +7,7 @@ from store import Program
 
 
 # Augment source program to use generated kernel hosts
-def translateProgram(source: str, program: Program, soa: bool = False) -> str:
+def translateProgram(self, source: str, program: Program, soa: bool = False) -> str:
   lines = source.splitlines(True)
 
   # 1. Comment-out const calls

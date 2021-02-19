@@ -82,6 +82,5 @@ cseq = Scheme(cpp.lang, optimisation.seq, Path('cpp/seq/loop_host.cpp.j2'))
 fseq = Scheme(fortran.lang, optimisation.seq, Path('fortran/seq/loop_host.F90.j2'), Path('fortran/seq/make_stub.make.j2'))
 fcuda = Scheme(fortran.lang, optimisation.cuda, Path('fortran/cuda/loop_host.CUF.j2'), Path('fortran/cuda/make_stub.make.j2'))
 
-# TODO: Move this
 from fortran.translator.kernels import cuda
 fcuda.translateKernel = MethodType(cuda.translateKernel, fcuda) # type: ignore

@@ -50,6 +50,7 @@ class Map:
   ptr: str
   loc: Location
 
+
   def __init__(
     self,
     from_set: str,
@@ -93,6 +94,7 @@ class Const:
   debug: str
   loc: Location
 
+
   def __init__(self, ptr: str, dim: int, debug: str, loc: Location) -> None:
     self.ptr = ptr
     self.dim = dim
@@ -110,6 +112,7 @@ class Arg:
   map: Optional[str] # Indirect mapping indentifier
   idx: Optional[int] # Indirect mapping index
   opt: Optional[str]
+
 
   def __init__(
     self, 
@@ -147,25 +150,24 @@ class Arg:
 
 
 class Loop:
-  i: Optional[int]
   kernel: str
   set: str
   loc: Location
   args: List[Arg] 
+
 
   def __init__(self, kernel: str, set_: str, loc: Location, args: List[Arg]) -> None:
     self.kernel = kernel
     self.set = set_
     self.loc = loc
     self.args = args
-    self.i = None
     for i, arg in enumerate(args):
       arg.i = i
 
 
   @property
   def name(self) -> str: 
-    return self.kernel if self.i is None else f'{self.kernel}_{self.i}'
+    return self.kernel
 
 
   @property
@@ -210,7 +212,6 @@ class Loop:
   
   @property
   def indirectionDescriptor(self) -> List[int]:
-    # TODO: Tidy
     descriptor = []
 
     for arg in self.args:

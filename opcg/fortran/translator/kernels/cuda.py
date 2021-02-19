@@ -7,8 +7,8 @@ from store import Kernel, Application
 from util import indexSplit, find
 
 
-def translateKernel(self, kernel: Kernel, app: Application) -> str:
-  lines = kernel.source.splitlines()
+def translateKernel(self, source: str, kernel: Kernel, app: Application) -> str:
+  lines = source.splitlines()
 
   # Collect indirect increment identifiers TODO: Tidy
   loop = find(app.loops, lambda l: l.kernel == kernel.name)

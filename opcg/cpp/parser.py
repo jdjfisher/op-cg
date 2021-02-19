@@ -38,11 +38,7 @@ def parseKernel(self, path: Path, name: str) -> Kernel:
       param = (n.spelling, type)
       params.append(param)
 
-  # TODO: Redo
-  with open(path, 'r') as file:
-    source = file.read()
-
-  return Kernel(name, translation_unit.cursor, source, params)
+  return Kernel(name, path, translation_unit.cursor, params)
 
 
 def parseProgram(self, path: Path, include_dirs: Set[Path]) -> Program:

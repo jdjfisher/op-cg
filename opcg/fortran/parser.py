@@ -56,11 +56,7 @@ def parseKernel(self, path: Path, name: str) -> Kernel:
             index = param_identifiers.index(identifier)
             params[index] = (identifier, parseType(type))
             
-  # TODO: Redo
-  with open(path, 'r') as file:
-    source = file.read()
-
-  return Kernel(name, ast, source, params)
+  return Kernel(name, path, ast, params)
 
 
 def parseProgram(self, path: Path, include_dirs: Set[Path]) -> Program:  

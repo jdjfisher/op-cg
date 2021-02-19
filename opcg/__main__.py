@@ -113,13 +113,14 @@ def parsing(args: Namespace, scheme: Scheme) -> Application:
   # Run semantic checks on the application
   app.validate(scheme.lang)
 
-  # Dump to a json file
+  # Create a JSON dump
   if args.dump:
     store_path = Path(args.out, 'store.json')
+    serializer = lambda o: getattr(o, '__dict__', 'unserializable')
 
-    # TODO: Fix
-    # with open(store_path, 'w') as file:
-    #   file.write(json.dumps(app.kernels, default=vars, indent=4))
+    # Write application dump
+    with open(store_path, 'w') as file:
+      file.write(json.dumps(app, default=serializer, indent=4))
 
     if args.verbose:
       print('Dumped store:', store_path, end='\n\n')
@@ -172,18 +173,21 @@ def codegen(args: Namespace, scheme: Scheme, app: Application):
   # Generate kernel translations
   if scheme.opt.kernel_translation:
     for i, kernel in enumerate(app.kernels, 1):
-      # Generate the source translation
-      source = scheme.translateKernel(kernel, app)
+      # Read the raw source file
+      with open(kernel.path, 'r') as raw_file:
 
-      # Form output file path 
-      new_path = Path(args.out, f'{kernel}_{scheme.opt.name}.{scheme.lang.include_ext}')
+        # Generate the source translation
+        source = scheme.translateKernel(raw_file.read(), kernel, app)
 
-      # Write the translated source file
-      with open(new_path, 'w') as new_file:
-        new_file.write(source)
+        # Form output file path 
+        new_path = Path(args.out, f'{kernel}_{scheme.opt.name}.{scheme.lang.include_ext}')
 
-        if args.verbose:
-          print(f'Translated kernel   {i} of {len(app.kernels)}: {new_path}') 
+        # Write the translated source file
+        with open(new_path, 'w') as new_file:
+          new_file.write(source)
+
+          if args.verbose:
+            print(f'Translated kernel   {i} of {len(app.kernels)}: {new_path}') 
 
   # Generate Makefile
   if args.makefile and scheme.make_stub_template:

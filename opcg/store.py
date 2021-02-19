@@ -7,7 +7,7 @@ from pathlib import Path
 
 # Application imports
 from op import OpError
-from util import safeFind, flattern, find
+from util import safeFind, flattern, find, uniqueBy
 import op as OP
 if TYPE_CHECKING:
   from language import Lang
@@ -83,15 +83,15 @@ class Program:
 
 class Kernel:
   name: str
+  path: Path
   ast: Any # TODO: Update typing
-  source: str
   params: List[Tuple[str, str]]
   
   
-  def __init__(self, name: str, ast: Any, source: str, params: List[Tuple[str, str]]):
+  def __init__(self, name: str, path: Path, ast: Any, params: List[Tuple[str, str]]):
     self.name = name
+    self.path = path
     self.ast = ast
-    self.source = source
     self.params = params
 
 
@@ -148,17 +148,18 @@ class Application:
       prev = safeFind(self.consts, lambda c: c.ptr == const.ptr)
 
       if prev and const.dim != prev.dim:
-        raise ParseError(f"dim mismatch in repeated decleration of '{const.ptr}' const") 
+        raise ParseError(f'dim mismatch in repeated decleration of "{const.ptr}" const') 
       elif prev and const.dim != prev.dim:
-        raise ParseError(f"size mismatch in repeated decleration of '{const.ptr}' const") 
+        raise ParseError(f'size mismatch in repeated decleration of "{const.ptr}" const') 
 
     # Validate loop calls
     for loop in self.loops:
       prev = safeFind(self.loops, lambda l: l.kernel == loop.kernel)
       if prev:
-        for a, b in zip(prev.args, loop.args):
-          pass
-          # TODO: Check duplicate loop compatibility
+        for i, (arg_a, arg_b) in enumerate(zip(prev.args, loop.args)):
+          if arg_a.acc != arg_b.acc:
+            raise ParseError(f'varying access types for arg {i} in {loop.kernel} par loops') 
+          # TODO: Consider more compatability issues
 
       # Validate loop dataset
       if loop.set not in set_ptrs:
@@ -260,11 +261,13 @@ class Application:
 
   @property
   def consts(self) -> List[OP.Const]:
-    return flattern(program.consts for program in self.programs)
+    consts = flattern(program.consts for program in self.programs)
+    return uniqueBy(consts, lambda c: c.ptr)
 
 
   @property
   def loops(self) -> List[OP.Loop]:
-    return flattern(program.loops for program in self.programs)
+    loops = flattern(program.loops for program in self.programs)
+    return uniqueBy(loops, lambda l: l.kernel)
 
 

@@ -26,4 +26,4 @@ test:
 	pytest
 
 clean:
-	rm -r temp/*
+	rm -rf temp/*

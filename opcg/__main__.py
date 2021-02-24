@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import List
 import json
 import os
-import re 
+import re
 
 # Application imports
 from store import Application, ParseError
@@ -33,7 +33,7 @@ def main(argv=None) -> None:
   parser.add_argument('-p', '--prefix', help='Output File Prefix', type=isValidPrefix, default='op')
   parser.add_argument('-soa', '--soa', help='Structs of Arrays', action='store_true')
   parser.add_argument('-I', help='Header Include', type=isDirPath, action='append', nargs='+', default=['.'])
-  
+
   # Positional args
   parser.add_argument('optimisation', help='Optimisation scheme', type=str, choices=Opt.names())
   parser.add_argument('file_paths', help='Input OP2 sources', type=isFilePath, nargs='+')
@@ -50,7 +50,7 @@ def main(argv=None) -> None:
   elif len(extensions) > 1:
     exit('Varying file extensions, unable to determine target language.')
   else:
-    [ extension ] = extensions 
+    [ extension ] = extensions
 
   # Determine the target language and optimisation
   opt = Opt.find(args.optimisation)
@@ -97,9 +97,9 @@ def parsing(args: Namespace, scheme: Scheme) -> Application:
   for i, raw_path in enumerate(args.file_paths, 1):
     if args.verbose:
       print(f'Parsing file {i} of {len(args.file_paths)}: {raw_path}')
-    
+
     # Parse the program
-    program = scheme.lang.parseProgram(Path(raw_path), include_dirs) 
+    program = scheme.lang.parseProgram(Path(raw_path), include_dirs)
     app.programs.append(program)
 
     if args.verbose:
@@ -146,13 +146,13 @@ def codegen(args: Namespace, scheme: Scheme, app: Application) -> None:
   # Collect the paths of the generated files
   generated_paths: List[Path] = []
 
-  # Generate loop hosts 
+  # Generate loop hosts
   for i, loop in enumerate(app.loops, 1):
     # Generate loop host source
     source, extension = scheme.genLoopHost(loop, i)
 
-    # Form output file path 
-    path = Path(args.out, f'{args.prefix}_{scheme.opt.name}_{loop.name}.{extension}')
+    # Form output file path
+    path = Path(args.out, f'{loop.name}_{scheme.opt.name}kernel.{extension}')
 
     # Write the generated source file
     with open(path, 'w') as file:
@@ -171,8 +171,10 @@ def codegen(args: Namespace, scheme: Scheme, app: Application) -> None:
       # Generate the source translation
       source = scheme.lang.translateProgram(raw_file.read(), program, args.soa)
 
-      # Form output file path 
-      new_path = Path(args.out, f'{args.prefix}_{os.path.basename(program.path)}')
+      # Form output file path
+      new_file = os.path.splitext(os.path.basename(program.path))[0]
+      ext = os.path.splitext(os.path.basename(program.path))[1]
+      new_path = Path(args.out, f'{new_file}_{args.prefix}{ext}')
 
       # Write the translated source file
       with open(new_path, 'w') as new_file:
@@ -181,7 +183,7 @@ def codegen(args: Namespace, scheme: Scheme, app: Application) -> None:
         generated_paths.append(new_path)
 
         if args.verbose:
-          print(f'Translated program  {i} of {len(args.file_paths)}: {new_path}') 
+          print(f'Translated program  {i} of {len(args.file_paths)}: {new_path}')
 
   # Generate kernel translations
   if scheme.opt.kernel_translation:
@@ -192,7 +194,7 @@ def codegen(args: Namespace, scheme: Scheme, app: Application) -> None:
         # Generate the source translation
         source = scheme.translateKernel(raw_file.read(), kernel, app)
 
-        # Form output file path 
+        # Form output file path
         new_path = Path(args.out, f'{kernel}_{scheme.opt.name}.{scheme.lang.include_ext}')
 
         # Write the translated source file
@@ -200,13 +202,13 @@ def codegen(args: Namespace, scheme: Scheme, app: Application) -> None:
           new_file.write(source)
 
           if args.verbose:
-            print(f'Translated kernel   {i} of {len(app.kernels)}: {new_path}') 
+            print(f'Translated kernel   {i} of {len(app.kernels)}: {new_path}')
 
   # Generate Makefile
   if args.makefile and scheme.make_stub_template:
     path = Path(args.out, 'Makefile')
 
-    # Check if the Make target has already been defined  
+    # Check if the Make target has already been defined
     found = False
     if path.is_file():
       with open(path, 'r') as file:
@@ -218,9 +220,9 @@ def codegen(args: Namespace, scheme: Scheme, app: Application) -> None:
         stub = scheme.genMakeStub(generated_paths)
 
         file.write(stub)
-        
+
     if args.verbose:
-      print(f'Make target "{scheme.opt.name}" already exists' if found else 'Appended Make target stub') 
+      print(f'Make target "{scheme.opt.name}" already exists' if found else 'Appended Make target stub')
 
 
 

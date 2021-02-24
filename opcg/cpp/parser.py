@@ -109,7 +109,7 @@ def parseProgram(self, path: Path, include_dirs: Set[Path]) -> Program:
         program.maps.append(parseMap(args, ptr, loc))
       
       elif name == 'op_decl_dat':
-        program.datas.append(parseData(args, ptr, loc))
+        program.datas.append(parseDat(args, ptr, loc))
       
       elif name == 'op_decl_const':
         program.consts.append(parseConst(args, loc))
@@ -146,7 +146,7 @@ def parseMap(nodes: List[Cursor], ptr: str, loc: Location) -> OP.Map:
   return OP.Map(from_set, to_set, dim, ptr, loc)
 
 
-def parseData(nodes: List[Cursor], ptr: str, loc: Location) -> OP.Data:
+def parseDat(nodes: List[Cursor], ptr: str, loc: Location) -> OP.Data:
   if len(nodes) != 5:
     raise ParseError('incorrect number of args passed to op_decl_dat', loc)
 

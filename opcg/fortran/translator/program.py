@@ -19,7 +19,7 @@ def translateProgram(self, source: str, program: Program, soa: bool = False) -> 
   for loop in program.loops:
     before, after = re.split(r'op_par_loop_[1-9]\d*', buffer.get(loop.loc.line - 1), 1)
     after = after.replace(loop.kernel, f'"{loop.kernel}"') # TODO: This assumes that the kernel arg is on the same line as the call
-    buffer.update(loop.loc.line - 1, before + f'op_par_loop_{loop.name}_host' + after)
+    buffer.update(loop.loc.line - 1, before + f'{loop.name}_host' + after)
 
   # 3. Update headers
   index = buffer.search(r'\s*use\s+OP2_Fortran_Reference\s*', re.IGNORECASE)

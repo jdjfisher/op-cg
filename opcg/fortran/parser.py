@@ -31,7 +31,7 @@ def parse(path: Path) -> Element:
     raise ParseError(error.output)
 
 
-def parseKernel(self, path: Path, name: str) -> Kernel:  
+def parseKernel(self, path: Path, name: str) -> Kernel:
   # Parse AST
   ast = parse(path)
 
@@ -55,11 +55,11 @@ def parseKernel(self, path: Path, name: str) -> Kernel:
           if identifier in param_identifiers:
             index = param_identifiers.index(identifier)
             params[index] = (identifier, parseType(type))
-            
+
   return Kernel(name, path, ast, params)
 
 
-def parseProgram(self, path: Path, include_dirs: Set[Path]) -> Program:  
+def parseProgram(self, path: Path, include_dirs: Set[Path]) -> Program:
   # Parse AST
   ast = parse(path)
 
@@ -83,11 +83,20 @@ def parseProgram(self, path: Path, include_dirs: Set[Path]) -> Program:
       elif name == 'op_decl_set':
         program.sets.append(parseSet(args, loc))
 
+      elif name == 'op_decl_set_hdf5':
+        program.sets.append(parseSet_hdf5(args, loc))
+
       elif name == 'op_decl_map':
         program.maps.append(parseMap(args, loc))
 
+      elif name == 'op_decl_map_hdf5':
+        program.maps.append(parseMap_hdf5(args, loc))
+
       elif name == 'op_decl_dat':
-        program.datas.append(parseData(args, loc))
+        program.datas.append(parseDat(args, loc))
+
+      elif name == 'op_decl_dat_hdf5':
+        program.datas.append(parseDat_hdf5(args, loc))
 
       elif name == 'op_decl_const':
         program.consts.append(parseConst(args, loc))
@@ -104,14 +113,24 @@ def parseProgram(self, path: Path, include_dirs: Set[Path]) -> Program:
 
 def parseSet(nodes: List[Element], loc: Location) -> OP.Set:
   if len(nodes) != 3:
-    raise ParseError('incorrect number of nodes passed to op_decl_set', loc)
+    raise ParseError('incorrect number of args passed to op_decl_set', loc)
 
   _     = parseIdentifier(nodes[0])
   ptr   = parseIdentifier(nodes[1])
   debug = parseStringLit(nodes[2])
-  
+
   return OP.Set(ptr)
 
+def parseSet_hdf5(nodes: List[Element], loc: Location) -> OP.Set:
+  if len(nodes) != 4:
+    raise ParseError('incorrect number of args passed to op_decl_set_hdf5', loc)
+
+  _     = parseIdentifier(nodes[0])
+  ptr   = parseIdentifier(nodes[1])
+  file  = parseStringLit(nodes[2])
+  debug = parseStringLit(nodes[3])
+
+  return OP.Set(ptr)
 
 def parseMap(nodes: List[Element], loc: Location) -> OP.Map:
   if len(nodes) != 6:
@@ -126,8 +145,21 @@ def parseMap(nodes: List[Element], loc: Location) -> OP.Map:
 
   return OP.Map(from_set, to_set, dim, ptr, loc)
 
+def parseMap_hdf5(nodes: List[Element], loc: Location) -> OP.Map:
+  if len(nodes) != 7:
+    raise ParseError('incorrect number of args passed to op_decl_map_hdf5', loc)
 
-def parseData(nodes: List[Element], loc: Location) -> OP.Data:
+  from_set = parseIdentifier(nodes[0])
+  to_set   = parseIdentifier(nodes[1])
+  dim      = parseIntLit(nodes[2], signed=False)
+  ptr      = parseIdentifier(nodes[3])
+  file     = parseStringLit(nodes[4])
+  debug    = parseStringLit(nodes[5])
+  status   = parseIdentifier(nodes[6])
+
+  return OP.Map(from_set, to_set, dim, ptr, loc)
+
+def parseDat(nodes: List[Element], loc: Location) -> OP.Data:
   if len(nodes) != 6:
     raise ParseError('incorrect number of args passed to op_decl_dat', loc)
 
@@ -139,7 +171,20 @@ def parseData(nodes: List[Element], loc: Location) -> OP.Data:
   debug = parseStringLit(nodes[5])
 
   return OP.Data(set_, dim, typ, ptr, loc)
-  
+
+def parseDat_hdf5(nodes: List[Element], loc: Location) -> OP.Data:
+  if len(nodes) != 7:
+    raise ParseError('incorrect number of args passed to op_decl_dat', loc)
+
+  set_  = parseIdentifier(nodes[0])
+  dim   = parseIntLit(nodes[1], signed=False)
+  ptr   = parseIdentifier(nodes[2])
+  typ   = normaliseType(parseStringLit(nodes[3]))
+  file  = parseStringLit(nodes[4])
+  debug = parseStringLit(nodes[5])
+  status   = parseIdentifier(nodes[6])
+
+  return OP.Data(set_, dim, typ, ptr, loc)
 
 def parseConst(nodes: List[Element], loc: Location) -> OP.Const:
   if len(nodes) != 3:
@@ -163,7 +208,7 @@ def parseLoop(nodes: List[Element], loc: Location) -> OP.Loop:
   loop_args = []
 
   # Parse loop args
-  for raw_arg in nodes[2:]: 
+  for raw_arg in nodes[2:]:
     name = parseIdentifier(raw_arg)
     arg_loc = parseLocation(raw_arg)
     args = raw_arg.findall('name/subscripts/subscript')
@@ -211,7 +256,7 @@ def parseOptArgDat(nodes: List[Element], loc: Location) -> OP.Arg:
 
   # Parse standard argDat arguments
   dat = parseArgDat(nodes[1:], loc)
-  
+
   # Return augmented dat
   dat.opt = opt
   return dat
@@ -222,14 +267,14 @@ def parseArgGbl(nodes: List[Element], loc: Location) -> OP.Arg:
     raise ParseError('incorrect number of args passed to op_arg_gbl', loc)
 
   access_regex = enumRegex(OP.GBL_ACCESS_TYPES)
-  
+
   var = parseIdentifier(nodes[0])
   dim = parseIntLit(nodes[1], signed=False)
   typ = normaliseType(parseStringLit(nodes[2]))
   acc = parseIdentifier(nodes[3], regex=access_regex)
 
   return OP.Arg(var, dim, typ, acc, loc)
-  
+
 
 def parseOptArgGbl(nodes: List[Element], loc: Location) -> OP.Arg:
   if len(nodes) != 5:
@@ -240,7 +285,7 @@ def parseOptArgGbl(nodes: List[Element], loc: Location) -> OP.Arg:
 
   # Parse standard argGbl arguments
   dat = parseArgGbl(nodes[1:], loc)
-  
+
   # Return augmented dat
   dat.opt = opt
   return dat
@@ -262,7 +307,7 @@ def parseIdentifier(node: Element, regex: str = None) -> str:
   # Apply conditional regex constraint
   if regex and not re.match(regex, value):
     raise ParseError(f'expected identifier matching {regex}', loc)
-  
+
   return value
 
 
@@ -320,7 +365,7 @@ def parseStringLit(node: Element, regex: str = None) -> str:
 def parseLocation(node: Element) -> Location:
   return Location(
     _current_file,
-    int(node.attrib['line_begin']), 
+    int(node.attrib['line_begin']),
     int(node.attrib['col_begin'])
   )
 

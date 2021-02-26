@@ -107,7 +107,7 @@ MODULE {{ parloop.name|upper }}_MODULE
   END SUBROUTINE
 
   ! Host function for kernel
-  SUBROUTINE op_par_loop_{{ parloop.name }}_host ( &
+  SUBROUTINE {{ parloop.name }}_host ( &
     & kernel, &
     & set, &
     {% for arg in parloop.args %}
@@ -126,6 +126,7 @@ MODULE {{ parloop.name|upper }}_MODULE
     type ( op_arg ) , DIMENSION({{ parloop.args | length }}) :: opArgArray
     INTEGER(kind=4) :: numberOfOpDats
     INTEGER(kind=4) :: n_upper
+    type ( op_set_core ) , POINTER :: opSetCore
 
     {# TODO: Opts #}
 
@@ -142,6 +143,7 @@ MODULE {{ parloop.name|upper }}_MODULE
     {# Global dats #}
     {% for arg in parloop.globals %}
     {{ arg.typ }}, POINTER, DIMENSION(:) :: gblDat_{{ arg.var }}
+    {{ arg.typ }}, DIMENSION(:), ALLOCATABLE :: reductionArrayHost{{ arg.var }}
     {% endfor %}
     {# Maps #}
     {% for arg in parloop.indirectMaps  %}
@@ -156,15 +158,22 @@ MODULE {{ parloop.name|upper }}_MODULE
     REAL(kind=8) :: endTime
     INTEGER(kind=4) :: returnSetKernelTiming
 
+    {# OMP vars #}
+    INTEGER(kind=4) :: threadID
+    INTEGER(kind=4) :: numberOfThreads
+    INTEGER(kind=4) :: sliceStart
+    INTEGER(kind=4) :: sliceEnd
+
     {# Plan vars #}
-    type ( op_set_core ) , POINTER :: opSetCore
+    {# Indirection #}
+    {% if parloop.indirection %}
     type ( c_ptr )  :: planRet_{{ parloop.name }}
     type ( op_plan ) , POINTER :: actualPlan_{{ parloop.name }}
     INTEGER(kind=4), POINTER, DIMENSION(:) :: ncolblk_{{ parloop.name }}
     INTEGER(kind=4), POINTER, DIMENSION(:) :: blkmap_{{ parloop.name }}
     INTEGER(kind=4), POINTER, DIMENSION(:) :: nelems_{{ parloop.name }}
     INTEGER(kind=4), POINTER, DIMENSION(:) :: offset_{{ parloop.name }}
-    INTEGER(kind=4), DIMENSION(1:8) :: indirectionDescriptorArray
+    INTEGER(kind=4), DIMENSION(1:{{ parloop.args | length }}) :: indirectionDescriptorArray
     INTEGER(kind=4) :: numberOfIndirectOpDats
     INTEGER(kind=4) :: blockOffset
     INTEGER(kind=4) :: nblocks
@@ -172,9 +181,10 @@ MODULE {{ parloop.name|upper }}_MODULE
     INTEGER(kind=4) :: blockID
     INTEGER(kind=4) :: nelem
     INTEGER(kind=4) :: offset_b
-
-    INTEGER(kind=4) :: i1,i2
+    {% else %}
     REAL(kind=4) :: dataTransfer
+    {% endif %}
+    INTEGER(kind=4) :: i1,i2
 
     numberOfOpDats = {{ parloop.args | length }}
 
@@ -192,11 +202,14 @@ MODULE {{ parloop.name|upper }}_MODULE
 
     opSetCore => set%setPtr
 
+    {# Indirection #}
+    {% if parloop.indirection %}
 #ifdef OP_PART_SIZE_1
   partitionSize = OP_PART_SIZE_1
 #else
   partitionSize = 0
 #endif
+    {% endif %}
 
 #ifdef _OPENMP
   numberOfThreads = omp_get_max_threads()
@@ -204,15 +217,15 @@ MODULE {{ parloop.name|upper }}_MODULE
   numberOfThreads = 1
 #endif
 
-    {# Indirect #}
-    {% for arg in parloop.indirectVars %}
-    indirectionDescriptorArray({{ arg.i+1 }}) =
+    {# Indirection - plan setup #}
+    {% if parloop.indirection %}
+    {% for i in parloop.indirectionDescriptor %}
+    indirectionDescriptorArray({{ loop.index }}) = {{ i }}
     {% endfor %}
-
     numberOfIndirectOpDats = {{ parloop.indirectVars | length }}
 
     planRet_{{ parloop.name }} = FortranPlanCaller( &
-    & userSubroutine//C_NULL_CHAR, &
+    & kernel//C_NULL_CHAR, &
     & set%setCPtr, &
     & partitionSize, &
     & numberOfOpDats, &
@@ -225,14 +238,16 @@ MODULE {{ parloop.name|upper }}_MODULE
     CALL c_f_pointer(actualPlan_{{ parloop.name }}%blkmap,blkmap_{{ parloop.name }},(/actualPlan_{{ parloop.name }}%nblocks/))
     CALL c_f_pointer(actualPlan_{{ parloop.name }}%offset,offset_{{ parloop.name }},(/actualPlan_{{ parloop.name }}%nblocks/))
     CALL c_f_pointer(actualPlan_{{ parloop.name }}%nelems,nelems_{{ parloop.name }},(/actualPlan_{{ parloop.name }}%nblocks/))
+    {% endif %}
 
     opSetCore => set%setPtr
 
-    {# Direct #}
+    {# Setup for c to f pointers for maps/dats/globals #}
+    {# Directs #}
     {% for arg in parloop.directs %}
     dirDatCard_{{ arg.var }} = opArg{{ arg.i+1 }}%dim * getSetSizeFromOpArg(opArg{{ arg.i+1 }})
     {% endfor %}
-    {# Indirect #}
+    {# Indirects #}
     {% for arg in parloop.indirectVars %}
     indDatCard_{{ arg.var }} = opArg{{ arg.i+1 }}%dim * getSetSizeFromOpArg(opArg{{ arg.i+1 }})
     {% endfor %}
@@ -240,24 +255,44 @@ MODULE {{ parloop.name|upper }}_MODULE
     {% for arg in parloop.indirectMaps  %}
     mapDim_{{ arg.map }} = getMapDimFromOpArg(opArg{{ arg.i+1 }})
     {% endfor %}
-
-
     {# Global #}
     {% for arg in parloop.globals %}
     CALL c_f_pointer(opArg{{ arg.i+1 }}%data, gblDat_{{ arg.var }}, (/opArg{{ arg.i+1 }}%dim/))
     {% endfor %}
-    {# Direct #}
+    {# Directs #}
     {% for arg in parloop.directs %}
     CALL c_f_pointer(opArg{{ arg.i+1 }}%data, dirDat_{{ arg.var }}, (/dirDatCard_{{ arg.var }}/))
     {% endfor %}
-    {# Indirect #}
+    {# Indirects #}
     {% for arg in parloop.indirectVars %}
     CALL c_f_pointer(opArg{{ arg.i+1 }}%data, indDat_{{ arg.var }}, (/indDatCard_{{ arg.var }}/))
     CALL c_f_pointer(opArg{{ arg.i+1 }}%map_data, map_{{ arg.map }}, (/opSetCore%size*mapDim_{{ arg.map }}/))
     {% endfor %}
 
-    blockOffset = 0
+    {# Setup for reduction #}
+    {% for arg in parloop.globals %}
+    {% if arg.acc != 'OP_READ' %}
+    {% call op_opt(arg) %}
+    allocate( reductionArrayHost{{ arg.var }}(numberOfThreads * ({{ arg.dim-1}}/64 + 1) * 64) )
+    DO i1 = 1, numberOfThreads, 1
+      DO i2 = 1, {{ arg.dim }}, 1
+    {% if arg.acc == 'OP_INC' %}
+        reductionArrayHost{{ arg.var }}((i1 -1) * ({{ arg.dim-1}}/64 + 1) * 64 + i2) = 0
+    {% elif arg.acc == 'OP_MIN' %}
+        reductionArrayHost{{ arg.var }}((i1 -1) * ({{ arg.dim-1}}/64 + 1) * 64 + i2) = MIN_VAL {# TODO - what size ?#}
+    {% elif arg.acc == 'OP_MAX' %}
+        reductionArrayHost{{ arg.var }}((i1 -1) * ({{ arg.dim-1}}/64 + 1) * 64 + i2) = MAX_VAL {# TODO - what size ?#}
+    {% endif %}
+      END DO
+    END DO
+    {% endcall %}
+    {% endif %}
+    {#  #}
+    {% endfor %}
 
+    {# Indirect - loop call#}
+    {% if parloop.indirection %}
+    blockOffset = 0
     DO i1 = 0, actualPlan_{{ parloop.name }}%ncolors-1, 1
       IF (i1 .EQ. actualPlan_{{ parloop.name }}%ncolors_core) THEN
         CALL op_mpi_wait_all(numberOfOpDats,opArgArray)
@@ -273,7 +308,7 @@ MODULE {{ parloop.name|upper }}_MODULE
         CALL {{ parloop.name }}_wrap( &
           {# Globals #}
           {% for arg in parloop.globals  %}
-          & gblDat_{{ arg.var }}, &
+          reductionArrayHost{{ arg.var }}(threadID * ({{ arg.dim-1}}/64 + 1) * 64 + 1), &
           {% endfor %}
           {# Directs #}
           {% for arg in parloop.directs %}
@@ -294,34 +329,71 @@ MODULE {{ parloop.name|upper }}_MODULE
       !$OMP END PARALLEL DO
       blockOffset = blockOffset + nblocks
     END DO
-
+    {# Direct - loop call#}
+    {% else %}
+    !$OMP PARALLEL DO private (sliceStart,sliceEnd,i1,threadID)
+    DO i1 = 0, numberOfThreads-1, 1
+      sliceStart = opSetCore%size * i1 / numberOfThreads
+      sliceEnd = opSetCore%size * (i1 + 1) / numberOfThreads
+      threadID = omp_get_thread_num()
+      CALL {{ parloop.name }}_wrap( &
+      {# Globals #}
+      {% for arg in parloop.globals  %}
+      reductionArrayHost{{ arg.var }}(threadID * ({{ arg.dim-1}}/64 + 1) * 64 + 1), &
+      {% endfor %}
+      {# Directs #}
+      {% for arg in parloop.directs %}
+      & dirDat_{{ arg.var }}, &
+      {% endfor %}
+      {#  #}
+      & sliceStart, sliceEnd)
+    END DO
+    !$OMP END PARALLEL DO
+    {% endif %}
     IF ((n_upper .EQ. 0) .OR. (n_upper .EQ. opSetCore%core_size)) THEN
     CALL op_mpi_wait_all(numberOfOpDats, opArgArray)
     END IF
 
     CALL op_mpi_set_dirtybit(numberOfOpDats,opArgArray)
 
+    {# Reductions #}
     {% for arg in parloop.globals %}
-    {%   if arg.acc != 'OP_READ' %}
-    {%     call op_opt(arg) %}
-    {%     if arg.typ in ['real(8)', 'REAL(kind=8)', 'real*8', 'r8'] %}
+    {% if arg.acc != 'OP_READ' %}
+    {% call op_opt(arg) %}
+    DO i1 = 1, numberOfThreads, 1
+      DO i2 = 1, {{ arg.dim }}, 1
+    {% if arg.acc == 'OP_INC' %}
+        gblDat_{{ arg.var }}(i2) = gblDat_{{ arg.var }}(i2) + reductionArrayHost{{ arg.var }}((i1 -1) * ({{ arg.dim-1}}/64 + 1) * 64 + i2)
+    {% elif arg.acc == 'OP_MIN' %}
+        gblDat_{{ arg.var }}(i2) = MIN(gblDat_{{ arg.var }}(i2), reductionArrayHost{{ arg.var }}((i1 -1) * ({{ arg.dim-1}}/64 + 1) * 64 + i2)
+    {% elif arg.acc == 'OP_MAX' %}
+        gblDat_{{ arg.var }}(i2) = MAX(gblDat_{{ arg.var }}(i2), reductionArrayHost{{ arg.var }}((i1 -1) * ({{ arg.dim-1}}/64 + 1) * 64 + i2)
+    {% endif %}
+      END DO
+    END DO
+    {% endcall %}
+    {#  #}
+    deallocate( reductionArrayHost{{ arg.var }} )
+    {#  #}
+    {% call op_opt(arg) %}
+    {% if arg.typ in ['real(8)', 'REAL(kind=8)', 'real*8', 'r8'] %}
     CALL op_mpi_reduce_double(opArg{{ arg.i+1 }}, opArg{{ arg.i+1 }}%data)
-    {%     elif arg.typ in ['real(4)', 'REAL(kind=4)', 'real*4', 'r4'] %}
+    {% elif arg.typ in ['real(4)', 'REAL(kind=4)', 'real*4', 'r4'] %}
     CALL op_mpi_reduce_float(opArg{{ arg.i+1 }}, opArg{{ arg.i+1 }}%data)
-    {%     elif arg.typ in ['integer(4)', 'INTEGER(kind=4)', 'integer*4', 'i4'] %}
+    {% elif arg.typ in ['integer(4)', 'INTEGER(kind=4)', 'integer*4', 'i4'] %}
     {CALL op_mpi_reduce_int(opArg{{ arg.i+1 }}, opArg{{ arg.i+1 }}%data)
-    {%     elif arg.typ in ['logical', 'logical*1'] %}
+    {% elif arg.typ in ['logical', 'logical*1'] %}
     CALL op_mpi_reduce_bool(opArg{{ arg.i+1 }}, opArg{{ arg.i+1 }}%data)
-    {%     endif %}
-    {%     endcall %}
-    {%   endif %}
+    {% endif %}
+    {% endcall %}
+    {% endif %}
     {% endfor %}
 
     CALL op_timers_core(endTime)
 
-    dataTransfer = 0.0
     {% if not parloop.indirection %}
     {# No indirection #}
+    dataTransfer = 0.0
     {%   for arg in parloop.args %}
     {%     call op_opt(arg) %}
     dataTransfer = dataTransfer + opArg{{ arg.i+1 }}%size

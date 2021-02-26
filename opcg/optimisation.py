@@ -54,6 +54,6 @@ cuda = Opt('cuda', True, config={
   'atomics': True
 })
 
-# omp = Opt('omp3', False)
+omp = Opt('omp', False)
 
 # simd = Opt('simd', True)

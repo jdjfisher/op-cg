@@ -1,5 +1,6 @@
 program AIRFOIL
   use OP2_FORTRAN_DECLARATIONS
+!  use OP2_FORTRAN_HDF5_DECLARATIONS
   use OP2_Fortran_Reference
   use OP2_CONSTANTS
   use AIRFOIL_SEQ
@@ -202,5 +203,6 @@ program AIRFOIL
   call op_timers ( endTime )
   call op_timing_output ()
   write (*,*) 'Max total runtime =',endTime-startTime,'seconds'
+  call op_exit()
 
 end program AIRFOIL

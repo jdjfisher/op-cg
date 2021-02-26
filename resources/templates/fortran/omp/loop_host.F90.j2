@@ -9,6 +9,10 @@ MODULE {{ parloop.name|upper }}_MODULE
   USE ISO_C_BINDING
   USE OP2_CONSTANTS
 
+#ifdef _OPENMP
+  USE OMP_LIB
+#endif
+
   CONTAINS
 
   ! Include kernel function
@@ -102,10 +106,8 @@ MODULE {{ parloop.name|upper }}_MODULE
 
   END SUBROUTINE
 
-
-
   ! Host function for kernel
-  SUBROUTINE {{ parloop.name }}_host ( &
+  SUBROUTINE op_par_loop_{{ parloop.name }}_host ( &
     & kernel, &
     & set, &
     {% for arg in parloop.args %}
@@ -123,13 +125,7 @@ MODULE {{ parloop.name|upper }}_MODULE
 
     type ( op_arg ) , DIMENSION({{ parloop.args | length }}) :: opArgArray
     INTEGER(kind=4) :: numberOfOpDats
-    INTEGER(kind=4), DIMENSION(1:8) :: timeArrayStart
-    INTEGER(kind=4), DIMENSION(1:8) :: timeArrayEnd
-    REAL(kind=8) :: startTime
-    REAL(kind=8) :: endTime
-    INTEGER(kind=4) :: returnSetKernelTiming
     INTEGER(kind=4) :: n_upper
-    type ( op_set_core ) , POINTER :: opSetCore
 
     {# TODO: Opts #}
 
@@ -153,7 +149,31 @@ MODULE {{ parloop.name|upper }}_MODULE
     INTEGER(kind=4) :: mapDim_{{ arg.map }}
     {% endfor %}
 
-    INTEGER(kind=4) :: i
+    {# Timer vars #}
+    INTEGER(kind=4), DIMENSION(1:8) :: timeArrayStart
+    INTEGER(kind=4), DIMENSION(1:8) :: timeArrayEnd
+    REAL(kind=8) :: startTime
+    REAL(kind=8) :: endTime
+    INTEGER(kind=4) :: returnSetKernelTiming
+
+    {# Plan vars #}
+    type ( op_set_core ) , POINTER :: opSetCore
+    type ( c_ptr )  :: planRet_{{ parloop.name }}
+    type ( op_plan ) , POINTER :: actualPlan_{{ parloop.name }}
+    INTEGER(kind=4), POINTER, DIMENSION(:) :: ncolblk_{{ parloop.name }}
+    INTEGER(kind=4), POINTER, DIMENSION(:) :: blkmap_{{ parloop.name }}
+    INTEGER(kind=4), POINTER, DIMENSION(:) :: nelems_{{ parloop.name }}
+    INTEGER(kind=4), POINTER, DIMENSION(:) :: offset_{{ parloop.name }}
+    INTEGER(kind=4), DIMENSION(1:8) :: indirectionDescriptorArray
+    INTEGER(kind=4) :: numberOfIndirectOpDats
+    INTEGER(kind=4) :: blockOffset
+    INTEGER(kind=4) :: nblocks
+    INTEGER(kind=4) :: partitionSize
+    INTEGER(kind=4) :: blockID
+    INTEGER(kind=4) :: nelem
+    INTEGER(kind=4) :: offset_b
+
+    INTEGER(kind=4) :: i1,i2
     REAL(kind=4) :: dataTransfer
 
     numberOfOpDats = {{ parloop.args | length }}
@@ -163,12 +183,48 @@ MODULE {{ parloop.name|upper }}_MODULE
     {% endfor %}
 
     returnSetKernelTiming = setKernelTime( &
-      & {{ id }}, kernel//C_NULL_CHAR, &
-      & 0.0_8, 0.00000_4,0.00000_4, 0 &
+    & {{ id }}, kernel//C_NULL_CHAR, &
+    & 0.0_8, 0.00000_4,0.00000_4, 0 &
     & )
     CALL op_timers_core(startTime)
 
     n_upper = op_mpi_halo_exchanges(set%setCPtr,numberOfOpDats,opArgArray)
+
+    opSetCore => set%setPtr
+
+#ifdef OP_PART_SIZE_1
+  partitionSize = OP_PART_SIZE_1
+#else
+  partitionSize = 0
+#endif
+
+#ifdef _OPENMP
+  numberOfThreads = omp_get_max_threads()
+#else
+  numberOfThreads = 1
+#endif
+
+    {# Indirect #}
+    {% for arg in parloop.indirectVars %}
+    indirectionDescriptorArray({{ arg.i+1 }}) =
+    {% endfor %}
+
+    numberOfIndirectOpDats = {{ parloop.indirectVars | length }}
+
+    planRet_{{ parloop.name }} = FortranPlanCaller( &
+    & userSubroutine//C_NULL_CHAR, &
+    & set%setCPtr, &
+    & partitionSize, &
+    & numberOfOpDats, &
+    & opArgArray, &
+    & numberOfIndirectOpDats, &
+    & indirectionDescriptorArray,{{id}})
+
+    CALL c_f_pointer(planRet_{{ parloop.name }},actualPlan_{{ parloop.name }})
+    CALL c_f_pointer(actualPlan_{{ parloop.name }}%ncolblk,ncolblk_{{ parloop.name }},(/actualPlan_{{ parloop.name }}%ncolors_core/))
+    CALL c_f_pointer(actualPlan_{{ parloop.name }}%blkmap,blkmap_{{ parloop.name }},(/actualPlan_{{ parloop.name }}%nblocks/))
+    CALL c_f_pointer(actualPlan_{{ parloop.name }}%offset,offset_{{ parloop.name }},(/actualPlan_{{ parloop.name }}%nblocks/))
+    CALL c_f_pointer(actualPlan_{{ parloop.name }}%nelems,nelems_{{ parloop.name }},(/actualPlan_{{ parloop.name }}%nblocks/))
 
     opSetCore => set%setPtr
 
@@ -185,6 +241,7 @@ MODULE {{ parloop.name|upper }}_MODULE
     mapDim_{{ arg.map }} = getMapDimFromOpArg(opArg{{ arg.i+1 }})
     {% endfor %}
 
+
     {# Global #}
     {% for arg in parloop.globals %}
     CALL c_f_pointer(opArg{{ arg.i+1 }}%data, gblDat_{{ arg.var }}, (/opArg{{ arg.i+1 }}%dim/))
@@ -199,56 +256,47 @@ MODULE {{ parloop.name|upper }}_MODULE
     CALL c_f_pointer(opArg{{ arg.i+1 }}%map_data, map_{{ arg.map }}, (/opSetCore%size*mapDim_{{ arg.map }}/))
     {% endfor %}
 
-    CALL {{ parloop.name }}_wrap( &
-      {# Globals #}
-      {% for arg in parloop.globals  %}
-      & gblDat_{{ arg.var }}, &
-      {% endfor %}
-      {# Directs #}
-      {% for arg in parloop.directs %}
-      & dirDat_{{ arg.var }}, &
-      {% endfor %}
-      {# Indirects #}
-      {% for arg in parloop.indirectVars %}
-      & indDat_{{ arg.var }}, &
-      {% endfor %}
-      {# Maps #}
-      {% for arg in parloop.indirectMaps  %}
-      & map_{{ arg.map }}, &
-      & mapDim_{{ arg.map }}, &
-      {% endfor %}
-      {#  #}
-      & 0, &
-      & opSetCore%core_size &
-    & )
+    blockOffset = 0
 
-    CALL op_mpi_wait_all(numberOfOpDats, opArgArray)
+    DO i1 = 0, actualPlan_{{ parloop.name }}%ncolors-1, 1
+      IF (i1 .EQ. actualPlan_{{ parloop.name }}%ncolors_core) THEN
+        CALL op_mpi_wait_all(numberOfOpDats,opArgArray)
+      END IF
 
-    CALL {{ parloop.name }}_wrap( &
-      {# Globals #}
-      {% for arg in parloop.globals  %}
-      & gblDat_{{ arg.var }}, &
-      {% endfor %}
-      {# Directs #}
-      {% for arg in parloop.directs %}
-      & dirDat_{{ arg.var }}, &
-      {% endfor %}
-      {# Indirects #}
-      {% for arg in parloop.indirectVars %}
-      & indDat_{{ arg.var }}, &
-      {% endfor %}
-      {# Maps #}
-      {% for arg in parloop.indirectMaps  %}
-      & map_{{ arg.map }}, &
-      & mapDim_{{ arg.map }}, &
-      {% endfor %}
-      {#  #}
-      & opSetCore%core_size, &
-      & n_upper &
-    & )
+      nblocks = ncolblk_{{ parloop.name }}(i1 + 1)
+      !$OMP PARALLEL DO private (threadID, blockID, nelem, offset_b)
+      DO i2 = 0, nblocks-1, 1
+        threadID = omp_get_thread_num()
+        blockID = blkmap_{{ parloop.name }}(i2+blockOffset+1)
+        nelem = nelems_{{ parloop.name }}(blockID+1)
+        offset_b = offset_{{ parloop.name }}(blockID+1)
+        CALL {{ parloop.name }}_wrap( &
+          {# Globals #}
+          {% for arg in parloop.globals  %}
+          & gblDat_{{ arg.var }}, &
+          {% endfor %}
+          {# Directs #}
+          {% for arg in parloop.directs %}
+          & dirDat_{{ arg.var }}, &
+          {% endfor %}
+          {# Indirects #}
+          {% for arg in parloop.indirectVars %}
+          & indDat_{{ arg.var }}, &
+          {% endfor %}
+          {# Maps #}
+          {% for arg in parloop.indirectMaps  %}
+          & map_{{ arg.map }}, &
+          & mapDim_{{ arg.map }}, &
+          {% endfor %}
+          {#  #}
+          & offset_b, offset_b+nelem )
+      END DO
+      !$OMP END PARALLEL DO
+      blockOffset = blockOffset + nblocks
+    END DO
 
     IF ((n_upper .EQ. 0) .OR. (n_upper .EQ. opSetCore%core_size)) THEN
-      CALL op_mpi_wait_all(numberOfOpDats,opArgArray)
+    CALL op_mpi_wait_all(numberOfOpDats, opArgArray)
     END IF
 
     CALL op_mpi_set_dirtybit(numberOfOpDats,opArgArray)
@@ -277,29 +325,24 @@ MODULE {{ parloop.name|upper }}_MODULE
     {%   for arg in parloop.args %}
     {%     call op_opt(arg) %}
     dataTransfer = dataTransfer + opArg{{ arg.i+1 }}%size
-    {%-    if arg is not global %} * opSetCore%size{% endif %}
+    {%-    if arg is not global %} * getSetSizeFromOpArg(opArg{{ arg.i+1 }}){% endif %}
     {%-    if arg is not r_or_w_acc %} * 2.d0{% endif %}
-    {%     endcall %}{{''}}
+    {{''}}
+    {%     endcall %}
     {%   endfor %}
+    returnSetKernelTiming = setKernelTime( &
+    & {{ id }}, kernel//C_NULL_CHAR, &
+    & endTime-startTime, dataTransfer, 0.00000_4, 1 &
+    & )
     {% else %}
     {# Indirection #}
-    {%   for arg in parloop.uniqueVars %}
-    {%     call op_opt(arg) %}
-    dataTransfer = dataTransfer + opArg{{ arg.i+1 }}%size
-    {%-    if arg is not global %} * MIN(n_upper,getSetSizeFromOpArg(opArg{{ arg.i+1 }})){% endif %}
-    {%-    if arg is not r_or_w_acc %} * 2.d0{% endif %}
-    {%     endcall %}{{''}}
-    {%   endfor %}
-
-    {%   for arg in parloop.indirectMaps %}
-    dataTransfer = dataTransfer + n_upper * mapDim_{{ arg.map }} * 4.d0
-    {%   endfor %}
+    returnSetKernelTiming = setKernelTime( &
+    & {{ id }}, kernel//C_NULL_CHAR, &
+    & endTime-startTime, actualPlan_{{ parloop.name }}%transfer, &
+    & actualPlan_{{ parloop.name }}%transfer2, 1 &
+    & )
     {% endif %}
 
-    returnSetKernelTiming = setKernelTime( &
-      & {{ id }}, kernel//C_NULL_CHAR, &
-      & endTime-startTime, dataTransfer, 0.00000_4, 1 &
-    & )
   END SUBROUTINE
 
 END MODULE

@@ -35,7 +35,7 @@ class Scheme(object):
   def all(cls) -> List[Opt]:
     return cls.instances
 
-  
+
   @classmethod
   def find(cls, lang: Lang, opt: Opt) -> Opt:
     return safeFind(cls.all(), lambda s: s.lang == lang and s.opt == opt)
@@ -79,7 +79,9 @@ class Scheme(object):
 # Register schemes here ...
 
 cseq = Scheme(cpp.lang, optimisation.seq, Path('cpp/seq/loop_host.cpp.j2'))
+
 fseq = Scheme(fortran.lang, optimisation.seq, Path('fortran/seq/loop_host.F90.j2'), Path('fortran/seq/make_stub.make.j2'))
+fomp = Scheme(fortran.lang, optimisation.omp, Path('fortran/omp/loop_host.F90.j2'), Path('fortran/omp/make_stub.make.j2'))
 fcuda = Scheme(fortran.lang, optimisation.cuda, Path('fortran/cuda/loop_host.CUF.j2'), Path('fortran/cuda/make_stub.make.j2'))
 
 from fortran.translator.kernels import cuda

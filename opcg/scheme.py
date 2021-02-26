@@ -80,9 +80,13 @@ class Scheme(object):
 
 cseq = Scheme(cpp.lang, optimisation.seq, Path('cpp/seq/loop_host.cpp.j2'))
 
-fseq = Scheme(fortran.lang, optimisation.seq, Path('fortran/seq/loop_host.F90.j2'), Path('fortran/seq/make_stub.make.j2'))
-fomp = Scheme(fortran.lang, optimisation.omp, Path('fortran/omp/loop_host.F90.j2'), Path('fortran/omp/make_stub.make.j2'))
+fseq  = Scheme(fortran.lang, optimisation.seq,  Path('fortran/seq/loop_host.F90.j2'),  Path('fortran/seq/make_stub.make.j2'))
+fvec  = Scheme(fortran.lang, optimisation.vec,  Path('fortran/vec/loop_host.F90.j2'),  Path('fortran/vec/make_stub.make.j2'))
+fomp  = Scheme(fortran.lang, optimisation.omp,  Path('fortran/omp/loop_host.F90.j2'),  Path('fortran/omp/make_stub.make.j2'))
 fcuda = Scheme(fortran.lang, optimisation.cuda, Path('fortran/cuda/loop_host.CUF.j2'), Path('fortran/cuda/make_stub.make.j2'))
 
 from fortran.translator.kernels import cuda
 fcuda.translateKernel = MethodType(cuda.translateKernel, fcuda) # type: ignore
+
+from fortran.translator.kernels import vec
+fvec.translateKernel = MethodType(vec.translateKernel, fvec) # type: ignore

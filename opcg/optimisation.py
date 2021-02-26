@@ -56,4 +56,4 @@ cuda = Opt('cuda', True, config={
 
 omp = Opt('omp', False)
 
-# simd = Opt('simd', True)
+vec = Opt('vec', True)

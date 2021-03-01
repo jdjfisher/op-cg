@@ -1,5 +1,8 @@
 
-# Third part imports
+# Standard imports
+import re
+
+# Third party imports
 from xml.etree.ElementTree import Element, dump
 
 # Application imports
@@ -44,16 +47,30 @@ def translateKernel(self, source: str, kernel: Kernel, app: Application) -> str:
       if atomise:
         # Extract source locations from AST
         line_index = int(assignment.attrib['line_begin']) - 1
-        assignment_offset = int(assignment.attrib['col_begin'])
-        value_offset = int(assignment.find('value').attrib['col_begin'])
-        operator_offset = int(operator.attrib['col_begin'])
+        assignment_offset = int(assignment.attrib['col_begin']) - 1
+        value_offset = int(assignment.find('value').attrib['col_begin']) - 1
+        operator_offset = int(operator.attrib['col_begin']) - 1
+
+        # Fold continuations
+        line = lines[line_index].rstrip()
+        continuations = 0
+        while line.endswith('&'):
+          continuations += 1
+          line = line[:-1] + lines[line_index + continuations].lstrip()[1:]
+
+        # Compute indentation string
+        indent = (assignment_offset + 1) * ' '
 
         # Atomize the assignment
-        line = lines[line_index]
         _, value = indexSplit(line, value_offset)
         l, r = indexSplit(value, operator_offset - value_offset)
-        line = assignment_offset * ' ' + 'istat = AtomicAdd(' + l.strip() + ', ' + r.strip() + ')'
+        line = indent + 'istat = AtomicAdd(' + l.strip() + ', ' + r.strip() + ')'
         lines[line_index] = line
+
+        # Remove old continuations
+        for i in range(1, continuations + 1):
+          lines[line_index + i] = indent
+   
         needs_istat = True
 
     # Insert istat typing

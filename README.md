@@ -9,5 +9,6 @@
 ## Requirements
 
 - Python>=3.8
-- Clang
+- Clang (including pyclang : sudo apt-get install libclang-dev)
 - Java
+  

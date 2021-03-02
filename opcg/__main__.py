@@ -192,17 +192,19 @@ def codegen(args: Namespace, scheme: Scheme, app: Application) -> None:
       with open(kernel.path, 'r') as raw_file:
 
         # Generate the source translation
-        source = scheme.translateKernel(raw_file.read(), kernel, app)
+        source, tran = scheme.translateKernel(raw_file.read(), kernel, app)
 
-        # Form output file path
-        new_path = Path(args.out, f'{kernel}_{scheme.opt.name}.{scheme.lang.include_ext}')
+        # if this kernel should be translated
+        if tran:
+          # Form output file path
+          new_path = Path(args.out, f'{kernel}_{scheme.opt.name}.{scheme.lang.include_ext}')
 
-        # Write the translated source file
-        with open(new_path, 'w') as new_file:
-          new_file.write(source)
+          # Write the translated source file
+          with open(new_path, 'w') as new_file:
+            new_file.write(source)
 
-          if args.verbose:
-            print(f'Translated kernel   {i} of {len(app.kernels)}: {new_path}')
+            if args.verbose:
+              print(f'Translated kernel   {i} of {len(app.kernels)}: {new_path}')
 
   # Generate Makefile
   if args.makefile and scheme.make_stub_template:

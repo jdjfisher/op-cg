@@ -1,6 +1,7 @@
 
 # Standard imports
 import re
+from typing import Tuple
 
 # Third party imports
 from xml.etree.ElementTree import Element, dump
@@ -10,7 +11,7 @@ from store import Kernel, Application
 from util import SourceBuffer, indexSplit, find
 
 
-def translateKernel(self, source: str, kernel: Kernel, app: Application) -> str:
+def translateKernel(self, source: str, kernel: Kernel, app: Application) -> Tuple[str,int]:
   buffer = SourceBuffer(source)
 
   # Collect indirect increment identifiers TODO: Tidy
@@ -38,7 +39,7 @@ def translateKernel(self, source: str, kernel: Kernel, app: Application) -> str:
       operands = assignment.findall('value/operation/operand')
       operator = assignment.find('value/operation/operator/add-op')
 
-      # Determine if the assignment is a valid increment that should be atomised 
+      # Determine if the assignment is a valid increment that should be atomised
       atomise = name is not None and operator is not None and \
         len(operands) == 2 and name in increments and \
         any(o.find('name') and o.find('name').attrib['id'] == name for o in operands)
@@ -66,7 +67,7 @@ def translateKernel(self, source: str, kernel: Kernel, app: Application) -> str:
         # Remove old continuations
         for i in range(1, continuations + 1):
           buffer.remove(line_index + i)
-   
+
         needs_istat = True
 
     # Insert istat typing
@@ -77,7 +78,7 @@ def translateKernel(self, source: str, kernel: Kernel, app: Application) -> str:
 
   # Augment OP2 constant references
   source = buffer.translate()
-  for const in app.consts: 
+  for const in app.consts:
     source = source.replace(const.ptr, const.ptr + '_OP2')
 
-  return source
+  return source, 1

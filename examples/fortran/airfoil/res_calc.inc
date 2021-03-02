@@ -1,8 +1,7 @@
-SUBROUTINE res_calc &
-& ( &
-& x1, &
-& x2,q1,q2,adt1,adt2,&
-& res1,res2)
+SUBROUTINE res_calc (x1,x2, &
+& q1,q2,     &
+& adt1,adt2,res1,res2 &
+&               )
   IMPLICIT NONE
   REAL(kind=8), DIMENSION(2) :: x1
   REAL(kind=8), DIMENSION(2), INTENT(IN) :: x2
@@ -24,8 +23,7 @@ SUBROUTINE res_calc &
   vol2 = ri * (q2(2) * dy - q2(3) * dx)
   mu = 0.5 * (adt1 + adt2) * eps
   f = 0.5 * (vol1 * q1(1) + vol2 * q2(1)) + mu * (q1(1) - q2(1))
-  res1(1) = res1(1) &
-  & + f
+  res1(1) = res1(1) + f
   res2(1) = res2(1) - f
   f = 0.5 * (vol1 * q1(2) + p1 * dy + vol2 * q2(2) + p2 * dy) + mu * (q1(2) - q2(2))
   res1(2) = res1(2) + f

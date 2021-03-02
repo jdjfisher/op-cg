@@ -1,4 +1,5 @@
 open-fortran-parser
+cached-property
 python-dotenv
 clang
 jinja2

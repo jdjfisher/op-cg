@@ -2,6 +2,9 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Final, Optional, Dict, List
 
+# Third party imports
+from cached_property import cached_property
+
 # Application imports
 from util import uniqueBy, find
 if TYPE_CHECKING:
@@ -170,47 +173,47 @@ class Loop:
     return self.kernel
 
 
-  @property
+  @cached_property
   def indirection(self) -> bool:
     return len(self.indirects) > 0
 
 
-  @property
+  @cached_property
   def directs(self) -> List[Arg]:
     return [ arg for arg in self.args if arg.direct ]
 
 
-  @property
+  @cached_property
   def indirects(self) -> List[Arg]:
     return [ arg for arg in self.args if arg.indirect ]
 
 
-  @property
+  @cached_property
   def globals(self) -> List[Arg]:
     return [ arg for arg in self.args if arg.global_ ]
 
 
-  @property
+  @cached_property
   def uniqueVars(self) -> List[Arg]:
     return uniqueBy(self.args, lambda a: a.var)
 
 
-  @property
+  @cached_property
   def indirectVars(self) -> List[Arg]:
     return uniqueBy(self.indirects, lambda a: a.var)
 
 
-  @property
+  @cached_property
   def indirectMaps(self) -> List[Arg]:
     return uniqueBy(self.indirects, lambda a: a.map)
 
 
-  @property
+  @cached_property
   def indirectIdxs(self) -> List[Arg]:
     return uniqueBy(self.indirects, lambda a: (a.map, a.idx))
 
   
-  @property
+  @cached_property
   def indirectionDescriptor(self) -> List[int]:
     descriptor = []
 
@@ -225,12 +228,12 @@ class Loop:
     return descriptor
 
 
-  @property
+  @cached_property
   def reduction(self) -> bool:
     return any( arg.acc != READ for arg in self.globals )
 
 
-  @property
+  @cached_property
   def multiDimReduction(self) -> bool:
     return self.reduction and any( arg.dim > 1 for arg in self.globals )
 

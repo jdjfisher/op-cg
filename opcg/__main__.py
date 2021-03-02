@@ -15,6 +15,7 @@ from util import getVersion, safeFind
 from optimisation import Opt
 from scheme import Scheme
 from language import Lang
+from op import OpError
 
 
 
@@ -66,7 +67,16 @@ def main(argv=None) -> None:
     print(f'Translation scheme: {scheme}')
 
   # Parsing phase
-  app = parsing(args, scheme)
+  try:
+    app = parsing(args, scheme)
+  except ParseError as e:
+    exit(e)
+
+  # Validation phase
+  try:
+    validate(args, scheme, app)
+  except OpError as e:
+    exit(e)
 
   # Code-generation phase
   codegen(args, scheme, app)
@@ -110,6 +120,11 @@ def parsing(args: Namespace, scheme: Scheme) -> Application:
 
     app.kernels.append(kernel)
 
+  return app
+
+
+
+def validate(args: Namespace, scheme: Scheme, app: Application) -> None:
   # Run semantic checks on the application
   app.validate(scheme.lang)
 
@@ -125,11 +140,9 @@ def parsing(args: Namespace, scheme: Scheme) -> Application:
     if args.verbose:
       print('Dumped store:', store_path, end='\n\n')
 
-  return app
 
 
-
-def codegen(args: Namespace, scheme: Scheme, app: Application):
+def codegen(args: Namespace, scheme: Scheme, app: Application) -> None:
   # Collect the paths of the generated files
   generated_paths: List[Path] = []
 

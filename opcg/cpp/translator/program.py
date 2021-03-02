@@ -26,7 +26,7 @@ def translateProgram(self, source: str, program: Program, soa: bool = False) -> 
     buffer.update(loop.loc.line - 1, before + f'op_par_loop_{loop.name}_host' + after)
 
   # 3. Update headers
-  index = buffer.search(r'\s*#include\s+"op_seq\.h"') + 2 # TODO: Make more robust
+  index = buffer.search(r'\s*#include\s+"op_seq\.h"') + 2
   for loop in program.loops:
     prototype = f'void op_par_loop_{loop.name}_host(char const *, op_set{", op_arg" * len(loop.args)});\n'
     buffer.insert(index, prototype)

@@ -27,7 +27,7 @@ def translateKernel(self, source: str, kernel: Kernel, app: Application) -> Tupl
   for arg in loop.args:
     if arg.indirect:
       ind = ind + arg.indirect
-      print(arg.var, arg.typ)
+      print(arg.var, arg.typ, arg.dim)
 
   #modify only indirect loops
   if ind :
@@ -50,16 +50,34 @@ def translateKernel(self, source: str, kernel: Kernel, app: Application) -> Tupl
 
     #remove closing )
     i = line.find(')')
-    line = line[:i-1]
+    line = line[:i]
+    para = line[line.find('(')+1:].split(",") # collect the kernel parameters -- for later
+    para = [x.strip(' ') for x in para]
+
     buffer.update(line_index, line.strip() + ",idx)")
 
     # Remove old continuations
     for i in range(1, continuations + 1):
       buffer.remove(line_index + i)
 
+    # remove Vec args from sepcification - note: assumes local vars are on separate lines
+    spec = body.find('specification')
+    s = int(spec.attrib['line_begin'])
+    e = int(spec.attrib['line_end'])
+    for i in range(s, e):
+      line = buffer.get(i)
+      Vars = re.split(',|::',line)
+      Vars = [x.strip(' ') for x in Vars]
+      for p in para:
+        if p in Vars:
+          ui = i
+      buffer.update(ui,'')
+
     # Add additional argument - idx
     spec = body.find('specification')
     indent = ' ' * int(spec.attrib['col_begin'])
     buffer.insert(int(spec.attrib['line_begin']), indent + 'INTEGER(kind=4) :: idx')
+
+    source = buffer.translate()
 
   return source, ind

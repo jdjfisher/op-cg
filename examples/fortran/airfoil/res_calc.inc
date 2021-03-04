@@ -9,9 +9,10 @@ SUBROUTINE res_calc (x1,x2, &
   REAL(kind=8), DIMENSION(4), INTENT(IN) :: q2
   REAL(kind=8), INTENT(IN) :: adt1
   REAL(kind=8), INTENT(IN) :: adt2
-  REAL(kind=8), DIMENSION(4) :: res1
-  REAL(kind=8), DIMENSION(4) :: res2
+  REAL(kind=8), DIMENSION(4) :: res1, y, res2, x12, z
+  REAL(kind=8), DIMENSION(4) :: res2, y, u, v
   REAL(kind=8) :: dx,dy,mu,ri,p1,vol1,p2,vol2,f
+  real(8) opDat1Local(2,*)
 
   dx = x1(1) - x2(1)
   dy = x1(2) - x2(2)
